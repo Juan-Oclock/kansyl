@@ -1,0 +1,83 @@
+{
+    "app": "Subscription Manager",
+    "theme": {
+      "colors": {
+        "primary": "#1E1E1E",
+        "secondary": "#4CAF50",
+        "background": "#F8FAFC",
+        "cardBackground": "#FFFFFF",
+        "highlightBackground": "#0F172A",
+        "textPrimary": "#0F172A",
+        "textSecondary": "#64748B",
+        "success": "#22C55E",
+        "warning": "#FACC15",
+        "danger": "#EF4444",
+        "neutral": "#CBD5E1",
+        "buttonPrimary": "#16A34A",
+        "buttonSecondary": "#E2E8F0"
+      },
+      "typography": {
+        "fontFamily": "SF Pro Display",
+        "headings": {
+          "h1": { "size": 28, "weight": "700", "lineHeight": 34 },
+          "h2": { "size": 22, "weight": "600", "lineHeight": 28 },
+          "h3": { "size": 18, "weight": "600", "lineHeight": 24 },
+          "bodyLarge": { "size": 16, "weight": "500", "lineHeight": 22 },
+          "body": { "size": 14, "weight": "400", "lineHeight": 20 },
+          "caption": { "size": 12, "weight": "400", "lineHeight": 18 }
+        }
+      },
+      "spacing": {
+        "xs": 4,
+        "sm": 8,
+        "md": 16,
+        "lg": 24,
+        "xl": 32
+      },
+      "radius": {
+        "small": 8,
+        "medium": 16,
+        "large": 24,
+        "pill": 999
+      },
+      "shadows": {
+        "card": "0px 2px 6px rgba(0,0,0,0.05)",
+        "button": "0px 2px 8px rgba(0,0,0,0.1)"
+      }
+    },
+    "components": {
+      "header": {
+        "greeting": { "type": "text", "style": "h2" },
+        "title": { "type": "text", "style": "h1" },
+        "actionButton": { "type": "iconButton", "shape": "circle", "background": "cardBackground" }
+      },
+      "freeTrialCard": {
+        "background": "cardBackground",
+        "text": "body",
+        "button": "primary"
+      },
+      "savingsCard": {
+        "background": "highlightBackground",
+        "textPrimary": "white",
+        "button": "primary"
+      },
+      "subscriptionItem": {
+        "icon": "roundedSquare",
+        "title": "bodyLarge",
+        "price": "bodyLarge",
+        "status": {
+          "color": {
+            "expiringSoon": "danger",
+            "expiringLater": "warning"
+          },
+          "style": "caption"
+        }
+      },
+      "bottomNav": {
+        "items": ["Subscription", "History", "Add", "Stats", "Settings"],
+        "activeColor": "primary",
+        "inactiveColor": "textSecondary"
+      }
+    }
+  }
+  

@@ -1,0 +1,63 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+*.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# SwiftPM Artifacts
+.build/
+
+# App artifacts
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# User-specific
+*.swp
+*~
+*.orig
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Simulator and device data
+*.deviceinfo
+
+# Logs
+*.log
+
+# Binary caches
+build/**
+build/*.noindex/
+**/*.noindex/
+
+# Ignore generated plist if any in build
+build/**/*.plist
+
+# Other
+xcuserdata/
