@@ -11,6 +11,7 @@ import CoreData
 struct SettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @ObservedObject private var appPreferences = AppPreferences.shared
+    @StateObject private var configManager = AIConfigManager.shared
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingClearDataAlert = false
     @State private var showingExportSheet = false
@@ -77,6 +78,7 @@ struct SettingsView: View {
                     Text("Customize when and how you receive trial reminders")
                 }
                 
+                    
                 // Siri Shortcuts Section
                 Section {
                     NavigationLink(destination: SiriShortcutsView()) {

@@ -167,12 +167,18 @@ class AIAnalysisService {
         // Make API call to OpenAI or similar service
         let parsedData = try await makeAIRequest(prompt: prompt)
         configManager.recordAPICall()
+        configManager.recordAIScan() // Track usage in production
         return parsedData
     }
     
     private func makeAIRequest(prompt: String) async throws -> ReceiptScanner.ParsedReceiptData {
         guard let apiKey = configManager.deepSeekAPIKey else {
             throw ReceiptScannerError.apiKeyMissing
+        }
+        
+        // Check usage limits in production
+        guard configManager.canMakeAIScan else {
+            throw ReceiptScannerError.usageLimitExceeded
         }
         
         let url = URL(string: "https://api.deepseek.com/v1/chat/completions")!
@@ -404,6 +410,7 @@ enum ReceiptScannerError: LocalizedError {
     case apiError
     case apiKeyMissing
     case rateLimited
+    case usageLimitExceeded
     case invalidAPIResponse
     case invalidJSONResponse
     
@@ -416,9 +423,15 @@ enum ReceiptScannerError: LocalizedError {
         case .apiError:
             return "AI service unavailable"
         case .apiKeyMissing:
-            return "AI service not configured. Please add your DeepSeek API key in settings."
+            if ProductionAIConfig.isProduction {
+                return "AI service temporarily unavailable. Please try again later."
+            } else {
+                return "AI service not configured. Please add your DeepSeek API key in settings."
+            }
         case .rateLimited:
             return "AI service rate limited. Please try again in a moment."
+        case .usageLimitExceeded:
+            return "AI scan limit reached. Please contact support for assistance."
         case .invalidAPIResponse:
             return "Invalid response from AI service"
         case .invalidJSONResponse:

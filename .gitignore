@@ -67,6 +67,7 @@ Config.xcconfig
 kansyl/Config/APIConfig.swift
 **/APIKeys.plist
 **/secrets.json
+**/Config.plist
 
 # Environment files
 .env

@@ -19,23 +19,36 @@ class AIConfigManager: ObservableObject {
     // MARK: - API Key Management
     var deepSeekAPIKey: String? {
         get {
-            // First try keychain (user-configured)
+            // In production, use embedded API key
+            if ProductionAIConfig.isProduction {
+                return ProductionAIConfig.getAPIKey()
+            }
+            
+            // Development fallback: try keychain (user-configured)
             if let keychainKey = keychain.get(key: deepSeekKeyIdentifier), !keychainKey.isEmpty {
                 return keychainKey
             }
             
-            // Fallback to development configuration
+            // Try development configuration
             if let developmentKey = APIConfig.getAPIKey() {
                 return developmentKey
+            }
+            
+            // Try fallback development config
+            if let fallbackKey = DevelopmentConfig.getAPIKey() {
+                return fallbackKey
             }
             
             return nil
         }
         set {
-            if let key = newValue {
-                keychain.set(key: deepSeekKeyIdentifier, value: key)
-            } else {
-                keychain.delete(key: deepSeekKeyIdentifier)
+            // Only allow setting API key in development mode
+            if !ProductionAIConfig.isProduction {
+                if let key = newValue {
+                    keychain.set(key: deepSeekKeyIdentifier, value: key)
+                } else {
+                    keychain.delete(key: deepSeekKeyIdentifier)
+                }
             }
         }
     }
@@ -43,6 +56,38 @@ class AIConfigManager: ObservableObject {
     // MARK: - Configuration
     var isAIEnabled: Bool {
         return deepSeekAPIKey != nil && !deepSeekAPIKey!.isEmpty
+    }
+    
+    // MARK: - Usage Tracking (Production Only)
+    private let userDefaults = UserDefaults.standard
+    private let scanCountKey = "com.kansyl.ai.scanCount"
+    
+    var currentUserScanCount: Int {
+        get {
+            return userDefaults.integer(forKey: scanCountKey)
+        }
+        set {
+            userDefaults.set(newValue, forKey: scanCountKey)
+        }
+    }
+    
+    var canMakeAIScan: Bool {
+        if ProductionAIConfig.isProduction {
+            return ProductionAIConfig.canMakeScanRequest(currentUserScans: currentUserScanCount)
+        }
+        return true // No limits in development
+    }
+    
+    var remainingScans: Int {
+        if ProductionAIConfig.isProduction {
+            return ProductionAIConfig.remainingScans(currentUserScans: currentUserScanCount)
+        }
+        return Int.max // Unlimited in development
+    }
+    
+    func recordAIScan() {
+        currentUserScanCount += 1
+        print("📊 AI scan recorded. Total scans: \(currentUserScanCount)")
     }
     
     // MARK: - Alternative AI Services
