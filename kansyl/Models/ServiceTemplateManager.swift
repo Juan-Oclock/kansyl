@@ -267,4 +267,113 @@ class ServiceTemplateManager {
     func templates(for category: String) -> [ServiceTemplateData] {
         templates.filter { $0.category == category }
     }
+    
+    // MARK: - AI-Enhanced Service Matching
+    
+    /// Find the best matching service template for a given service name
+    /// This uses fuzzy matching and common variations to improve AI receipt scanning accuracy
+    func findBestMatch(for serviceName: String, confidence threshold: Float = 0.7) -> ServiceTemplateData? {
+        let searchName = serviceName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // First try exact match
+        if let exactMatch = templates.first(where: { $0.name.lowercased() == searchName }) {
+            return exactMatch
+        }
+        
+        // Try fuzzy matching with known variations
+        for template in templates {
+            if let match = fuzzyMatch(searchName: searchName, template: template) {
+                return match
+            }
+        }
+        
+        // Try substring matching
+        for template in templates {
+            let templateName = template.name.lowercased()
+            if templateName.contains(searchName) || searchName.contains(templateName) {
+                return template
+            }
+        }
+        
+        return nil
+    }
+    
+    private func fuzzyMatch(searchName: String, template: ServiceTemplateData) -> ServiceTemplateData? {
+        let templateName = template.name.lowercased()
+        
+        // Define known variations and common misspellings
+        let variations: [String: [String]] = [
+            "netflix": ["netflx", "net flix", "netflix inc", "netflix.com"],
+            "spotify": ["spotify premium", "spotify music", "spotify.com", "spotify inc"],
+            "youtube": ["youtube premium", "youtube music", "yt premium", "youtube.com", "google youtube"],
+            "apple music": ["apple", "itunes", "apple.com/music", "music app"],
+            "hbo max": ["hbo", "hbomax", "hbo streaming", "warner bros"],
+            "apple tv+": ["apple tv", "appletv", "apple tv plus", "tv.apple.com"],
+            "disney+": ["disney", "disney plus", "disneyplus", "walt disney"],
+            "amazon prime": ["amazon", "prime", "amazon.com", "prime video"],
+            "notion": ["notion.so", "notion labs"],
+            "dropbox plus": ["dropbox", "dropbox.com"],
+            "google one": ["google", "google drive", "google.com"],
+            "icloud+": ["icloud", "apple icloud", "cloud storage"],
+            "discord nitro": ["discord", "discord.com"],
+            "slack pro": ["slack", "slack.com"],
+            "zoom pro": ["zoom", "zoom.us", "zoom meeting"],
+            "peloton app": ["peloton", "peloton.com"],
+            "headspace": ["headspace.com", "headspace meditation"],
+            "playstation plus": ["playstation", "ps plus", "sony playstation"],
+            "twitch turbo": ["twitch", "twitch.tv"],
+            "openai plus": ["openai", "chatgpt", "chat gpt", "openai.com"],
+            "claude pro": ["claude", "anthropic", "claude ai"],
+            "x": ["twitter", "twitter.com", "x.com"],
+            "instagram+": ["instagram", "ig", "instagram.com"]
+        ]
+        
+        // Check if the template has variations defined
+        if let templateVariations = variations[templateName] {
+            for variation in templateVariations {
+                if searchName.contains(variation) || variation.contains(searchName) {
+                    return template
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Get suggested templates based on AI-detected service information
+    func getSuggestions(for receiptData: Any) -> [ServiceTemplateData] {
+        // This could be expanded to analyze receipt patterns and suggest likely services
+        // For now, return popular streaming and productivity services
+        return templates.filter { template in
+            ["Streaming", "Music", "Productivity", "AI"].contains(template.category)
+        }.prefix(6).map { $0 }
+    }
+    
+    /// Validate and enhance AI-detected service information
+    func validateAndEnhance(serviceName: String, amount: Double?) -> (template: ServiceTemplateData?, confidence: Float) {
+        guard let template = findBestMatch(for: serviceName) else {
+            return (nil, 0.0)
+        }
+        
+        var confidence: Float = 0.8 // Base confidence for template match
+        
+        // Adjust confidence based on price matching
+        if let detectedAmount = amount {
+            let priceDifference = abs(detectedAmount - template.monthlyPrice)
+            let priceVariance = priceDifference / template.monthlyPrice
+            
+            if priceVariance <= 0.1 { // Within 10%
+                confidence += 0.15
+            } else if priceVariance <= 0.3 { // Within 30%
+                confidence += 0.05
+            } else if priceVariance > 0.5 { // More than 50% difference
+                confidence -= 0.2
+            }
+        }
+        
+        // Cap confidence at 1.0
+        confidence = min(confidence, 1.0)
+        
+        return (template, confidence)
+    }
 }

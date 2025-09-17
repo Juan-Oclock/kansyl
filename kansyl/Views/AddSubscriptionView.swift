@@ -39,6 +39,7 @@ struct AddSubscriptionView: View {
     @State private var searchText = ""
     @State private var showingPremiumRequired = false
     @State private var showingAllServices = false
+    @State private var showingReceiptScan = false
     @State private var isServiceNameInvalid = false
     @State private var attempts = 0
     @State private var showingDaysPicker = false
@@ -158,6 +159,14 @@ struct AddSubscriptionView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingReceiptScan) {
+            ReceiptScanView(subscriptionStore: subscriptionStore) { subscription in
+                if let subscription = subscription {
+                    onSave?(subscription)
+                    dismiss()
+                }
+            }
+        }
         .onAppear {
             handlePrefilledService()
         }
@@ -210,22 +219,43 @@ struct AddSubscriptionView: View {
             .cornerRadius(12)
             .padding(.horizontal, 20)
             
-            // Section Header
-            HStack {
-                Text("Popular Services")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Spacer()
-                
-                Button("Add Manually") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showingCustomService = true
-                        HapticManager.shared.playButtonTap()
+            // Section Header with multiple options
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Popular Services")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Design.Colors.textPrimary)
+                    
+                    Spacer()
+                    
+                    Button("Add Manually") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingCustomService = true
+                            HapticManager.shared.playButtonTap()
+                        }
                     }
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(Design.Colors.success)
                 }
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(Design.Colors.success)
+                
+                // Receipt scan button
+                Button(action: {
+                    showingReceiptScan = true
+                    HapticManager.shared.playButtonTap()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.system(size: 14, weight: .medium))
+                        
+                        Text("Scan Receipt with AI")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(Design.Colors.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Design.Colors.primary.opacity(0.1))
+                    .cornerRadius(8)
+                }
             }
             .padding(.horizontal, 20)
             

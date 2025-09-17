@@ -92,7 +92,9 @@ class SubscriptionStore: ObservableObject {
     @discardableResult
     func addSubscription(name: String, startDate: Date, endDate: Date, 
                   monthlyPrice: Double, serviceLogo: String, notes: String? = nil,
-                  addToCalendar: Bool = false) -> Subscription {
+                  addToCalendar: Bool = false, billingCycle: String? = nil, 
+                  billingAmount: Double? = nil, originalCurrency: String? = nil,
+                  originalAmount: Double? = nil, exchangeRate: Double? = nil) -> Subscription {
         let newSubscription = Subscription(context: viewContext)
         newSubscription.id = UUID()
         newSubscription.name = name
@@ -102,6 +104,18 @@ class SubscriptionStore: ObservableObject {
         newSubscription.serviceLogo = serviceLogo
         newSubscription.status = SubscriptionStatus.active.rawValue
         newSubscription.notes = notes
+        
+        // Set billing cycle and amount
+        newSubscription.billingCycle = billingCycle ?? "monthly"
+        newSubscription.billingAmount = billingAmount ?? monthlyPrice
+        
+        // Set exchange rate tracking if currency was converted
+        if let origCurrency = originalCurrency {
+            newSubscription.originalCurrency = origCurrency
+            newSubscription.originalAmount = originalAmount ?? billingAmount ?? monthlyPrice
+            newSubscription.exchangeRate = exchangeRate ?? 1.0
+            newSubscription.lastRateUpdate = Date()
+        }
         
         saveContext()
         fetchSubscriptions()

@@ -452,13 +452,13 @@ struct SubscriptionRowCard: View {
                 
                 // Price Info with fade animation
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(AppPreferences.shared.formatPrice(subscription.monthlyPrice))/mo")
+                    Text(formatPrice(for: subscription))
                         .font(Design.Typography.callout(.semibold))
                         .foregroundColor(Design.Colors.textPrimary)
                         .opacity(priceOpacity)
                         .animation(Design.Animation.smooth, value: priceOpacity)
                     
-                    Text("Monthly")
+                    Text(formatBillingCycle(for: subscription))
                         .font(Design.Typography.caption())
                         .foregroundColor(Design.Colors.textSecondary)
                         .opacity(priceOpacity)
@@ -556,6 +556,31 @@ struct SubscriptionRowCard: View {
         guard let endDate = subscription.endDate else { return 0 }
         let days = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
         return max(0, days)
+    }
+    
+    private func formatPrice(for subscription: Subscription) -> String {
+        // Use billingAmount if available, otherwise fall back to monthlyPrice
+        let amount = subscription.billingAmount > 0 ? subscription.billingAmount : subscription.monthlyPrice
+        let cycle = subscription.billingCycle ?? "monthly"
+        
+        // Format price with appropriate period suffix
+        switch cycle.lowercased() {
+        case "yearly", "annual":
+            return "\(AppPreferences.shared.formatPrice(amount))/yr"
+        case "quarterly":
+            return "\(AppPreferences.shared.formatPrice(amount))/qtr"
+        case "weekly":
+            return "\(AppPreferences.shared.formatPrice(amount))/wk"
+        case "semi-annual", "biannual":
+            return "\(AppPreferences.shared.formatPrice(amount))/6mo"
+        default:
+            return "\(AppPreferences.shared.formatPrice(amount))/mo"
+        }
+    }
+    
+    private func formatBillingCycle(for subscription: Subscription) -> String {
+        let cycle = subscription.billingCycle ?? "monthly"
+        return cycle.capitalized
     }
     
     private var urgencyColor: Color {
