@@ -21,11 +21,13 @@ struct ModernSubscriptionDetailView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
+            VStack(spacing: 0) {
                 // Background color - dark gray in dark mode
                 (colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background)
                     .ignoresSafeArea()
+                    .frame(height: 0) // Just for background color
                 
+                // Scrollable Content
                 ScrollView {
                     VStack(spacing: 24) {
                         // Service Header Card
@@ -92,7 +94,6 @@ struct ModernSubscriptionDetailView: View {
                         .opacity(animateContent ? 1.0 : 0)
                         .id("details-\(refreshTrigger)") // Force refresh when trigger changes
                         
-                        
                         // Notes Section
                         if let notes = subscription.notes, !notes.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
@@ -102,72 +103,89 @@ struct ModernSubscriptionDetailView: View {
                                     .font(.system(size: 15))
                                     .foregroundColor(Design.Colors.textPrimary)
                                     .padding(20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
-                    .cornerRadius(16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
+                                    .cornerRadius(16)
                             }
                             .padding(.horizontal, 20)
                             .offset(y: animateContent ? 0 : 20)
                             .opacity(animateContent ? 1.0 : 0)
                         }
                         
-                        // Modern Action Buttons
-                        VStack(spacing: 12) {
-                            // Keep Button - Blue/Primary
-                            Button(action: keepSubscription) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "heart.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                    Text("Keep Subscription")
-                                        .font(.system(size: 16, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Design.Colors.buttonPrimary, Design.Colors.buttonPrimary.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .cornerRadius(14)
-                                .shadow(color: Design.Colors.buttonPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
-                            }
-                            
-                            // Cancel Button - Green/Success with dark mode support
-                            Button(action: cancelSubscription) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                    Text("Cancel & Save Money")
-                                        .font(.system(size: 16, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color(hex: "1B2538"), Color(hex: "1B2538").opacity(0.9)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .cornerRadius(14)
-                                .shadow(
-                                    color: Color(hex: "1B2538").opacity(0.3),
-                                    radius: 8,
-                                    x: 0,
-                                    y: 4
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .offset(y: animateContent ? 0 : 20)
-                        .opacity(animateContent ? 1.0 : 0)
+                        // Extra spacing for bottom buttons
+                        Color.clear.frame(height: 150)
                     }
-                    .padding(.vertical, 20)
+                    .padding(.top, 20)
                 }
+                .background(colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background)
+                
+                // Fixed Action Buttons at Bottom
+                VStack(spacing: 12) {
+                    // Keep Button - Blue/Primary
+                    Button(action: keepSubscription) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Keep Subscription")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            LinearGradient(
+                                colors: [Design.Colors.buttonPrimary, Design.Colors.buttonPrimary.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(14)
+                        .shadow(color: Design.Colors.buttonPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    
+                    // Cancel Button - Green/Success with dark mode support
+                    Button(action: cancelSubscription) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Cancel & Save Money")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "1B2538"), Color(hex: "1B2538").opacity(0.9)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .cornerRadius(14)
+                        .shadow(
+                            color: Color(hex: "1B2538").opacity(0.3),
+                            radius: 8,
+                            x: 0,
+                            y: 4
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+                .padding(.top, 12)
+                .background(
+                    // Subtle gradient background for the button area
+                    LinearGradient(
+                        colors: [
+                            (colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background).opacity(0.8),
+                            (colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .offset(y: animateContent ? 0 : 20)
+                .opacity(animateContent ? 1.0 : 0)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
