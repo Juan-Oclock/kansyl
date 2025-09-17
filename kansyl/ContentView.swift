@@ -11,8 +11,7 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var selectedTab = 0
-    @State private var showingAddSubscription = false
+    @StateObject private var navigationCoordinator = NavigationCoordinator.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @StateObject private var subscriptionStore: SubscriptionStore
     
@@ -42,7 +41,7 @@ struct ContentView: View {
         ZStack(alignment: .bottom) {
             // Main Content
             Group {
-                switch selectedTab {
+                switch navigationCoordinator.selectedTab {
                 case 0:
                     ModernSubscriptionsView(context: viewContext)
                 case 1:
@@ -68,10 +67,10 @@ struct ContentView: View {
                     )
             }
         }
-        .sheet(isPresented: $showingAddSubscription) {
+        .sheet(isPresented: $navigationCoordinator.showingAddSubscription) {
             AddSubscriptionView(subscriptionStore: subscriptionStore) { savedSubscription in
                 // After saving, navigate back to Subscriptions tab
-                selectedTab = 0
+                navigationCoordinator.selectedTab = 0
                 
                 // Post notification that a subscription was added
                 NotificationCenter.default.post(name: .subscriptionAdded, object: nil)
@@ -91,9 +90,9 @@ struct ContentView: View {
             TabBarButton(
                 icon: "creditcard.fill",
                 label: "Subscription",
-                isSelected: selectedTab == 0
+                isSelected: navigationCoordinator.selectedTab == 0
             ) {
-                selectedTab = 0
+                navigationCoordinator.selectedTab = 0
                 HapticManager.shared.playButtonTap()
             }
             
@@ -101,16 +100,16 @@ struct ContentView: View {
             TabBarButton(
                 icon: "clock.arrow.circlepath",
                 label: "History",
-                isSelected: selectedTab == 1
+                isSelected: navigationCoordinator.selectedTab == 1
             ) {
-                selectedTab = 1
+                navigationCoordinator.selectedTab = 1
                 HapticManager.shared.playButtonTap()
             }
             
             // Center Add Button
             Button(action: {
                 HapticManager.shared.playButtonTap()
-                showingAddSubscription = true
+                navigationCoordinator.showingAddSubscription = true
             }) {
                 ZStack {
                     Circle()
@@ -121,8 +120,8 @@ struct ContentView: View {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .medium))
                         .foregroundColor(.white)
-                        .rotationEffect(.degrees(showingAddSubscription ? 45 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showingAddSubscription)
+                        .rotationEffect(.degrees(navigationCoordinator.showingAddSubscription ? 45 : 0))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: navigationCoordinator.showingAddSubscription)
                 }
             }
             .offset(y: -10)
@@ -131,9 +130,9 @@ struct ContentView: View {
             TabBarButton(
                 icon: "chart.bar.fill",
                 label: "Stats",
-                isSelected: selectedTab == 3
+                isSelected: navigationCoordinator.selectedTab == 3
             ) {
-                selectedTab = 3
+                navigationCoordinator.selectedTab = 3
                 HapticManager.shared.playButtonTap()
             }
             
@@ -141,9 +140,9 @@ struct ContentView: View {
             TabBarButton(
                 icon: "gearshape.fill",
                 label: "Settings",
-                isSelected: selectedTab == 4
+                isSelected: navigationCoordinator.selectedTab == 4
             ) {
-                selectedTab = 4
+                navigationCoordinator.selectedTab = 4
                 HapticManager.shared.playButtonTap()
             }
         }

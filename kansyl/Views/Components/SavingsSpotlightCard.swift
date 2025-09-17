@@ -11,7 +11,11 @@ import CoreData
 struct SavingsSpotlightCard: View {
     @ObservedObject var subscriptionStore: SubscriptionStore
     @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var navigationCoordinator = NavigationCoordinator.shared
     @State private var isExpanded = false
+    
+    // Optional action for manage button - allows parent view to handle navigation
+    var onManageTapped: (() -> Void)? = nil
     
     // Computed metrics
     private var cancelledCount: Int {
@@ -69,7 +73,14 @@ struct SavingsSpotlightCard: View {
                 Spacer()
                 
                 Button(action: {
-                    // Navigate to detailed stats
+                    HapticManager.shared.playButtonTap()
+                    if let onManageTapped = onManageTapped {
+                        // Use parent-provided action if available
+                        onManageTapped()
+                    } else {
+                        // Default: navigate to Stats tab
+                        navigationCoordinator.navigateToStats()
+                    }
                 }) {
                     HStack(spacing: 6) {
                         Text("Manage")
