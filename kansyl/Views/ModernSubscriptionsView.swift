@@ -333,16 +333,6 @@ struct ModernSubscriptionsView: View {
         .opacity(animateElements ? 1.0 : 0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: animateElements)
     }
-    
-                    .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7)
-                        .delay(0.5 + Double(index) * 0.1),
-                        value: animateElements
-                    )
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Subscription Row Card
