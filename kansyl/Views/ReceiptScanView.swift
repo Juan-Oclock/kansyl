@@ -17,8 +17,8 @@ struct ReceiptScanView: View {
     @Environment(\.colorScheme) var colorScheme
     
     @State private var selectedImage: UIImage?
-    @State private var showingImagePicker = false
-    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary // Default to photo library
+    @State private var showingCameraPicker = false
+    @State private var showingPhotoLibraryPicker = false
     @State private var parsedReceiptData: ReceiptScanner.ParsedReceiptData?
     @State private var showingConfirmation = false
     @State private var showingCameraUnavailableAlert = false
@@ -58,13 +58,29 @@ struct ReceiptScanView: View {
                 Spacer()
             }
             .background(colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background)
-            .sheet(isPresented: $showingImagePicker) {
-                EnhancedImagePickerView(selectedImage: $selectedImage, sourceType: sourceType) { image in
-                    selectedImage = image
-                    Task {
-                        await processImage(image)
+            .sheet(isPresented: $showingCameraPicker) {
+                DirectImagePickerView(
+                    isPresented: $showingCameraPicker,
+                    sourceType: .camera,
+                    onImageSelected: { image in
+                        selectedImage = image
+                        Task {
+                            await processImage(image)
+                        }
                     }
-                }
+                )
+            }
+            .sheet(isPresented: $showingPhotoLibraryPicker) {
+                DirectImagePickerView(
+                    isPresented: $showingPhotoLibraryPicker,
+                    sourceType: .photoLibrary,
+                    onImageSelected: { image in
+                        selectedImage = image
+                        Task {
+                            await processImage(image)
+                        }
+                    }
+                )
             }
             .alert("Receipt Scan Error", isPresented: .constant(receiptScanner.errorMessage != nil)) {
                 Button("OK") {
@@ -82,8 +98,7 @@ struct ReceiptScanView: View {
             }
             .alert("Camera Unavailable", isPresented: $showingCameraUnavailableAlert) {
                 Button("Use Photo Library") {
-                    sourceType = .photoLibrary
-                    showingImagePicker = true
+                    showingPhotoLibraryPicker = true
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
@@ -176,18 +191,15 @@ struct ReceiptScanView: View {
                     if isRunningOnSimulator {
                         // On simulator, use photo library
                         print("📱 Simulator detected, using photo library")
-                        sourceType = .photoLibrary
-                        showingImagePicker = true
+                        showingPhotoLibraryPicker = true
                     } else if UIImagePickerController.isSourceTypeAvailable(.camera) {
                         // On real device with camera available
                         print("📷 Camera available, requesting access")
-                        sourceType = .camera
                         requestCameraAccess()
                     } else {
-                        print("⚠️ Camera not available, using photo library")
-                        // Fallback to photo library if camera not available
-                        sourceType = .photoLibrary
-                        showingImagePicker = true
+                        print("⚠️ Camera not available, showing alert")
+                        // Camera not available, show alert instead of automatic fallback
+                        showingCameraUnavailableAlert = true
                     }
                 }) {
                     HStack(spacing: 12) {
@@ -207,15 +219,10 @@ struct ReceiptScanView: View {
                 // Photo library button
                 Button(action: {
                     print("📚 Photo Library button tapped")
-                    print("📱 Current sourceType: \(sourceType == .camera ? "camera" : "photoLibrary")")
                     
-                    // Explicitly set to photo library
-                    sourceType = .photoLibrary
-                    print("📤 sourceType set to: photoLibrary")
-                    
-                    // Show picker immediately
-                    showingImagePicker = true
-                    print("📸 Showing image picker with photoLibrary source")
+                    // Show photo library picker directly
+                    showingPhotoLibraryPicker = true
+                    print("📸 Showing photo library picker")
                 }) {
                     HStack(spacing: 12) {
                         Image(systemName: "photo.on.rectangle")
@@ -482,6 +489,7 @@ struct ReceiptScanView: View {
             return
         }
         
+          
         // Check current permission status
         let cameraAuthStatus = AVCaptureDevice.authorizationStatus(for: .video)
         print("🔐 ReceiptScanView: Camera auth status: \(cameraAuthStatus.rawValue)")
@@ -492,8 +500,8 @@ struct ReceiptScanView: View {
             // Camera access already granted, open immediately
             print("✅ Camera already authorized, opening immediately")
             DispatchQueue.main.async {
-                self.sourceType = .camera
-                self.showingImagePicker = true
+                print("📷 Opening camera picker directly")
+                self.showingCameraPicker = true
             }
             
         case .notDetermined:
@@ -503,8 +511,8 @@ struct ReceiptScanView: View {
                 DispatchQueue.main.async {
                     if granted {
                         print("✅ Camera permission granted by user")
-                        self.sourceType = .camera
-                        self.showingImagePicker = true
+                        print("📷 Opening camera picker after permission granted")
+                        self.showingCameraPicker = true
                     } else {
                         print("❌ Camera permission denied by user")
                         self.showingCameraUnavailableAlert = true
@@ -688,66 +696,73 @@ struct ReceiptConfirmationSheet: View {
     }
 }
 
-// MARK: - Enhanced Image Picker
-struct EnhancedImagePickerView: UIViewControllerRepresentable {
-    @Binding var selectedImage: UIImage?
-    @Environment(\.dismiss) private var dismiss
+  // MARK: - Direct Image Picker View (Bypasses SwiftUI State Issues)
+struct DirectImagePickerView: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
     let sourceType: UIImagePickerController.SourceType
     let onImageSelected: (UIImage) -> Void
     
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
     func makeUIViewController(context: Context) -> UIImagePickerController {
-        print("🎬 EnhancedImagePickerView: Creating picker with sourceType: \(sourceType == .camera ? "camera" : "photoLibrary")")
+        print("🎬 DirectImagePickerView: Creating picker with sourceType: \(sourceType == .camera ? "camera" : "photoLibrary")")
         
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         
-        // Debug source type availability
-        print("🔍 Camera available: \(UIImagePickerController.isSourceTypeAvailable(.camera))")
-        print("🔍 Photo Library available: \(UIImagePickerController.isSourceTypeAvailable(.photoLibrary))")
-        
-        // Safely set source type with fallback
-        if UIImagePickerController.isSourceTypeAvailable(sourceType) {
-            picker.sourceType = sourceType
-            print("✅ Setting picker source to: \(sourceType == .camera ? "camera" : "photoLibrary")")
-        } else {
-            // Fallback to photo library if requested source type is unavailable
-            picker.sourceType = .photoLibrary
-            print("⚠️ Fallback to photo library (requested source not available)")
-        }
+        // Set source type immediately and directly
+        picker.sourceType = sourceType
+        print("✅ Direct setting picker source to: \(sourceType == .camera ? "camera" : "photoLibrary")")
         
         picker.allowsEditing = true
-        picker.mediaTypes = ["public.image"] // Only allow images
+        picker.mediaTypes = ["public.image"]
+        
+        // Force immediate source type update
+        DispatchQueue.main.async {
+            picker.sourceType = sourceType
+            print("🔄 Forcing picker source type update to: \(sourceType == .camera ? "camera" : "photoLibrary")")
+        }
         
         print("📷 Final picker source type: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
         
         return picker
     }
     
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
+        // Ensure the picker stays updated with the correct source type
+        DispatchQueue.main.async {
+            if uiViewController.sourceType != sourceType {
+                print("🔄 Correcting picker source type from \(uiViewController.sourceType == .camera ? "camera" : "photoLibrary") to \(sourceType == .camera ? "camera" : "photoLibrary")")
+                uiViewController.sourceType = sourceType
+            }
+        }
     }
     
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: EnhancedImagePickerView
+        let parent: DirectImagePickerView
         
-        init(_ parent: EnhancedImagePickerView) {
+        init(_ parent: DirectImagePickerView) {
             self.parent = parent
         }
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            // Ensure correct source type was used
+            print("📸 Picker finished with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
+            
             if let editedImage = info[.editedImage] as? UIImage {
                 parent.onImageSelected(editedImage)
             } else if let originalImage = info[.originalImage] as? UIImage {
                 parent.onImageSelected(originalImage)
             }
             
-            parent.dismiss()
+            parent.isPresented = false
         }
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
+            print("🚫 Picker cancelled with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
+            parent.isPresented = false
         }
     }
 }
