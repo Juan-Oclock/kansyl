@@ -103,39 +103,6 @@ struct SettingsView: View {
                     Text("Use Siri to quickly add trials or check their status")
                 }
                 
-                // Quiet Hours Section
-                Section {
-                    Toggle(isOn: $appPreferences.quietHoursEnabled) {
-                        Label("Quiet Hours", systemImage: "moon.fill")
-                    }
-                    
-                    if appPreferences.quietHoursEnabled {
-                        HStack {
-                            Text("From")
-                            Spacer()
-                            Picker("Start", selection: $appPreferences.quietHoursStart) {
-                                ForEach(0..<24) { hour in
-                                    Text("\(hour):00").tag(hour)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            
-                            Text("to")
-                                .foregroundColor(.secondary)
-                            
-                            Picker("End", selection: $appPreferences.quietHoursEnd) {
-                                ForEach(0..<24) { hour in
-                                    Text("\(hour):00").tag(hour)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                        }
-                    }
-                } header: {
-                    Text("Quiet Hours")
-                } footer: {
-                    Text("Mute notifications during these hours")
-                }
                 
                 // Trial Settings Section
                 Section {

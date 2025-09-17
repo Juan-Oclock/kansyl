@@ -10,6 +10,7 @@ import UserNotifications
 
 struct NotificationSettingsView: View {
     @ObservedObject var notificationManager = NotificationManager.shared
+    @ObservedObject private var appPreferences = AppPreferences.shared
     @Environment(\.presentationMode) var presentationMode
     @State private var showingPermissionAlert = false
     @State private var selectedTime = Date()
@@ -122,6 +123,47 @@ struct NotificationSettingsView: View {
                         Text("All reminders will be sent at this time")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                    }
+                    
+                    // Quiet Hours Section
+                    Section(header: Text("Quiet Hours")) {
+                        Toggle(isOn: $appPreferences.quietHoursEnabled) {
+                            HStack {
+                                Image(systemName: "moon.fill")
+                                    .foregroundColor(.purple)
+                                    .frame(width: 30)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Quiet Hours")
+                                    Text("Mute notifications during these hours")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        
+                        if appPreferences.quietHoursEnabled {
+                            HStack {
+                                Text("From")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Picker("Start", selection: $appPreferences.quietHoursStart) {
+                                    ForEach(0..<24) { hour in
+                                        Text("\(String(format: "%02d:00", hour))").tag(hour)
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                
+                                Text("to")
+                                    .foregroundColor(.secondary)
+                                
+                                Picker("End", selection: $appPreferences.quietHoursEnd) {
+                                    ForEach(0..<24) { hour in
+                                        Text("\(String(format: "%02d:00", hour))").tag(hour)
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                            }
+                        }
                     }
                     
                     // Notification Preview Section
