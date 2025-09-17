@@ -44,6 +44,11 @@ struct AddSubscriptionView: View {
     @State private var showingDaysPicker = false
     @FocusState private var isFocused: Bool
     
+    // Calendar integration
+    @State private var showingCalendarPrompt = false
+    @State private var savedSubscription: Subscription?
+    @AppStorage("calendarIntegrationPreference") private var calendarPref = "ask"
+    
     // Service categories
     private let serviceManager = ServiceTemplateManager.shared
     
@@ -136,6 +141,22 @@ struct AddSubscriptionView: View {
                 get: { subscriptionLength > 0 ? subscriptionLength : 30 },
                 set: { subscriptionLength = $0 }
             ), isPresented: $showingDaysPicker)
+        }
+        .sheet(isPresented: $showingCalendarPrompt) {
+            if let subscription = savedSubscription {
+                CalendarPromptView(
+                    isPresented: $showingCalendarPrompt,
+                    subscription: subscription
+                ) {
+                    // Add to calendar when user confirms
+                    CalendarManager.shared.addOrUpdateEvent(for: subscription)
+                }
+                .onDisappear {
+                    // Complete the flow when calendar prompt is dismissed
+                    onSave?(savedSubscription)
+                    dismiss()
+                }
+            }
         }
         .onAppear {
             handlePrefilledService()
@@ -588,14 +609,21 @@ struct AddSubscriptionView: View {
         
         let serviceName = selectedService?.name ?? customServiceName
         
-        let savedSubscription = subscriptionStore.addSubscription(
+        // Check calendar preference
+        let shouldAddToCalendar = calendarPref == "always"
+        let shouldAskAboutCalendar = calendarPref == "ask"
+        
+        let newSubscription = subscriptionStore.addSubscription(
             name: serviceName,
             startDate: startDate,
             endDate: endDate,
             monthlyPrice: customPrice,
             serviceLogo: logo,
-            notes: notes.isEmpty ? nil : notes
+            notes: notes.isEmpty ? nil : notes,
+            addToCalendar: shouldAddToCalendar
         )
+        
+        self.savedSubscription = newSubscription
         
         // Analytics
         AnalyticsManager.shared.track(.subscriptionAdded, properties: AnalyticsProperties(
@@ -605,9 +633,14 @@ struct AddSubscriptionView: View {
         // Haptic feedback
         HapticManager.shared.playSubscriptionAdded()
         
-        // Complete
-        onSave?(savedSubscription)
-        dismiss()
+        // Check if we should ask about calendar
+        if shouldAskAboutCalendar {
+            showingCalendarPrompt = true
+        } else {
+            // Complete
+            onSave?(newSubscription)
+            dismiss()
+        }
     }
     
     private func saveImageToDocuments(_ image: UIImage, serviceName: String) -> String? {

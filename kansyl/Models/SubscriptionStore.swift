@@ -91,7 +91,8 @@ class SubscriptionStore: ObservableObject {
     
     @discardableResult
     func addSubscription(name: String, startDate: Date, endDate: Date, 
-                  monthlyPrice: Double, serviceLogo: String, notes: String? = nil) -> Subscription {
+                  monthlyPrice: Double, serviceLogo: String, notes: String? = nil,
+                  addToCalendar: Bool = false) -> Subscription {
         let newSubscription = Subscription(context: viewContext)
         newSubscription.id = UUID()
         newSubscription.name = name
@@ -108,8 +109,10 @@ class SubscriptionStore: ObservableObject {
         // Schedule notifications for the new subscription
         NotificationManager.shared.scheduleNotifications(for: newSubscription)
         
-        // Create calendar event for end date
-        CalendarManager.shared.addOrUpdateEvent(for: newSubscription)
+        // Only create calendar event if user opted in
+        if addToCalendar {
+            CalendarManager.shared.addOrUpdateEvent(for: newSubscription)
+        }
         
         // Update cost calculations
         costEngine.refreshMetrics()
