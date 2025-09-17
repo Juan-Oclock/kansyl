@@ -65,6 +65,7 @@ xcuserdata/
 # API Keys and Secrets (NEVER COMMIT THESE)
 Config.xcconfig
 kansyl/Config/APIConfig.swift
+kansyl/Config/DevelopmentConfig.swift
 **/APIKeys.plist
 **/secrets.json
 **/Config.plist
