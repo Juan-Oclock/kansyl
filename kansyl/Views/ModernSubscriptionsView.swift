@@ -249,50 +249,10 @@ struct ModernSubscriptionsView: View {
     
     // MARK: - Savings Spotlight Card
     private var savingsSpotlightCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Design.Colors.highlightBackground)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("SAVINGS SPOTLIGHT")
-                        .font(.system(size: 12, weight: .semibold))
-                        .tracking(1.2)
-                        .foregroundColor(Color(hex: "22C55E"))
-                    
-                    Spacer()
-                    
-                    Button(action: {}) {
-                        HStack(spacing: 6) {
-                            Text("Manage")
-                                .font(.system(size: 14, weight: .semibold))
-                            
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 12))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color(hex: "22C55E"))
-                        .cornerRadius(20)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(AppPreferences.shared.formatPrice(subscriptionStore.costEngine.metrics.actualSavings))
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    Text("saved this year!")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundColor(Color(hex: "CBD5E1"))
-                }
-            }
-            .padding(24)
-        }
-        .scaleEffect(animateElements ? 1.0 : 0.95)
-        .opacity(animateElements ? 1.0 : 0)
-        .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateElements)
+        SavingsSpotlightCard(subscriptionStore: subscriptionStore)
+            .scaleEffect(animateElements ? 1.0 : 0.95)
+            .opacity(animateElements ? 1.0 : 0)
+            .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateElements)
     }
     
     // MARK: - All Active Subscriptions Section
