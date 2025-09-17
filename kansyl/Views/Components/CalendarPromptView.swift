@@ -65,12 +65,12 @@ struct CalendarPromptView: View {
                     // Haptic feedback
                     HapticManager.shared.playButtonTap()
                 }
+                .font(.system(size: 17, weight: .semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Design.Colors.success)
                 .foregroundColor(.white)
                 .cornerRadius(12)
-                .fontWeight(.semibold)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
