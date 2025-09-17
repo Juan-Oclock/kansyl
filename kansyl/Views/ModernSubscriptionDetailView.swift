@@ -92,35 +92,6 @@ struct ModernSubscriptionDetailView: View {
                         .opacity(animateContent ? 1.0 : 0)
                         .id("details-\(refreshTrigger)") // Force refresh when trigger changes
                         
-                        // Notifications
-                        VStack(alignment: .leading, spacing: 16) {
-                            sectionTitle("Notifications")
-                            
-                            VStack(spacing: 16) {
-                                // Reminder preference
-                                reminderRow(
-                                    title: "Trial End Reminder",
-                                    subtitle: "3 days before trial ends",
-                                    isEnabled: true
-                                )
-                                
-                                Divider()
-                                    .foregroundColor(Design.Colors.border)
-                                
-                                // Additional alerts
-                                reminderRow(
-                                    title: "Additional Reminders",
-                                    subtitle: "1 day before & on due date",
-                                    isEnabled: false
-                                )
-            }
-            .padding(20)
-            .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
-            .cornerRadius(16)
-                        }
-                        .padding(.horizontal, 20)
-                        .offset(y: animateContent ? 0 : 20)
-                        .opacity(animateContent ? 1.0 : 0)
                         
                         // Notes Section
                         if let notes = subscription.notes, !notes.isEmpty {
@@ -258,8 +229,8 @@ struct ModernSubscriptionDetailView: View {
                 }
             }
         }
-        // Expandable modal presentation - starts at 50%, can expand to 100%
-        .expandableHeightDetent()
+        // Full height modal presentation
+        .fullHeightDetent()
     }
     
     // MARK: - Modern Header Card
@@ -368,24 +339,6 @@ struct ModernSubscriptionDetailView: View {
         .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 2)
     }
     
-    private func reminderRow(title: String, subtitle: String, isEnabled: Bool) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Text(subtitle)
-                    .font(.system(size: 13))
-                    .foregroundColor(Design.Colors.textSecondary)
-            }
-            
-            Spacer()
-            
-            Toggle("", isOn: .constant(isEnabled))
-                .toggleStyle(SwitchToggleStyle(tint: Design.Colors.buttonPrimary))
-        }
-    }
     
     // MARK: - Helper Methods
     private var daysRemaining: Int {

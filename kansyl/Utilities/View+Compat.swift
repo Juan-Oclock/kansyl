@@ -25,4 +25,13 @@ extension View {
             self
         }
     }
+    
+    @ViewBuilder
+    func fullHeightDetent() -> some View {
+        if #available(iOS 16.0, *) {
+            self.presentationDetents([.large])
+        } else {
+            self
+        }
+    }
 }
