@@ -99,15 +99,10 @@ struct ModernSubscriptionsView: View {
                                     }
                                 )
                             
-                            // Ending Soon Section
-                            if !subscriptionStore.endingSoonSubscriptions.isEmpty {
-                                endingSoonSection
-                            }
-                            
-                            // All Active Subscriptions Section
+                            // Single unified subscription section
                             if !subscriptionStore.activeSubscriptions.isEmpty {
-                                allActiveSubscriptionsSection
-                            } else if subscriptionStore.endingSoonSubscriptions.isEmpty {
+                                allSubscriptionsSection
+                            } else {
                                 // Empty state when no subscriptions
                                 emptyStateView
                             }
@@ -160,6 +155,13 @@ struct ModernSubscriptionsView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Helper Methods
+    private func isSubscriptionEndingSoon(_ subscription: Subscription) -> Bool {
+        guard let endDate = subscription.endDate else { return false }
+        let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
+        return daysRemaining <= 7 && daysRemaining >= 0
     }
     
     // MARK: - Sticky Header with Dynamic Sizing
@@ -255,8 +257,8 @@ struct ModernSubscriptionsView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateElements)
     }
     
-    // MARK: - All Active Subscriptions Section
-    private var allActiveSubscriptionsSection: some View {
+    // MARK: - All Subscriptions Section (unified)
+    private var allSubscriptionsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("All Subscriptions")
@@ -273,14 +275,26 @@ struct ModernSubscriptionsView: View {
             
             VStack(spacing: 12) {
                 ForEach(Array(subscriptionStore.activeSubscriptions.enumerated()), id: \.element.id) { index, subscription in
-                    // Use the smart card selector for better quick actions
-                    SubscriptionCardSelector(
-                        subscription: subscription,
-                        subscriptionStore: subscriptionStore,
-                        action: {
-                            selectedSubscription = subscription
+                    // Check if ending soon (within 7 days)
+                    let isEndingSoon = isSubscriptionEndingSoon(subscription)
+                    
+                    // Wrap card with badge overlay if ending soon
+                    ZStack(alignment: .topTrailing) {
+                        // Use the smart card selector for better quick actions
+                        SubscriptionCardSelector(
+                            subscription: subscription,
+                            subscriptionStore: subscriptionStore,
+                            action: {
+                                selectedSubscription = subscription
+                            }
+                        )
+                        
+                        // Ending soon badge
+                        if isEndingSoon {
+                            EndingSoonBadge()
+                                .offset(x: -16, y: 16)
                         }
-                    )
+                    }
                     .padding(.horizontal, 20)
                     .scaleEffect(animateElements ? 1.0 : 0.95)
                     .opacity(animateElements ? 1.0 : 0)
@@ -320,37 +334,6 @@ struct ModernSubscriptionsView: View {
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: animateElements)
     }
     
-    // MARK: - Ending Soon Section
-    private var endingSoonSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Ending Soon")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Spacer()
-                
-                Button(action: {}) {
-                    Text("See all")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(Design.Colors.textSecondary)
-                }
-            }
-            .padding(.horizontal, 20)
-            
-            VStack(spacing: 12) {
-                ForEach(Array(subscriptionStore.endingSoonSubscriptions.prefix(3).enumerated()), id: \.element.id) { index, subscription in
-                    // Use the smart card selector for ending soon items
-                    SubscriptionCardSelector(
-                        subscription: subscription,
-                        subscriptionStore: subscriptionStore,
-                        action: {
-                            selectedSubscription = subscription
-                        }
-                    )
-                    .padding(.horizontal, 20)
-                    .scaleEffect(animateElements ? 1.0 : 0.95)
-                    .opacity(animateElements ? 1.0 : 0)
                     .animation(
                         .spring(response: 0.4, dampingFraction: 0.7)
                         .delay(0.5 + Double(index) * 0.1),
