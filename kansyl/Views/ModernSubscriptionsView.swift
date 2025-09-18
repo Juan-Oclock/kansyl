@@ -25,8 +25,6 @@ struct ModernSubscriptionsView: View {
     @State private var showingPremiumRequired = false
     @State private var selectedSubscription: Subscription?
     @State private var animateElements = false
-    @State private var showFreeTrialCard = false
-    @State private var freeTrialCardTimer: Timer?
     @State private var subscriptionJustAdded = false
     @State private var searchText = ""
     @State private var showEndingSoonSection = true
@@ -58,12 +56,7 @@ struct ModernSubscriptionsView: View {
                                 // Scroll to top anchor
                                 Color.clear.frame(height: 1).id("top")
                                 
-                                // Free Trial Card - only show when flag is true
-                                if showFreeTrialCard {
-                                    freeTrialCard
-                                        .padding(.horizontal, 20)
-                                        .transition(.opacity)
-                                }
+                                // Free Trial Card removed
                                 
                                 // Savings Spotlight Card
                                 savingsSpotlightCard
@@ -120,19 +113,6 @@ struct ModernSubscriptionsView: View {
                 // Refresh when Core Data context saves
                 subscriptionStore.fetchSubscriptions()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .subscriptionAdded)) { _ in
-                // Show free trial card when a subscription is added from any source
-                withAnimation(.easeIn(duration: 0.3)) {
-                    self.showFreeTrialCard = true
-                }
-                
-                // Hide the card after 5 seconds
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        self.showFreeTrialCard = false
-                    }
-                }
-            }
         }
     }
     
@@ -144,10 +124,7 @@ struct ModernSubscriptionsView: View {
     }
     
     private func updateScrollBasedUI(offset: CGFloat) {
-        // Hide free trial card when scrolling
-        if offset > 20 && showFreeTrialCard {
-            showFreeTrialCard = false
-        }
+        // Scroll-based UI updates can be added here if needed
     }
     
     // MARK: - Static Header (No Dynamic Calculations)
@@ -187,36 +164,6 @@ struct ModernSubscriptionsView: View {
         .padding(.bottom, 6) // Minimal bottom padding to reduce space
     }
     
-    // MARK: - Free Trial Card
-    private var freeTrialCard: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Free Trial Slots")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(Design.Colors.textSecondary)
-                
-                Text("\(subscriptionStore.activeSubscriptions.count)/\(PremiumManager.freeTrialLimit) used")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-            }
-            
-            Spacer()
-            
-            Button(action: { showingPremiumRequired = true }) {
-                Text("Upgrade")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 10)
-                    .background(Color(hex: "22C55E"))
-                    .cornerRadius(20)
-            }
-        }
-        .padding(20)
-        .background(Design.Colors.surface)
-        .cornerRadius(16)
-        .shadow(color: Design.Colors.primary.opacity(0.05), radius: 6, x: 0, y: 2)
-    }
     
     // MARK: - Savings Spotlight Card
     private var savingsSpotlightCard: some View {

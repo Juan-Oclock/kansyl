@@ -122,18 +122,34 @@ struct PremiumFeaturesView: View {
             VStack(spacing: 12) {
                 FeatureRow(
                     icon: "infinity",
-                    title: "Unlimited Trials",
+                    title: "Unlimited Entry",
                     description: "Track unlimited free trials",
                     isFree: false,
                     isPremium: true
                 )
                 
                 FeatureRow(
-                    icon: "bell.badge",
+                    icon: "doc.text.viewfinder",
+                    title: "Scan Receipt with AI",
+                    description: "AI-powered receipt scanning",
+                    isFree: false,
+                    isPremium: true
+                )
+                
+                FeatureRow(
+                    icon: "mic.fill",
+                    title: "Siri Shortcuts",
+                    description: "Voice control for trials",
+                    isFree: false,
+                    isPremium: true
+                )
+                
+                FeatureRow(
+                    icon: "bell.badge.waveform",
                     title: "Smart Notifications",
-                    description: "Basic reminders",
-                    isFree: true,
-                    isPremium: false
+                    description: "Advanced reminder system",
+                    isFree: false,
+                    isPremium: true
                 )
                 
                 FeatureRow(
@@ -145,41 +161,17 @@ struct PremiumFeaturesView: View {
                 )
                 
                 FeatureRow(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "Advanced Analytics",
-                    description: "Detailed spending insights",
+                    icon: "clock.arrow.circlepath",
+                    title: "Subscription History",
+                    description: "Complete trial history",
                     isFree: false,
                     isPremium: true
-                )
-                
-                FeatureRow(
-                    icon: "clock.arrow.circlepath",
-                    title: "Trial History",
-                    description: "Last 30 days",
-                    isFree: true,
-                    isPremium: false
                 )
                 
                 FeatureRow(
                     icon: "icloud.and.arrow.up",
                     title: "iCloud Backup",
                     description: "Sync across all devices",
-                    isFree: false,
-                    isPremium: true
-                )
-                
-                FeatureRow(
-                    icon: "paintbrush.fill",
-                    title: "Custom Themes",
-                    description: "Personalize your app",
-                    isFree: false,
-                    isPremium: true
-                )
-                
-                FeatureRow(
-                    icon: "wand.and.stars",
-                    title: "AI Insights",
-                    description: "Smart recommendations",
                     isFree: false,
                     isPremium: true
                 )
