@@ -12,9 +12,17 @@ struct SubscriptionCardSelector: View {
     let subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
+    let isCompactMode: Bool
     
     @AppStorage("preferredCardStyle") private var preferredStyle = CardStyle.smart
     @State private var animateIn = false
+    
+    init(subscription: Subscription, subscriptionStore: SubscriptionStore, isCompactMode: Bool = false, action: @escaping () -> Void) {
+        self.subscription = subscription
+        self.subscriptionStore = subscriptionStore
+        self.isCompactMode = isCompactMode
+        self.action = action
+    }
     
     enum CardStyle: String, CaseIterable {
         case smart = "Smart"          // Adaptive based on urgency
@@ -48,37 +56,46 @@ struct SubscriptionCardSelector: View {
     
     var body: some View {
         Group {
-            switch preferredStyle {
-            case .smart:
-                smartCardSelection
-            case .inline:
-                EnhancedSubscriptionCard(
+            if isCompactMode {
+                // In compact mode, always use simple row card regardless of preference
+                SubscriptionRowCard(
                     subscription: subscription,
                     subscriptionStore: subscriptionStore,
                     action: action
                 )
-            case .swipe:
-                // Use your existing swipe card or the hybrid one
-                if #available(iOS 16.0, *) {
-                    HybridSubscriptionCard(
+            } else {
+                switch preferredStyle {
+                case .smart:
+                    smartCardSelection
+                case .inline:
+                    EnhancedSubscriptionCard(
                         subscription: subscription,
                         subscriptionStore: subscriptionStore,
                         action: action
                     )
-                } else {
-                    // Fallback to existing implementation for iOS 15
-                    SubscriptionRowCard(
+                case .swipe:
+                    // Use your existing swipe card or the hybrid one
+                    if #available(iOS 16.0, *) {
+                        HybridSubscriptionCard(
+                            subscription: subscription,
+                            subscriptionStore: subscriptionStore,
+                            action: action
+                        )
+                    } else {
+                        // Fallback to existing implementation for iOS 15
+                        SubscriptionRowCard(
+                            subscription: subscription,
+                            subscriptionStore: subscriptionStore,
+                            action: action
+                        )
+                    }
+                case .contextMenu:
+                    ContextMenuSubscriptionCard(
                         subscription: subscription,
                         subscriptionStore: subscriptionStore,
                         action: action
                     )
                 }
-            case .contextMenu:
-                ContextMenuSubscriptionCard(
-                    subscription: subscription,
-                    subscriptionStore: subscriptionStore,
-                    action: action
-                )
             }
         }
         .scaleEffect(animateIn ? 1.0 : 0.95)
@@ -92,7 +109,14 @@ struct SubscriptionCardSelector: View {
     
     @ViewBuilder
     private var smartCardSelection: some View {
-        if daysRemaining <= 3 {
+        if isCompactMode {
+            // Compact mode - always use simple row card with minimal spacing
+            SubscriptionRowCard(
+                subscription: subscription,
+                subscriptionStore: subscriptionStore,
+                action: action
+            )
+        } else if daysRemaining <= 3 {
             // Most urgent - use inline buttons for immediate action
             EnhancedSubscriptionCard(
                 subscription: subscription,

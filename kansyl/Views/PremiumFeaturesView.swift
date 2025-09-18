@@ -10,6 +10,7 @@ import SwiftUI
 struct PremiumFeaturesView: View {
     @ObservedObject var appPreferences = AppPreferences.shared
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedPlan = PremiumPlan.yearly
     @State private var showingPurchaseAlert = false
     
@@ -68,7 +69,7 @@ struct PremiumFeaturesView: View {
                 }
                 .padding()
             }
-            .background(Color(hex: "191919").ignoresSafeArea())
+            .background((colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background).ignoresSafeArea())
             .navigationTitle("Kansyl Premium")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
@@ -101,10 +102,11 @@ struct PremiumFeaturesView: View {
             VStack(spacing: 8) {
                 Text("Unlock Premium")
                     .font(.system(.largeTitle, design: .default).weight(.bold))
+                    .foregroundColor(Design.Colors.textPrimary)
                 
                 Text("Get the most out of Kansyl with advanced features")
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Design.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -115,6 +117,7 @@ struct PremiumFeaturesView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Premium Features")
                 .font(.headline)
+                .foregroundColor(Design.Colors.textPrimary)
             
             VStack(spacing: 12) {
                 FeatureRow(
@@ -183,7 +186,7 @@ struct PremiumFeaturesView: View {
             }
         }
         .padding()
-        .background(Color(hex: "252525"))
+        .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
         .cornerRadius(16)
     }
     
@@ -192,6 +195,7 @@ struct PremiumFeaturesView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Choose Your Plan")
                 .font(.headline)
+                .foregroundColor(Design.Colors.textPrimary)
             
             VStack(spacing: 12) {
                 ForEach(PremiumPlan.allCases, id: \.self) { plan in
@@ -233,7 +237,7 @@ struct PremiumFeaturesView: View {
         VStack(spacing: 8) {
             Text("Terms & Conditions")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(Design.Colors.textSecondary)
             
             HStack(spacing: 16) {
                 Button("Privacy Policy") {
@@ -278,9 +282,10 @@ struct FeatureRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(.subheadline, design: .default).weight(.medium))
+                    .foregroundColor(Design.Colors.textPrimary)
                 Text(description)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Design.Colors.textSecondary)
             }
             
             Spacer()
@@ -306,6 +311,7 @@ struct PlanCard: View {
     let plan: PremiumFeaturesView.PremiumPlan
     let isSelected: Bool
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: onTap) {
@@ -314,6 +320,7 @@ struct PlanCard: View {
                     HStack {
                         Text(plan.rawValue.capitalized)
                             .font(.headline)
+                            .foregroundColor(Design.Colors.textPrimary)
                         
                         if plan.isPopular {
                             Text("POPULAR")
@@ -328,7 +335,7 @@ struct PlanCard: View {
                     
                     Text(plan.duration)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Design.Colors.textSecondary)
                 }
                 
                 Spacer()
@@ -336,6 +343,7 @@ struct PlanCard: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(plan.price)
                         .font(.system(.title3, design: .default).weight(.bold))
+                        .foregroundColor(Design.Colors.textPrimary)
                     
                     if let savings = plan.savings {
                         Text(savings)
@@ -351,7 +359,7 @@ struct PlanCard: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(hex: "252525"))
+                    .fill(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)

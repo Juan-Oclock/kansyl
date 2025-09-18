@@ -43,7 +43,13 @@ struct AddSubscriptionView: View {
     @State private var isServiceNameInvalid = false
     @State private var attempts = 0
     @State private var showingDaysPicker = false
+    
+    // Focus states for keyboard management
     @FocusState private var isFocused: Bool
+    @FocusState private var isSearchFocused: Bool
+    @FocusState private var isServiceNameFocused: Bool
+    @FocusState private var isPriceFocused: Bool
+    @FocusState private var isNotesFocused: Bool
     
     // Calendar integration
     @State private var showingCalendarPrompt = false
@@ -170,6 +176,21 @@ struct AddSubscriptionView: View {
         .onAppear {
             handlePrefilledService()
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    // Dismiss whichever field is currently focused
+                    isFocused = false
+                    isSearchFocused = false
+                    isServiceNameFocused = false
+                    isPriceFocused = false
+                    isNotesFocused = false
+                }
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(Design.Colors.primary)
+            }
+        }
     }
     
     // MARK: - Minimalist Header
@@ -212,6 +233,7 @@ struct AddSubscriptionView: View {
                 TextField("Search service", text: $searchText)
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(Design.Colors.textPrimary)
+                    .focused($isSearchFocused)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -452,7 +474,7 @@ struct AddSubscriptionView: View {
                         .background(Design.Colors.surfaceSecondary)
                         .cornerRadius(12)
                         .modifier(InvalidFieldModifier(isInvalid: $isServiceNameInvalid, attempts: attempts))
-                        .focused($isFocused)
+                        .focused($isServiceNameFocused)
                         .onChange(of: customServiceName) { _ in
                             isServiceNameInvalid = false
                         }
@@ -524,6 +546,7 @@ struct AddSubscriptionView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Design.Colors.textPrimary)
                             .multilineTextAlignment(.center)
+                            .focused($isPriceFocused)
                         
                         Text("/mo")
                             .font(.system(size: 15, weight: .medium))
@@ -548,6 +571,7 @@ struct AddSubscriptionView: View {
                         TextField("Add notes (optional)", text: $notes)
                             .font(.system(size: 15, weight: .regular))
                             .foregroundColor(Design.Colors.textPrimary)
+                            .focused($isNotesFocused)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)

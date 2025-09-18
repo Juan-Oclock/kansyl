@@ -17,6 +17,7 @@ struct AISettingsView: View {
     @State private var isTestingConnection = false
     @State private var testResult: String? = nil
     @State private var showingTestAlert = false
+    @FocusState private var isAPIKeyFocused: Bool
     
     var body: some View {
         NavigationView {
@@ -62,6 +63,7 @@ struct AISettingsView: View {
                                         .padding(.vertical, 10)
                                         .background(Design.Colors.surfaceSecondary)
                                         .cornerRadius(8)
+                                        .focused($isAPIKeyFocused)
                                         .onChange(of: apiKey) { newValue in
                                             configManager.deepSeekAPIKey = newValue.isEmpty ? nil : newValue
                                         }
@@ -166,6 +168,16 @@ struct AISettingsView: View {
         }
         .onAppear {
             apiKey = configManager.deepSeekAPIKey ?? ""
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isAPIKeyFocused = false
+                }
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(Design.Colors.primary)
+            }
         }
     }
     

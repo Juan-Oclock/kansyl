@@ -31,6 +31,11 @@ struct EditSubscriptionView: View {
     // UI state
     @State private var isFormValid = true
     
+    // Focus states for keyboard management
+    @FocusState private var isServiceNameFocused: Bool
+    @FocusState private var isPriceFocused: Bool
+    @FocusState private var isNotesFocused: Bool
+    
     init(subscription: Subscription, subscriptionStore: SubscriptionStore) {
         self.subscription = subscription
         self.subscriptionStore = subscriptionStore
@@ -85,6 +90,19 @@ struct EditSubscriptionView: View {
             }
             .background(colorScheme == .dark ? Color(hex: "191919") : Design.Colors.background)
             .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        // Dismiss whichever field is currently focused
+                        isServiceNameFocused = false
+                        isPriceFocused = false
+                        isNotesFocused = false
+                    }
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Design.Colors.primary)
+                }
+            }
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePickerView(selectedImage: $selectedImage) { image in
@@ -147,11 +165,16 @@ struct EditSubscriptionView: View {
                 TextField("Service name", text: $serviceName)
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(Design.Colors.textPrimary)
+                    .focused($isServiceNameFocused)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
             .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isServiceNameFocused ? Design.Colors.primary : Color.clear, lineWidth: isServiceNameFocused ? 2 : 0)
+            )
             .padding(.horizontal, 20)
         }
     }
@@ -292,12 +315,17 @@ struct EditSubscriptionView: View {
                             .foregroundColor(Design.Colors.textPrimary)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
+                            .focused($isPriceFocused)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
                 .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
                 .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isPriceFocused ? Design.Colors.primary : Color.clear, lineWidth: isPriceFocused ? 2 : 0)
+                )
             }
             .padding(.horizontal, 20)
         }
@@ -320,11 +348,16 @@ struct EditSubscriptionView: View {
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(Design.Colors.textPrimary)
                     .lineLimit(3)
+                    .focused($isNotesFocused)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
             .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isNotesFocused ? Design.Colors.primary : Color.clear, lineWidth: isNotesFocused ? 2 : 0)
+            )
             .padding(.horizontal, 20)
         }
     }

@@ -22,6 +22,7 @@ struct HistoryView: View {
     @State private var selectedFilter: HistoryFilter = .all
     @State private var showingSubscriptionDetail = false
     @State private var selectedSubscription: Subscription?
+    @FocusState private var isSearchFocused: Bool
     
     enum HistoryFilter: String, CaseIterable {
         case all = "All"
@@ -100,6 +101,10 @@ struct HistoryView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // Custom Header - similar to ModernSubscriptionsView
+                customHeader
+                    .background(Design.Colors.background)
+                
                 // Filter Pills
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -159,13 +164,15 @@ struct HistoryView: View {
                                     }
                                 }
                             }
+                            
+                            // Bottom padding to ensure last item is fully visible above tab bar
+                            Color.clear.frame(height: 100)
                         }
                         .padding(.vertical)
                     }
                 }
             }
-            .navigationTitle("History")
-            .searchable(text: $searchText, prompt: "Search past subscriptions")
+            .navigationBarHidden(true)
             .sheet(item: $selectedSubscription) { subscription in
                 ZStack {
                     // Theme-aware overlay background - much darker for better focus
@@ -209,6 +216,67 @@ struct HistoryView: View {
         }
         
         return summary.joined(separator: " • ")
+    }
+    
+    // MARK: - Custom Header
+    private var customHeader: some View {
+        VStack(spacing: 16) {
+            // Title
+            HStack {
+                Text("History")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(Design.Colors.textPrimary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            
+            // Search Bar
+            HStack {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(Design.Colors.textSecondary.opacity(0.7))
+                        .font(.system(size: 14))
+                    
+                    TextField("Search past subscriptions", text: $searchText)
+                        .font(.system(size: 16))
+                        .foregroundColor(Design.Colors.textPrimary)
+                        .focused($isSearchFocused)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Done") {
+                                    isSearchFocused = false
+                                }
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(Design.Colors.primary)
+                            }
+                        }
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(Design.Colors.textSecondary)
+                                .font(.system(size: 14))
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Design.Colors.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(isSearchFocused ? Design.Colors.primary : Color.gray.opacity(0.15), lineWidth: isSearchFocused ? 2 : 1)
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+            }
+            .padding(.horizontal, 20)
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 6)
     }
 }
 

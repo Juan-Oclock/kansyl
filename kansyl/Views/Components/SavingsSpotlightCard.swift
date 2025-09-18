@@ -57,16 +57,16 @@ struct SavingsSpotlightCard: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Minimal Header
             HStack {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "4ADE80"))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(hex: "22C55E"))
                     
                     Text("SAVINGS SPOTLIGHT")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "4ADE80"))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color(hex: "22C55E"))
                         .tracking(0.5)
                 }
                 
@@ -75,82 +75,78 @@ struct SavingsSpotlightCard: View {
                 Button(action: {
                     HapticManager.shared.playButtonTap()
                     if let onManageTapped = onManageTapped {
-                        // Use parent-provided action if available
                         onManageTapped()
                     } else {
-                        // Default: navigate to Stats tab
                         navigationCoordinator.navigateToStats()
                     }
                 }) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         Text("Manage")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                         
                         Image(systemName: "gearshape.fill")
-                            .font(.system(size: 14))
+                            .font(.system(size: 12))
                     }
                     .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color(hex: "4ADE80"))
-                    .cornerRadius(20)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(Color(hex: "22C55E"))
+                    .cornerRadius(16)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
             
-            // Main Amount
-            VStack(spacing: 4) {
+            // Compact Main Amount
+            VStack(spacing: 2) {
                 Text(appPreferences.formatPrice(totalSaved))
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
                 
                 Text("saved this year!")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(Color.white.opacity(0.7))
             }
-            .padding(.top, 16)
+            .padding(.top, 10)
             
-            // Metrics Row
-            HStack(spacing: 0) {
+            // Simplified Metrics Row
+            HStack(spacing: 20) {
                 // Cancelled metric
-                MetricPill(
-                    icon: "xmark.circle.fill",
+                MinimalMetric(
+                    icon: "xmark",
                     value: "\(cancelledCount)",
-                    label: "Cancelled",
-                    color: Color(hex: "4ADE80")
+                    label: "CANCELLED",
+                    color: Color(hex: "22C55E")
                 )
                 
                 Divider()
-                    .frame(width: 1, height: 30)
-                    .background(Color.white.opacity(0.2))
-                    .padding(.horizontal, 12)
+                    .frame(width: 0.5, height: 24)
+                    .background(Color.white.opacity(0.15))
                 
                 // Kept metric
-                MetricPill(
-                    icon: "checkmark.circle.fill",
+                MinimalMetric(
+                    icon: "checkmark",
                     value: "\(keptCount)",
-                    label: "Kept",
-                    color: Color(hex: "60A5FA")
+                    label: "KEPT",
+                    color: Color(hex: "3B82F6")
                 )
                 
                 Divider()
-                    .frame(width: 1, height: 30)
-                    .background(Color.white.opacity(0.2))
-                    .padding(.horizontal, 12)
+                    .frame(width: 0.5, height: 24)
+                    .background(Color.white.opacity(0.15))
                 
                 // Success rate
-                MetricPill(
+                MinimalMetric(
                     icon: "chart.line.uptrend.xyaxis",
                     value: "\(successRate)%",
-                    label: "Success",
+                    label: "SUCCESS",
                     color: Color(hex: "F59E0B")
                 )
             }
-            .padding(.top, 20)
-            .padding(.bottom, 8)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
             
             // Expandable projection section
             if isExpanded {
@@ -177,7 +173,7 @@ struct SavingsSpotlightCard: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
             
-            // Expand/Collapse button
+            // Minimal Expand/Collapse button
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     isExpanded.toggle()
@@ -185,23 +181,26 @@ struct SavingsSpotlightCard: View {
                 }
             }) {
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color.white.opacity(0.5))
-                    .padding(.vertical, 12)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(Color.white.opacity(0.4))
+                    .padding(.vertical, 10)
             }
         }
         .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(hex: "1F2937"),
-                    Color(hex: "111827")
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "1E293B"),
+                            Color(hex: "0F172A")
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         )
-        .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
     }
 }
 
@@ -228,6 +227,33 @@ struct MetricPill: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(Color.white.opacity(0.5))
                 .textCase(.uppercase)
+        }
+    }
+}
+
+// New minimal metric component for cleaner design
+struct MinimalMetric: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(color)
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                
+                Text(label)
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(Color.white.opacity(0.5))
+                    .tracking(0.3)
+            }
         }
     }
 }

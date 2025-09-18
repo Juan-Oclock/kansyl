@@ -20,18 +20,19 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 struct ModernSubscriptionsView: View {
     @StateObject private var subscriptionStore: SubscriptionStore
     @ObservedObject private var premiumManager = PremiumManager.shared
+    @ObservedObject private var appPreferences = AppPreferences.shared
     @State private var showingAddSubscription = false
     @State private var showingPremiumRequired = false
     @State private var selectedSubscription: Subscription?
     @State private var animateElements = false
-    @State private var scrollOffset: CGFloat = 0.0
-    @State private var initialCardPosition: CGFloat? = nil
-    @State private var isScrollTrackingEnabled = false
-    @State private var lastUpdateTime = Date()
     @State private var showFreeTrialCard = false
     @State private var freeTrialCardTimer: Timer?
     @State private var subscriptionJustAdded = false
+    @State private var searchText = ""
+    @State private var showEndingSoonSection = true
+    @State private var showActiveSection = true
     @AppStorage("userName") private var userName = "Juan Oclock"
+    @FocusState private var isSearchFocused: Bool
     
     init(context: NSManagedObjectContext) {
         _subscriptionStore = StateObject(wrappedValue: SubscriptionStore(context: context))
@@ -42,76 +43,54 @@ struct ModernSubscriptionsView: View {
             ZStack {
                 // Theme-aware background
                 Design.Colors.background
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(.all, edges: .top)
                 
                 VStack(spacing: 0) {
-                    // Sticky Header that remains fixed at top
+                    // Static Header that remains fixed at top
                     stickyHeader
                         .background(Design.Colors.background)
                         .zIndex(1) // Keep header above scrolling content
                     
-                    // Scrollable Content with working scroll detection
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 24) {
-                            // Free Trial Card - only show when flag is true
-                            if showFreeTrialCard {
-                                freeTrialCard
+                    // Scrollable Content
+                    ScrollView(.vertical, showsIndicators: true) {
+                        ScrollViewReader { proxy in
+                            LazyVStack(spacing: 16, pinnedViews: [.sectionHeaders]) {
+                                // Scroll to top anchor
+                                Color.clear.frame(height: 1).id("top")
+                                
+                                // Free Trial Card - only show when flag is true
+                                if showFreeTrialCard {
+                                    freeTrialCard
+                                        .padding(.horizontal, 20)
+                                        .transition(.opacity)
+                                }
+                                
+                                // Savings Spotlight Card
+                                savingsSpotlightCard
                                     .padding(.horizontal, 20)
-                                    .transition(.opacity)
+                                
+                                // Search Bar - Always visible below spotlight card
+                                searchBarView
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 4)
+                                
+                                // Subscription sections
+                                if !subscriptionStore.activeSubscriptions.isEmpty {
+                                    subscriptionSections
+                                } else {
+                                    // Empty state when no subscriptions
+                                    emptyStateView
+                                }
+                                
+                                // Bottom padding for tab bar and safe area
+                                Color.clear.frame(height: 100)
                             }
-                            
-                            // Savings Spotlight Card with scroll detector
-                            savingsSpotlightCard
-                                .padding(.horizontal, 20)
-                                .background(
-                                    GeometryReader { geo in
-                                        Color.clear
-                                            .onAppear {
-                                                // Store initial position after a delay to ensure layout is complete
-                                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                                    self.initialCardPosition = geo.frame(in: .global).minY
-                                                    self.scrollOffset = 0
-                                                    self.isScrollTrackingEnabled = true
-                                                }
-                                            }
-                                            .onChange(of: geo.frame(in: .global).minY) { minY in
-                                                // Only track scroll after initial position is set
-                                                guard self.isScrollTrackingEnabled,
-                                                      let initialPos = self.initialCardPosition else { return }
-                                                
-                                                // Calculate target offset
-                                                let targetOffset = max(0, initialPos - minY)
-                                                
-                                                // Only update if there's a meaningful change (reduces flicker)
-                                                let difference = abs(targetOffset - self.scrollOffset)
-                                                if difference > 0.5 {
-                                                    // Smooth update without animation wrapper
-                                                    self.scrollOffset = targetOffset
-                                                    
-                                                    // Hide free trial card when scrolling up
-                                                    if targetOffset > 10 && self.showFreeTrialCard {
-                                                        withAnimation(.easeOut(duration: 0.3)) {
-                                                            self.showFreeTrialCard = false
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                    }
-                                )
-                            
-                            // Single unified subscription section
-                            if !subscriptionStore.activeSubscriptions.isEmpty {
-                                allSubscriptionsSection
-                            } else {
-                                // Empty state when no subscriptions
-                                emptyStateView
-                            }
-                            
-                            // Reduced spacing for bottom nav
-                            Color.clear.frame(height: 20)
+                            .padding(.top, 6)
+                            .padding(.bottom, 90) // Extra padding to prevent tab bar cutoff
                         }
-                        .padding(.top, 20)
                     }
+                    .clipped() // Ensure proper clipping behavior
+                    .contentShape(Rectangle()) // Ensure scroll area is accessible
                 }
             }
             .navigationBarHidden(true)
@@ -164,58 +143,48 @@ struct ModernSubscriptionsView: View {
         return daysRemaining <= 7 && daysRemaining >= 0
     }
     
-    // MARK: - Sticky Header with Dynamic Sizing
-    private var stickyHeader: some View {
-        // Calculate dynamic values based on scroll - more subtle scaling
-        let scrollProgress = min(scrollOffset / 50, 1.0) // Progress over 50 points
-        let titleSize: CGFloat = 32 - (scrollProgress * 8) // From 32 to 24 (was 14)
-        let greetingOpacity = max(0, 1.0 - (scrollProgress * 2))
-        let showGreeting = scrollProgress < 0.45 // Hide at 45% scroll progress
-        let bottomPadding: CGFloat = 10 - (scrollProgress * 5) // From 10 to 5
-        
-        return VStack(spacing: 0) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    // Greeting - completely removed when hidden
-                    if showGreeting {
-                        Text("Hi, \(userName)")
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundColor(Design.Colors.textSecondary)
-                            .opacity(greetingOpacity)
-                    }
-                    
-                    // Title - scales down when scrolling
-                    Text("Your Current\nSubscription")
-                        .font(.system(size: titleSize, weight: .bold))
-                        .foregroundColor(Design.Colors.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                
-                Spacer()
-                
-                // Add Button - stays same size
-                Button(action: { showingAddSubscription = true }) {
-                    ZStack {
-                        Circle()
-                            .fill(Design.Colors.surface)
-                            .frame(width: 50, height: 50)
-                            .shadow(color: Design.Colors.primary.opacity(0.1), radius: 6, x: 0, y: 2)
-                        
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(Design.Colors.primary)
-                    }
-                }
-                .scaleEffect(animateElements ? 1.0 : 0.8)
-                .opacity(animateElements ? 1.0 : 0)
-                .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.2), value: animateElements)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, bottomPadding)
+    private func updateScrollBasedUI(offset: CGFloat) {
+        // Hide free trial card when scrolling
+        if offset > 20 && showFreeTrialCard {
+            showFreeTrialCard = false
         }
-        .animation(.easeInOut(duration: 0.15), value: scrollOffset)
+    }
+    
+    // MARK: - Static Header (No Dynamic Calculations)
+    private var stickyHeader: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Hi, \(userName)")
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(Design.Colors.textSecondary)
+                
+                Text("Your Subscriptions")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(Design.Colors.textPrimary)
+            }
+            
+            Spacer()
+            
+            // Add Button
+            Button(action: { showingAddSubscription = true }) {
+                ZStack {
+                    Circle()
+                        .fill(Design.Colors.surface)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: Design.Colors.primary.opacity(0.08), radius: 4, x: 0, y: 2)
+                    
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Design.Colors.primary)
+                }
+            }
+            .scaleEffect(animateElements ? 1.0 : 0.8)
+            .opacity(animateElements ? 1.0 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8).delay(0.1), value: animateElements)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 6) // Minimal bottom padding to reduce space
     }
     
     // MARK: - Free Trial Card
@@ -257,53 +226,96 @@ struct ModernSubscriptionsView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateElements)
     }
     
-    // MARK: - All Subscriptions Section (unified)
-    private var allSubscriptionsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("All Subscriptions")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
+    // MARK: - Subscription Sections
+    private var subscriptionSections: some View {
+        Group {
+            if appPreferences.groupByEndDate {
+                // Group by end date: Ending Soon and Active sections
                 
-                Spacer()
-                
-                Text("\(subscriptionStore.activeSubscriptions.count) active")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(Design.Colors.textSecondary)
-            }
-            .padding(.horizontal, 20)
-            
-            VStack(spacing: 12) {
-                ForEach(Array(subscriptionStore.activeSubscriptions.enumerated()), id: \.element.id) { index, subscription in
-                    // Check if ending soon (within 7 days)
-                    let isEndingSoon = isSubscriptionEndingSoon(subscription)
-                    
-                    // Wrap card with badge overlay if ending soon
-                    ZStack(alignment: .topTrailing) {
-                        // Use the smart card selector for better quick actions
-                        SubscriptionCardSelector(
-                            subscription: subscription,
-                            subscriptionStore: subscriptionStore,
-                            action: {
-                                selectedSubscription = subscription
-                            }
-                        )
-                        
-                        // Ending soon badge
-                        if isEndingSoon {
-                            EndingSoonBadge()
-                                .offset(x: -16, y: 16)
+                // Ending Soon Section
+                if !filteredEndingSoonSubscriptions.isEmpty {
+                    Section(header: collapsibleSectionHeader("Ending Soon", count: filteredEndingSoonSubscriptions.count, isExpanded: $showEndingSoonSection)) {
+                        if showEndingSoonSection {
+                            subscriptionsList(subscriptions: filteredEndingSoonSubscriptions, startIndex: 0, isCompact: appPreferences.compactMode)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .scaleEffect(animateElements ? 1.0 : 0.95)
-                    .opacity(animateElements ? 1.0 : 0)
-                    .animation(
-                        .spring(response: 0.4, dampingFraction: 0.7)
-                        .delay(0.6 + Double(index) * 0.05),
-                        value: animateElements
+                }
+                
+                // Active Subscriptions Section
+                if !filteredActiveSubscriptions.isEmpty {
+                    Section(header: collapsibleSectionHeader("Active Subscriptions", count: filteredActiveSubscriptions.count, isExpanded: $showActiveSection)) {
+                        if showActiveSection {
+                            subscriptionsList(subscriptions: filteredActiveSubscriptions, startIndex: filteredEndingSoonSubscriptions.count, isCompact: appPreferences.compactMode)
+                        }
+                    }
+                }
+            } else {
+                // No grouping: Show all subscriptions in one list
+                let allSubscriptions = filteredEndingSoonSubscriptions + filteredActiveSubscriptions
+                if !allSubscriptions.isEmpty {
+                    subscriptionsList(subscriptions: allSubscriptions, startIndex: 0, isCompact: appPreferences.compactMode)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Filtered Subscriptions
+    private var filteredEndingSoonSubscriptions: [Subscription] {
+        let endingSoon = subscriptionStore.activeSubscriptions.filter { isSubscriptionEndingSoon($0) }
+        if searchText.isEmpty {
+            return endingSoon
+        } else {
+            return endingSoon.filter { subscription in
+                (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    private var filteredActiveSubscriptions: [Subscription] {
+        let active = subscriptionStore.activeSubscriptions.filter { !isSubscriptionEndingSoon($0) }
+        if searchText.isEmpty {
+            return active
+        } else {
+            return active.filter { subscription in
+                (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    // MARK: - Subscription List
+    private func subscriptionsList(subscriptions: [Subscription], startIndex: Int, isCompact: Bool = false) -> some View {
+        LazyVStack(spacing: isCompact ? 8 : 12) {
+            ForEach(Array(subscriptions.enumerated()), id: \.element.id) { index, subscription in
+                // Wrap card with badge overlay if ending soon
+                VStack(spacing: 0) {
+                    // Ending soon badge at the very top (hide in compact mode)
+                    if !isCompact && isSubscriptionEndingSoon(subscription) {
+                        HStack {
+                            Spacer()
+                            EndingSoonBadge()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 4)
+                    }
+                    
+                    // Use the smart card selector for better quick actions
+                    SubscriptionCardSelector(
+                        subscription: subscription,
+                        subscriptionStore: subscriptionStore,
+                        isCompactMode: isCompact,
+                        action: {
+                            selectedSubscription = subscription
+                        }
                     )
                 }
+                .padding(.horizontal, 20)
+                .scaleEffect(animateElements ? 1.0 : 0.99) // Lighter animation
+                .opacity(animateElements ? 1.0 : 0.8) // Less dramatic opacity change
+                .animation(
+                    // Simpler, faster animation with reduced delay calculations
+                    .easeOut(duration: 0.2).delay(min(0.2, Double(index) * 0.02)),
+                    value: animateElements
+                )
             }
         }
     }
@@ -332,6 +344,82 @@ struct ModernSubscriptionsView: View {
         .scaleEffect(animateElements ? 1.0 : 0.9)
         .opacity(animateElements ? 1.0 : 0)
         .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.3), value: animateElements)
+    }
+    // MARK: - Section Header
+    private func collapsibleSectionHeader(_ title: String, count: Int, isExpanded: Binding<Bool>) -> some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isExpanded.wrappedValue.toggle()
+                HapticManager.shared.playSelection()
+            }
+        }) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Design.Colors.textPrimary)
+                
+                Spacer()
+                
+                Text("\(count)")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(Design.Colors.textSecondary)
+                
+                Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Design.Colors.primary)
+                    .animation(.spring(), value: isExpanded.wrappedValue)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Design.Colors.background.opacity(0.95)) // Slight transparency for better performance
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    // MARK: - Search Bar
+    private var searchBarView: some View {
+        HStack {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(Design.Colors.textSecondary.opacity(0.7))
+                    .font(.system(size: 14))
+                
+                TextField("Search subscriptions", text: $searchText)
+                    .font(.system(size: 16))
+                    .foregroundColor(Design.Colors.textPrimary)
+                    .focused($isSearchFocused)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") {
+                                isSearchFocused = false
+                            }
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Design.Colors.primary)
+                        }
+                    }
+                
+                if !searchText.isEmpty {
+                    Button(action: {
+                        searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(Design.Colors.textSecondary)
+                            .font(.system(size: 14))
+                    }
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Design.Colors.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(isSearchFocused ? Design.Colors.primary : Color.gray.opacity(0.15), lineWidth: isSearchFocused ? 2 : 1)
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+        }
     }
 }
 

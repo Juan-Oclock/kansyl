@@ -32,7 +32,7 @@ struct StatsView: View {
                     VStack(spacing: 0) {
                         // Modern Header with Hero Metric
                         modernHeroSection
-                            .padding(.top, 20)
+                            .padding(.top, 6)
                         
                         // Sleek Tab Selector
                         modernTabSelector
@@ -74,11 +74,11 @@ struct StatsView: View {
         VStack(spacing: 0) {
             // Title
             Text("Stats")
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 32, weight: .bold))
                 .foregroundColor(Design.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
-                .padding(.bottom, 32)
+                .padding(.bottom, 24)
             
             // Hero Card
             ZStack {

@@ -18,10 +18,16 @@ struct SettingsView: View {
     @State private var showingNotificationSettings = false
     @State private var showingPremiumFeatures = false
     @State private var showingResetAlert = false
+    @FocusState private var isTrialLengthFocused: Bool
     
     var body: some View {
         NavigationView {
-            Form {
+            VStack(spacing: 0) {
+                // Custom Header - similar to other views
+                customHeader
+                    .background(Design.Colors.background)
+                
+                Form {
                 // Premium Status (if applicable)
                 if appPreferences.isPremiumUser {
                     Section {
@@ -52,61 +58,39 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Notifications Section
+                // 1. Display Preferences Section
                 Section {
-                    Button(action: { showingNotificationSettings = true }) {
-                        HStack {
-                            Image(systemName: "bell.badge")
-                                .foregroundColor(.blue)
-                                .frame(width: 30)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Notification Settings")
-                                    .foregroundColor(.primary)
-                                Text(notificationManager.notificationsEnabled ? "Enabled" : "Tap to set up")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                    // Theme selector
+                    HStack {
+                        Label("Theme", systemImage: appPreferences.appTheme.iconName)
+                        Spacer()
+                        Picker("", selection: $appPreferences.appTheme) {
+                            ForEach(AppTheme.allCases, id: \.self) { theme in
+                                HStack {
+                                    Image(systemName: theme.iconName)
+                                    Text(theme.displayName)
+                                }
+                                .tag(theme)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
                         }
+                        .pickerStyle(MenuPickerStyle())
+                        .labelsHidden()
                     }
-                } header: {
-                    Text("Notifications")
-                } footer: {
-                    Text("Customize when and how you receive trial reminders")
-                }
-                
                     
-                // Siri Shortcuts Section
-                Section {
-                    NavigationLink(destination: SiriShortcutsView()) {
-                        HStack {
-                            Image(systemName: "mic.fill")
-                                .foregroundColor(.purple)
-                                .frame(width: 30)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Siri Shortcuts")
-                                    .foregroundColor(.primary)
-                                Text("Add voice commands for trials")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    Toggle(isOn: $appPreferences.compactMode) {
+                        Label("Compact View", systemImage: "rectangle.compress.vertical")
+                    }
+                    
+                    Toggle(isOn: $appPreferences.groupByEndDate) {
+                        Label("Group by End Date", systemImage: "calendar.badge.clock")
                     }
                 } header: {
-                    Text("Voice Control")
+                    Text("Display Preferences")
                 } footer: {
-                    Text("Use Siri to quickly add trials or check their status")
+                    Text("Customize how trials are displayed in the app")
                 }
                 
-                
-                // Trial Settings Section
+                // 2. Trial Settings Section
                 Section {
                     HStack {
                         Label("Default Trial Length", systemImage: "calendar")
@@ -116,6 +100,7 @@ struct SettingsView: View {
                                 .frame(width: 50)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
+                                .focused($isTrialLengthFocused)
                             
                             Picker("Unit", selection: $appPreferences.defaultTrialLengthUnit) {
                                 ForEach(TrialLengthUnit.allCases, id: \.self) { unit in
@@ -156,7 +141,33 @@ struct SettingsView: View {
                     Text("Configure default settings for new trials")
                 }
                 
-                // Quick Actions Style Section
+                // 3. Notification Settings Section
+                Section {
+                    Button(action: { showingNotificationSettings = true }) {
+                        HStack {
+                            Image(systemName: "bell.badge")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Notification Settings")
+                                    .foregroundColor(.primary)
+                                Text(notificationManager.notificationsEnabled ? "Enabled" : "Tap to set up")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Notification Settings")
+                } footer: {
+                    Text("Customize when and how you receive trial reminders")
+                }
+                
+                // 4. Quick Actions Section
                 Section {
                     CardStyleSettingsView()
                         .listRowInsets(EdgeInsets())
@@ -167,39 +178,88 @@ struct SettingsView: View {
                     Text("Choose how you prefer to interact with subscription cards")
                 }
                 
-                // Display Preferences Section
+                // 5. Siri Section
                 Section {
-                    // Theme selector
-                    HStack {
-                        Label("Theme", systemImage: appPreferences.appTheme.iconName)
-                        Spacer()
-                        Picker("", selection: $appPreferences.appTheme) {
-                            ForEach(AppTheme.allCases, id: \.self) { theme in
-                                HStack {
-                                    Image(systemName: theme.iconName)
-                                    Text(theme.displayName)
-                                }
-                                .tag(theme)
+                    NavigationLink(destination: SiriShortcutsView()) {
+                        HStack {
+                            Image(systemName: "mic.fill")
+                                .foregroundColor(.purple)
+                                .frame(width: 30)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Siri Shortcuts")
+                                    .foregroundColor(.primary)
+                                Text("Add voice commands for trials")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
-                        .pickerStyle(MenuPickerStyle())
-                        .labelsHidden()
-                    }
-                    
-                    Toggle(isOn: $appPreferences.compactMode) {
-                        Label("Compact View", systemImage: "rectangle.compress.vertical")
-                    }
-                    
-                    Toggle(isOn: $appPreferences.groupByEndDate) {
-                        Label("Group by End Date", systemImage: "calendar.badge.clock")
                     }
                 } header: {
-                    Text("Display Preferences")
+                    Text("Siri")
                 } footer: {
-                    Text("Customize how trials are displayed in the app")
+                    Text("Use Siri to quickly add trials or check their status")
                 }
                 
-                // App Info Section
+                // 6. Premium Features Section
+                Section {
+                    Button(action: { showingPremiumFeatures = true }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Unlock Premium", systemImage: "star.circle")
+                                    .foregroundColor(.primary)
+                                Text("Get unlimited trials, advanced analytics & more")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Premium Features")
+                }
+                
+                // 7. Data Management Section
+                Section {
+                    Button(action: { showingExportSheet = true }) {
+                        Label("Export Data", systemImage: "square.and.arrow.up")
+                    }
+                    
+                    Button(action: { showingClearDataAlert = true }) {
+                        Label("Clear All Data", systemImage: "trash")
+                            .foregroundColor(.red)
+                    }
+                } header: {
+                    Text("Data Management")
+                } footer: {
+                    Text("Export your trial data as JSON or permanently delete all data from this device.")
+                }
+                
+                // 8. Advanced Section
+                Section {
+                    Toggle(isOn: $appPreferences.analyticsEnabled) {
+                        Label("Share Analytics", systemImage: "chart.bar.xaxis")
+                    }
+                    Toggle(isOn: $appPreferences.crashReportingEnabled) {
+                        Label("Crash Reporting", systemImage: "exclamationmark.triangle")
+                    }
+                    Button(action: { showingResetAlert = true }) {
+                        Label("Reset All Settings", systemImage: "arrow.counterclockwise")
+                            .foregroundColor(.orange)
+                    }
+                } header: {
+                    Text("Advanced")
+                } footer: {
+                    Text("These settings help improve the app experience")
+                }
+                
+                // 9. About & Support Section
                 Section {
                     HStack {
                         Text("Version")
@@ -295,63 +355,10 @@ struct SettingsView: View {
                         .multilineTextAlignment(.center)
                         .font(.caption)
                 }
-                
-                // Premium Section
-                Section {
-                    Button(action: { showingPremiumFeatures = true }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("Unlock Premium", systemImage: "star.circle")
-                                    .foregroundColor(.primary)
-                                Text("Get unlimited trials, advanced analytics & more")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Premium Features")
-                }
-                
-                // Data Management Section
-                Section {
-                    Button(action: { showingExportSheet = true }) {
-                        Label("Export Data", systemImage: "square.and.arrow.up")
-                    }
-                    
-                    Button(action: { showingClearDataAlert = true }) {
-                        Label("Clear All Data", systemImage: "trash")
-                            .foregroundColor(.red)
-                    }
-                } header: {
-                    Text("Data Management")
-                } footer: {
-                    Text("Export your trial data as JSON or permanently delete all data from this device.")
-                }
-                
-                // Advanced Section
-                Section {
-                    Toggle(isOn: $appPreferences.analyticsEnabled) {
-                        Label("Share Analytics", systemImage: "chart.bar.xaxis")
-                    }
-                    Toggle(isOn: $appPreferences.crashReportingEnabled) {
-                        Label("Crash Reporting", systemImage: "exclamationmark.triangle")
-                    }
-                    Button(action: { showingResetAlert = true }) {
-                        Label("Reset All Settings", systemImage: "arrow.counterclockwise")
-                            .foregroundColor(.orange)
-                    }
-                } header: {
-                    Text("Advanced")
-                } footer: {
-                    Text("These settings help improve the app experience")
-                }
             }
-            .navigationTitle("Settings")
+            .padding(.bottom, 100)
+            }
+            .navigationBarHidden(true)
             .alert("Clear All Data?", isPresented: $showingClearDataAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Delete All", role: .destructive) {
@@ -378,6 +385,29 @@ struct SettingsView: View {
                 PremiumFeaturesView()
             }
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isTrialLengthFocused = false
+                }
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(Design.Colors.primary)
+            }
+        }
+    }
+    
+    // MARK: - Custom Header
+    private var customHeader: some View {
+        HStack {
+            Text("Settings")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(Design.Colors.textPrimary)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
     }
     
     private func clearAllData() {
