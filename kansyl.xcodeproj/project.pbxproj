@@ -13,6 +13,7 @@
 		5E9CB0252E7C300F00C8DC85 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9CB0242E7C300F00C8DC85 /* Realtime */; };
 		5E9CB0272E7C300F00C8DC85 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9CB0262E7C300F00C8DC85 /* Storage */; };
 		5E9CB0292E7C300F00C8DC85 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9CB0282E7C300F00C8DC85 /* Supabase */; };
+		5E9CB03B2E7C5DC600C8DC85 /* Config.private.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,7 @@
 		5E6853C92E74254400FACCC1 /* kansyl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kansyl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E6853D62E74254500FACCC1 /* kansylTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kansylTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E6853E02E74254500FACCC1 /* kansylUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kansylUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.private.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -94,6 +96,7 @@
 				5E6853D92E74254500FACCC1 /* kansylTests */,
 				5E6853E32E74254500FACCC1 /* kansylUITests */,
 				5E6853CA2E74254400FACCC1 /* Products */,
+				5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -236,6 +239,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E9CB03B2E7C5DC600C8DC85 /* Config.private.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,6 +420,7 @@
 		};
 		5E6853EB2E74254500FACCC1 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -448,6 +453,7 @@
 		};
 		5E6853EC2E74254500FACCC1 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
