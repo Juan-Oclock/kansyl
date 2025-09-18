@@ -9,17 +9,13 @@ import SwiftUI
 import CoreData
 
 struct StatsView: View {
-    @StateObject private var subscriptionStore: SubscriptionStore
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @StateObject private var achievementSystem = AchievementSystem()
     @State private var selectedTab = 0
     @State private var showingAllAchievements = false
     @State private var animateHeroMetric = false
     @State private var animateCards = false
     @Environment(\.colorScheme) private var colorScheme
-    
-    init(context: NSManagedObjectContext) {
-        _subscriptionStore = StateObject(wrappedValue: SubscriptionStore(context: context))
-    }
     
     var body: some View {
         NavigationView {
@@ -867,6 +863,7 @@ struct AllAchievementsView: View {
 
 struct StatsView_Previews: PreviewProvider {
     static var previews: some View {
-        StatsView(context: PersistenceController.preview.container.viewContext)
+        StatsView()
+            .environmentObject(SubscriptionStore.shared)
     }
 }

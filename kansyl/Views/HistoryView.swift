@@ -11,6 +11,9 @@ import CoreData
 struct HistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
+    // Note: Using dynamic fetch request would be better for user filtering,
+    // but for now we'll rely on subscriptionStore's filtered data
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: false)],
         predicate: NSPredicate(format: "status != %@", SubscriptionStatus.active.rawValue),
@@ -179,7 +182,7 @@ struct HistoryView: View {
                     (colorScheme == .dark ? Color.black.opacity(0.85) : Color.black.opacity(0.8))
                         .ignoresSafeArea()
                     
-                    SubscriptionDetailView(subscription: subscription, subscriptionStore: SubscriptionStore(context: viewContext))
+                    SubscriptionDetailView(subscription: subscription, subscriptionStore: subscriptionStore)
                 }
             }
         }

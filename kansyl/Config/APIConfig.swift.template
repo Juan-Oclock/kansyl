@@ -1,0 +1,53 @@
+//
+//  APIConfig.swift.template
+//  kansyl
+//
+//  API Configuration Template - Copy to APIConfig.swift and add your keys
+//  DO NOT COMMIT APIConfig.swift WITH REAL API KEYS
+//
+
+import Foundation
+
+struct APIConfig {
+    
+    // MARK: - DeepSeek Configuration
+    // Get your API key from: https://platform.deepseek.com
+    // Replace "YOUR_DEEPSEEK_API_KEY_HERE" with your actual API key
+    static let deepSeekAPIKey = "YOUR_DEEPSEEK_API_KEY_HERE"
+    
+    // MARK: - Development Settings
+    static let isDevelopment = true
+    static let enableLogging = true
+    
+    // MARK: - API Endpoints
+    static let deepSeekBaseURL = "https://api.deepseek.com/v1"
+    static let deepSeekModel = "deepseek-chat"
+    
+    // MARK: - Helper Methods
+    static var isValidAPIKey: Bool {
+        return !deepSeekAPIKey.isEmpty && 
+               deepSeekAPIKey != "YOUR_DEEPSEEK_API_KEY_HERE" && 
+               deepSeekAPIKey != "YOUR_API_KEY_HERE" && 
+               deepSeekAPIKey.hasPrefix("sk-")
+    }
+    
+    static func getAPIKey() -> String? {
+        if isDevelopment {
+            print("🔍 APIConfig Debug:")
+            print("🔑 Key configured: \(isValidAPIKey)")
+        }
+        
+        guard isValidAPIKey else {
+            if isDevelopment {
+                print("⚠️ APIConfig: Invalid DeepSeek API key in APIConfig.swift")
+                print("📝 Please add your API key from https://platform.deepseek.com")
+            }
+            return nil
+        }
+        
+        if isDevelopment {
+            print("✅ APIConfig: Valid DeepSeek API key loaded")
+        }
+        return deepSeekAPIKey
+    }
+}

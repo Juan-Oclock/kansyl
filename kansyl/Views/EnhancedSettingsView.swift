@@ -10,6 +10,7 @@ import CoreData
 
 struct EnhancedSettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
+    @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var appPreferences = AppPreferences.shared
     @Environment(\.managedObjectContext) private var viewContext
     
@@ -19,14 +20,14 @@ struct EnhancedSettingsView: View {
     @State private var showingClearDataAlert = false
     @State private var showingResetAlert = false
     @State private var showingContactSupport = false
+    @State private var showingUserProfile = false
+    @State private var showingSignOutAlert = false
     
     var body: some View {
         NavigationView {
             Form {
-                // User Profile Section (if premium)
-                if appPreferences.isPremiumUser {
-                    userProfileSection
-                }
+                // User Profile Section
+                userProfileSection
                 
                 // Quick Settings
                 quickSettingsSection
@@ -59,6 +60,9 @@ struct EnhancedSettingsView: View {
             .sheet(isPresented: $showingExportSheet) {
                 ExportDataView(context: viewContext)
             }
+            .sheet(isPresented: $showingUserProfile) {
+                UserProfileView()
+            }
             .alert(isPresented: $showingClearDataAlert) {
                 Alert(
                     title: Text("Clear All Data?"),
@@ -68,6 +72,16 @@ struct EnhancedSettingsView: View {
                     },
                     secondaryButton: .cancel()
                 )
+            }
+            .alert("Sign Out", isPresented: $showingSignOutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign Out", role: .destructive) {
+                    Task {
+                        await signOut()
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to sign out?")
             }
             .alert(isPresented: $showingResetAlert) {
                 Alert(
@@ -84,33 +98,60 @@ struct EnhancedSettingsView: View {
     
     // MARK: - User Profile Section
     private var userProfileSection: some View {
-        Section {
-            HStack(spacing: 16) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.blue)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Premium Member")
-                        .font(.headline)
-                    if let expirationDate = appPreferences.premiumExpirationDate {
-                        Text("Expires \(expirationDate, formatter: dateFormatter)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("Lifetime Access")
-                            .font(.caption)
-                            .foregroundColor(.green)
+        Section("Account") {
+            // User Profile Button
+            Button(action: { showingUserProfile = true }) {
+                HStack(spacing: 16) {
+                    // Profile Avatar
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 50, height: 50)
+                        
+                        Text(getInitials(from: authManager.userProfile?.fullName ?? authManager.currentUser?.email ?? "U"))
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
                     }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(authManager.userProfile?.fullName ?? "User")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        if let email = authManager.userProfile?.email ?? authManager.currentUser?.email {
+                            Text(email)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: authManager.isEmailVerified ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                .font(.caption)
+                                .foregroundColor(authManager.isEmailVerified ? .green : .orange)
+                            
+                            Text(authManager.isEmailVerified ? "Verified" : "Not Verified")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                
-                Spacer()
-                
-                Image(systemName: "star.circle.fill")
-                    .font(.title)
-                    .foregroundColor(.yellow)
+                .padding(.vertical, 8)
             }
-            .padding(.vertical, 8)
+            
+            // Sign Out Button
+            Button(action: { showingSignOutAlert = true }) {
+                HStack {
+                    Label("Sign Out", systemImage: "arrow.right.square")
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
         }
     }
     
@@ -228,7 +269,7 @@ struct EnhancedSettingsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Unlock Premium", systemImage: "star.circle")
                                 .foregroundColor(.primary)
-                            Text("Get unlimited trials, advanced analytics & more")
+                            Text("Track unlimited subscriptions & unlock all features")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -249,14 +290,12 @@ struct EnhancedSettingsView: View {
                 Label("Export Data", systemImage: "square.and.arrow.up")
             }
             
-            if appPreferences.isPremiumUser {
-                HStack {
-                    Label("iCloud Sync", systemImage: "icloud")
-                    Spacer()
-                    Text("Coming Soon")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+            HStack {
+                Label("iCloud Sync", systemImage: "icloud")
+                Spacer()
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             
             Button(action: { showingClearDataAlert = true }) {
@@ -351,6 +390,26 @@ struct EnhancedSettingsView: View {
     }
     
     // MARK: - Helper Methods
+    private func getInitials(from text: String) -> String {
+        let words = text.split(separator: " ")
+        if words.count >= 2 {
+            return String(words[0].prefix(1)) + String(words[1].prefix(1))
+        } else if let firstChar = text.first {
+            return String(firstChar)
+        }
+        return "U"
+    }
+    
+    @MainActor
+    private func signOut() async {
+        do {
+            try await authManager.signOut()
+        } catch {
+            // Handle error - could show an error alert
+            print("Sign out error: \(error)")
+        }
+    }
+    
     private func clearAllData() {
         let subscriptionRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
         let deleteSubscriptionsRequest = NSBatchDeleteRequest(fetchRequest: subscriptionRequest)

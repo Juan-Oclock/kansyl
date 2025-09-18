@@ -44,6 +44,12 @@ struct PersistenceController {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
         
+        // Enable automatic lightweight migration
+        container.persistentStoreDescriptions.forEach { storeDescription in
+            storeDescription.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
+            storeDescription.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
+        }
+        
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error as NSError? {
                 // Log the error and attempt recovery

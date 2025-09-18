@@ -10,6 +10,7 @@ import CoreData
 
 struct SettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
+    @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var appPreferences = AppPreferences.shared
     @StateObject private var configManager = AIConfigManager.shared
     @Environment(\.managedObjectContext) private var viewContext
@@ -18,6 +19,8 @@ struct SettingsView: View {
     @State private var showingNotificationSettings = false
     @State private var showingPremiumFeatures = false
     @State private var showingResetAlert = false
+    @State private var showingUserProfile = false
+    @State private var showingSignOutAlert = false
     @FocusState private var isTrialLengthFocused: Bool
     
     var body: some View {
@@ -28,6 +31,9 @@ struct SettingsView: View {
                     .background(Design.Colors.background)
                 
                 Form {
+                // User Profile Section
+                userProfileSection
+                
                 // Premium Status (if applicable)
                 if appPreferences.isPremiumUser {
                     Section {
@@ -211,7 +217,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Label("Unlock Premium", systemImage: "star.circle")
                                     .foregroundColor(.primary)
-                                Text("Get unlimited trials, advanced analytics & more")
+                                Text("Track unlimited subscriptions & unlock all features")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -384,6 +390,19 @@ struct SettingsView: View {
             .sheet(isPresented: $showingPremiumFeatures) {
                 PremiumFeaturesView()
             }
+            .sheet(isPresented: $showingUserProfile) {
+                UserProfileView()
+            }
+            .alert("Sign Out", isPresented: $showingSignOutAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign Out", role: .destructive) {
+                    Task {
+                        await signOut()
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to sign out?")
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -408,6 +427,86 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 6)
+    }
+    
+    // MARK: - User Profile Section
+    private var userProfileSection: some View {
+        Section("Account") {
+            // User Profile Button
+            Button(action: { showingUserProfile = true }) {
+                HStack(spacing: 16) {
+                    // Profile Avatar
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 50, height: 50)
+                        
+                        Text(getInitials(from: authManager.userProfile?.fullName ?? authManager.currentUser?.email ?? "U"))
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(authManager.userProfile?.fullName ?? "User")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        if let email = authManager.userProfile?.email ?? authManager.currentUser?.email {
+                            Text(email)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: authManager.isEmailVerified ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                .font(.caption)
+                                .foregroundColor(authManager.isEmailVerified ? .green : .orange)
+                            
+                            Text(authManager.isEmailVerified ? "Verified" : "Not Verified")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 8)
+            }
+            
+            // Sign Out Button
+            Button(action: { showingSignOutAlert = true }) {
+                HStack {
+                    Label("Sign Out", systemImage: "arrow.right.square")
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func getInitials(from text: String) -> String {
+        let words = text.split(separator: " ")
+        if words.count >= 2 {
+            return String(words[0].prefix(1)) + String(words[1].prefix(1))
+        } else if let firstChar = text.first {
+            return String(firstChar)
+        }
+        return "U"
+    }
+    
+    @MainActor
+    private func signOut() async {
+        do {
+            try await authManager.signOut()
+        } catch {
+            // Handle error - could show an error alert
+            print("Sign out error: \(error)")
+        }
     }
     
     private func clearAllData() {
@@ -436,5 +535,7 @@ private var dateFormatter: DateFormatter {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView()
+            .environmentObject(NotificationManager.shared)
+            .environmentObject(SupabaseAuthManager.shared)
     }
 }

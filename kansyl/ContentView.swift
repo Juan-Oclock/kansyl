@@ -11,14 +11,12 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject private var authManager: SupabaseAuthManager
     @StateObject private var navigationCoordinator = NavigationCoordinator.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @StateObject private var subscriptionStore: SubscriptionStore
+    @ObservedObject private var subscriptionStore = SubscriptionStore.shared
     
     init() {
-        let context = PersistenceController.shared.container.viewContext
-        _subscriptionStore = StateObject(wrappedValue: SubscriptionStore(context: context))
-        
         // Customize tab bar appearance
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -32,6 +30,14 @@ struct ContentView: View {
     var body: some View {
         if hasCompletedOnboarding {
             mainAppView
+                .onAppear {
+                    // Update subscription store with current user ID
+                    subscriptionStore.updateCurrentUser(userID: authManager.currentUser?.id.uuidString)
+                }
+                .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
+                    // Update subscription store when user changes
+                    subscriptionStore.updateCurrentUser(userID: newUserID)
+                }
         } else {
             OnboardingView()
         }
@@ -43,15 +49,21 @@ struct ContentView: View {
             Group {
                 switch navigationCoordinator.selectedTab {
                 case 0:
-                    ModernSubscriptionsView(context: viewContext)
+                    ModernSubscriptionsView()
+                        .environmentObject(subscriptionStore)
                 case 1:
                     HistoryView()
+                        .environmentObject(subscriptionStore)
                 case 3:
-                    StatsView(context: viewContext)
+                    StatsView()
+                        .environmentObject(subscriptionStore)
                 case 4:
                     SettingsView()
+                        .environmentObject(NotificationManager.shared)
+                        .environmentObject(authManager)
                 default:
-                    ModernSubscriptionsView(context: viewContext)
+                    ModernSubscriptionsView()
+                        .environmentObject(subscriptionStore)
                 }
             }
             

@@ -104,7 +104,7 @@ struct PremiumFeaturesView: View {
                     .font(.system(.largeTitle, design: .default).weight(.bold))
                     .foregroundColor(Design.Colors.textPrimary)
                 
-                Text("Get the most out of Kansyl with advanced features")
+                Text("Track unlimited subscriptions and access all premium features")
                     .font(.body)
                     .foregroundColor(Design.Colors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -123,7 +123,7 @@ struct PremiumFeaturesView: View {
                 FeatureRow(
                     icon: "infinity",
                     title: "Unlimited Entry",
-                    description: "Track unlimited free trials",
+                    description: "Track unlimited subscriptions",
                     isFree: false,
                     isPremium: true
                 )

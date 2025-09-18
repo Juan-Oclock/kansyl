@@ -15,6 +15,7 @@
         <attribute name="serviceLogo" optional="YES" attributeType="String"/>
         <attribute name="startDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="status" attributeType="String" defaultValueString="active"/>
+        <attribute name="userID" optional="YES" attributeType="String"/>
     </entity>
     <entity name="ServiceTemplate" representedClassName="ServiceTemplate" syncable="YES" codeGenerationType="class">
         <attribute name="defaultSubscriptionLength" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>

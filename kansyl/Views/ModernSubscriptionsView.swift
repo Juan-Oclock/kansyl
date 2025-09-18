@@ -18,7 +18,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 }
 
 struct ModernSubscriptionsView: View {
-    @StateObject private var subscriptionStore: SubscriptionStore
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @ObservedObject private var premiumManager = PremiumManager.shared
     @ObservedObject private var appPreferences = AppPreferences.shared
     @State private var showingAddSubscription = false
@@ -31,10 +31,6 @@ struct ModernSubscriptionsView: View {
     @State private var showActiveSection = true
     @AppStorage("userName") private var userName = "Juan Oclock"
     @FocusState private var isSearchFocused: Bool
-    
-    init(context: NSManagedObjectContext) {
-        _subscriptionStore = StateObject(wrappedValue: SubscriptionStore(context: context))
-    }
     
     var body: some View {
         NavigationView {
@@ -819,6 +815,7 @@ struct TabBarItem: View {
 // MARK: - Preview
 struct ModernSubscriptionsView_Previews: PreviewProvider {
     static var previews: some View {
-        ModernSubscriptionsView(context: PersistenceController.preview.container.viewContext)
+        ModernSubscriptionsView()
+            .environmentObject(SubscriptionStore.shared)
     }
 }

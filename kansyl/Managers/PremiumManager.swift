@@ -14,9 +14,9 @@ class PremiumManager: ObservableObject {
     @Published var isPremium: Bool = false
     @Published var purchaseState: PurchaseState = .idle
     
-    // Premium limits
-    static let freeTrialLimit = 999 // TEMPORARILY DISABLED FOR TESTING - REVERT TO 3
-    static let freeNotificationLimit = true // basic notifications only
+    // Premium limits - New freemium model: All features available, subscription limit only
+    static let freeSubscriptionLimit = 7 // Free users can track up to 7 subscriptions
+    static let premiumSubscriptionLimit = Int.max // Premium users have unlimited subscriptions
     
     // Product identifiers
     private let premiumProductId = "com.kansyl.premium"
@@ -140,25 +140,31 @@ class PremiumManager: ObservableObject {
         }
     }
     
-    // Feature checks
+    // Subscription limit checks - New freemium model
+    func canAddMoreSubscriptions(currentCount: Int) -> Bool {
+        return isPremium || currentCount < Self.freeSubscriptionLimit
+    }
+    
+    func getRemainingSubscriptions(currentCount: Int) -> Int {
+        if isPremium {
+            return Int.max // Unlimited
+        } else {
+            return max(0, Self.freeSubscriptionLimit - currentCount)
+        }
+    }
+    
+    func getSubscriptionLimitMessage(currentCount: Int) -> String {
+        if isPremium {
+            return "Unlimited subscriptions"
+        } else {
+            let remaining = getRemainingSubscriptions(currentCount: currentCount)
+            return "\(remaining) of \(Self.freeSubscriptionLimit) subscriptions remaining"
+        }
+    }
+    
+    // Legacy method for backward compatibility - will be removed
     func canAddMoreTrials(currentCount: Int) -> Bool {
-        return isPremium || currentCount < Self.freeTrialLimit
-    }
-    
-    func hasAdvancedNotifications() -> Bool {
-        return isPremium
-    }
-    
-    func hasUnlimitedTrials() -> Bool {
-        return isPremium
-    }
-    
-    func hasDetailedAnalytics() -> Bool {
-        return isPremium
-    }
-    
-    func hasCustomNotificationSounds() -> Bool {
-        return isPremium
+        return canAddMoreSubscriptions(currentCount: currentCount)
     }
     
     func getMonthlyPrice() -> String? {

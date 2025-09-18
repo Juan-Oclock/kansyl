@@ -577,7 +577,11 @@ extension ReceiptScanner {
             exchangeRate: exchangeRate
         )
         
-        print("✅ Successfully created subscription with ID: \(subscription.id?.uuidString ?? "unknown")")
+        if let subscription = subscription {
+            print("✅ Successfully created subscription with ID: \(subscription.id?.uuidString ?? "unknown")")
+        } else {
+            print("❌ Failed to create subscription - user not logged in")
+        }
         
         return subscription
     }

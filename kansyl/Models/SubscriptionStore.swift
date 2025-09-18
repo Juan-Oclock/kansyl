@@ -35,6 +35,8 @@ enum SubscriptionStatus: String, CaseIterable {
 }
 
 class SubscriptionStore: ObservableObject {
+    static let shared = SubscriptionStore(context: PersistenceController.shared.container.viewContext)
+    
     let viewContext: NSManagedObjectContext
     let costEngine: CostCalculationEngine
     
@@ -43,16 +45,34 @@ class SubscriptionStore: ObservableObject {
     @Published var allSubscriptions: [Subscription] = []
     @Published var recentlyEndedSubscriptions: [Subscription] = []
     
-    init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
+    // Current user ID for data isolation
+    @Published var currentUserID: String? {
+        didSet {
+            fetchSubscriptions()
+        }
+    }
+    
+    init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext, userID: String? = nil) {
         self.viewContext = context
         self.costEngine = CostCalculationEngine(context: context)
+        self.currentUserID = userID
         fetchSubscriptions()
     }
     
     // MARK: - Fetch Operations
     
     func fetchSubscriptions() {
+        guard let userID = currentUserID else {
+            // No user logged in, clear all subscriptions
+            DispatchQueue.main.async { [weak self] in
+                self?.allSubscriptions = []
+                self?.updateSubscriptionCategories()
+            }
+            return
+        }
+        
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+        request.predicate = NSPredicate(format: "userID == %@", userID)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: true)]
         
         do {
@@ -94,9 +114,16 @@ class SubscriptionStore: ObservableObject {
                   monthlyPrice: Double, serviceLogo: String, notes: String? = nil,
                   addToCalendar: Bool = false, billingCycle: String? = nil, 
                   billingAmount: Double? = nil, originalCurrency: String? = nil,
-                  originalAmount: Double? = nil, exchangeRate: Double? = nil) -> Subscription {
+                  originalAmount: Double? = nil, exchangeRate: Double? = nil) -> Subscription? {
+        
+        guard let userID = currentUserID else {
+            print("Error: Cannot create subscription without a logged-in user")
+            return nil
+        }
+        
         let newSubscription = Subscription(context: viewContext)
         newSubscription.id = UUID()
+        newSubscription.userID = userID  // Set the user ID for data isolation
         newSubscription.name = name
         newSubscription.startDate = startDate
         newSubscription.endDate = endDate
@@ -160,6 +187,12 @@ class SubscriptionStore: ObservableObject {
         saveContext()
         fetchSubscriptions()
         costEngine.refreshMetrics()
+    }
+    
+    // MARK: - User Management
+    
+    func updateCurrentUser(userID: String?) {
+        self.currentUserID = userID
     }
     
     // MARK: - Helper Methods

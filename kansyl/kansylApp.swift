@@ -14,6 +14,7 @@ struct kansylApp: App {
     let notificationManager = NotificationManager.shared
     let appPreferences = AppPreferences.shared
     @StateObject private var themeManager = ThemeManager.shared
+    @StateObject private var supabaseAuth = SupabaseAuthManager.shared
     @State private var shouldShowAddSubscription = false
     @State private var serviceToAdd: String?
     @State private var showSuccessToast = false
@@ -23,19 +24,15 @@ struct kansylApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                .environmentObject(notificationManager)
-                .environmentObject(appPreferences)
-                .environmentObject(themeManager)
+            AuthenticationWrapperView()
+                .environmentObject(supabaseAuth)
                 .themed()
                 .onAppear {
                     notificationManager.setupNotificationCategories()
                     notificationManager.requestNotificationPermission()
                     
                     // Initialize cost engine with initial data
-                    let subscriptionStore = SubscriptionStore(context: persistenceController.container.viewContext)
-                    subscriptionStore.costEngine.refreshMetrics()
+                    SubscriptionStore.shared.costEngine.refreshMetrics()
                 }
                 .onContinueUserActivity("com.kansyl.addTrial") { userActivity in
                     // Debounce to prevent duplicate calls
@@ -56,7 +53,7 @@ struct kansylApp: App {
                 }
                 .sheet(isPresented: $shouldShowAddSubscription) {
                     AddSubscriptionView(
-                        subscriptionStore: SubscriptionStore(context: persistenceController.container.viewContext),
+                        subscriptionStore: SubscriptionStore.shared,
                         prefilledServiceName: serviceToAdd
                     )
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
@@ -176,39 +173,29 @@ struct kansylApp: App {
         lastProcessedActivityID = activityID
         
         // Check for existing subscription with same name added recently (within last 5 seconds)
-        let context = persistenceController.container.viewContext
-        let request = Subscription.fetchRequest()
         let fiveSecondsAgo = Date().addingTimeInterval(-5)
-        request.predicate = NSPredicate(
-            format: "name == %@ AND startDate >= %@",
-            serviceName, fiveSecondsAgo as NSDate
-        )
-        
-        do {
-            let recentSubscriptions = try context.fetch(request)
-            if !recentSubscriptions.isEmpty {
-                print("Duplicate subscription detected for \(serviceName), skipping")
-                isProcessingShortcut = false
-                return
-            }
-        } catch {
-            print("Error checking for duplicates: \(error)")
+        let recentSubscriptions = SubscriptionStore.shared.allSubscriptions.filter { subscription in
+            subscription.name == serviceName && 
+            (subscription.startDate ?? Date.distantPast) >= fiveSecondsAgo
         }
         
-        // For quick add, directly create the subscription
-        let subscription = Subscription(context: context)
-        subscription.id = UUID()
-        subscription.name = serviceName
-        subscription.startDate = Date()
-        subscription.endDate = Calendar.current.date(byAdding: .day, value: 30, to: Date())
-        subscription.monthlyPrice = getDefaultPriceForService(serviceName)
-        subscription.serviceLogo = getServiceLogo(serviceName)
-        subscription.status = SubscriptionStatus.active.rawValue
+        if !recentSubscriptions.isEmpty {
+            print("Duplicate subscription detected for \(serviceName), skipping")
+            isProcessingShortcut = false
+            return
+        }
         
-        do {
-            try context.save()
-            NotificationManager.shared.scheduleNotifications(for: subscription)
-            
+        // For quick add, create via the shared SubscriptionStore so userID and refresh logic are handled
+        let endDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+        if let newSubscription = SubscriptionStore.shared.addSubscription(
+            name: serviceName,
+            startDate: Date(),
+            endDate: endDate,
+            monthlyPrice: getDefaultPriceForService(serviceName),
+            serviceLogo: getServiceLogo(serviceName),
+            notes: nil,
+            addToCalendar: false
+        ) {
             // Show success feedback
             DispatchQueue.main.async { [self] in
                 // Trigger haptic feedback
@@ -236,8 +223,8 @@ struct kansylApp: App {
                     userInfo: ["serviceName": serviceName]
                 )
             }
-        } catch {
-            print("Error saving subscription: \(error)")
+        } else {
+            print("Error: Failed to quick-add subscription via SubscriptionStore (missing userID?)")
             isProcessingShortcut = false
         }
     }

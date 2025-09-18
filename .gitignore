@@ -64,13 +64,47 @@ xcuserdata/
 
 # API Keys and Secrets (NEVER COMMIT THESE)
 Config.xcconfig
+Config.private.xcconfig
+SupabaseConfig.xcconfig
+kansyl/SupabaseConfig.xcconfig
+kansyl/Config/SupabaseConfig.swift
 kansyl/Config/APIConfig.swift
 kansyl/Config/DevelopmentConfig.swift
+!kansyl/Config/*.template
+!kansyl/Config/*.swift.template
 **/APIKeys.plist
 **/secrets.json
 **/Config.plist
+kansyl/Config/Config.plist
+
+# Exclude all plist files except examples and Info.plist
+*.plist
+!**/Info.plist
+!**/*.example.plist
+!**/Config.plist.example
+
+# API endpoints and URLs that may contain sensitive data
+**/APIEndpoints.swift
+**/ServerConfig.swift
 
 # Environment files
-.env
+.env.*
 .env.local
 .env.production
+*.env
+
+# Authentication and sensitive configs
+kansyl/Managers/AuthenticationManager.swift
+kansyl/Managers/SupabaseAuthManager.swift
+
+# Build and test files that may contain credentials
+test_*.swift
+*_test.swift
+supabase_schema*.sql
+
+# Documentation files that may contain sensitive data
+AUTHENTICATION_*.md
+SUPABASE_*.md
+BUILD_ERRORS*.md
+*_summary.md
+*_SUMMARY.md
