@@ -221,8 +221,8 @@ class ErrorLogger {
     func log(_ error: Error, context: String? = nil) {
         #if DEBUG
         // Debug: print("🔴 Error: \(error.localizedDescription)")
-        if let context = context {
-            // Debug: print("   Context: \(context)")
+        if context != nil {
+            // Debug: print("   Context: \(context!)")
         }
         // Debug: print("   Stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n          "))")
         #endif

@@ -555,7 +555,7 @@ extension ReceiptScanner {
             // Debug: // Debug: print("📊 Exchange rate used: 1 \(origCurrency) = \(String(format: "%.4f", exchangeRate ?? 0)) \(parsedData.currency ?? "")")
         }
         
-        let subscription = subscriptionStore.addSubscription(
+        let createdSubscription = subscriptionStore.addSubscription(
             name: serviceName,
             startDate: startDate,
             endDate: endDate,
@@ -570,12 +570,12 @@ extension ReceiptScanner {
             exchangeRate: exchangeRate
         )
         
-        if subscription != nil {
+        if createdSubscription != nil {
             // Successfully created subscription
         } else {
             // Failed to create subscription - user not logged in
         }
         
-        return subscription
+        return createdSubscription
     }
 }
