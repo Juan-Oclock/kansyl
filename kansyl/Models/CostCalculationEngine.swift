@@ -155,7 +155,7 @@ class CostCalculationEngine: ObservableObject {
         do {
             return try viewContext.fetch(request)
         } catch {
-            print("Error fetching active subscriptions: \(error)")
+            // Debug: print("Error fetching active subscriptions: \(error)")
             return []
         }
     }
@@ -189,7 +189,7 @@ class CostCalculationEngine: ObservableObject {
                 )
             }
         } catch {
-            print("Error fetching historical outcomes: \(error)")
+            // Debug: print("Error fetching historical outcomes: \(error)")
             return []
         }
     }

@@ -38,13 +38,13 @@ class ExchangeRateMonitor {
             
             if updatedCount > 0 {
                 try context.save()
-                print("✅ Updated \(updatedCount) subscription(s) with new exchange rates")
+                // Debug: print("✅ Updated \(updatedCount) subscription(s) with new exchange rates")
                 
                 // Send notification about rate updates
                 NotificationManager.shared.sendExchangeRateUpdateNotification(count: updatedCount)
             }
         } catch {
-            print("❌ Failed to check exchange rates: \(error)")
+            // Debug: print("❌ Failed to check exchange rates: \(error)")
         }
     }
     
@@ -94,7 +94,7 @@ class ExchangeRateMonitor {
             from: originalCurrency,
             to: userCurrency
         ) else {
-            print("⚠️ Could not get current exchange rate for \(originalCurrency) to \(userCurrency)")
+            // Debug: print("⚠️ Could not get current exchange rate for \(originalCurrency) to \(userCurrency)")
             return
         }
         
@@ -133,7 +133,7 @@ class ExchangeRateMonitor {
         
         subscription.notes = (subscription.notes ?? "") + updateNote
         
-        print("📊 Updated \(subscription.name ?? "subscription"): \(originalCurrency) \(originalAmount) → \(userCurrency) \(String(format: "%.2f", newAmount)) (Rate: \(String(format: "%.4f", currentRate)))")
+        // Debug: print("📊 Updated \(subscription.name ?? "subscription"): \(originalCurrency) \(originalAmount) → \(userCurrency) \(String(format: "%.2f", newAmount)) (Rate: \(String(format: "%.4f", currentRate)))")
     }
     
     /// Get exchange rate change info for a subscription

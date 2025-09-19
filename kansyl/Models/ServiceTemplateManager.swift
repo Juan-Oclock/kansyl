@@ -218,7 +218,7 @@ class ServiceTemplateManager {
                 loadTemplates(context: context)
             }
         } catch {
-            print("Error checking service templates: \(error)")
+            // Debug: print("Error checking service templates: \(error)")
         }
     }
     
@@ -234,9 +234,9 @@ class ServiceTemplateManager {
         
         do {
             try context.save()
-            print("Loaded \(templates.count) service templates")
+            // Debug: print("Loaded \(templates.count) service templates")
         } catch {
-            print("Error saving service templates: \(error)")
+            // Debug: print("Error saving service templates: \(error)")
         }
     }
     
@@ -248,7 +248,7 @@ class ServiceTemplateManager {
         do {
             return try context.fetch(request)
         } catch {
-            print("Error fetching service templates: \(error)")
+            // Debug: print("Error fetching service templates: \(error)")
             return []
         }
     }

@@ -15,16 +15,25 @@ class ThemeManager: ObservableObject {
     @Environment(\.colorScheme) private var systemColorScheme
     
     private var cancellables = Set<AnyCancellable>()
+    private var userPreferences: UserSpecificPreferences?
     
     private init() {
-        // Initialize with current preference
-        currentTheme = AppPreferences.shared.appTheme
+        // Initialize with system default
+        currentTheme = .system
+    }
+    
+    // Set the user preferences instance and subscribe to changes
+    func setUserPreferences(_ userPrefs: UserSpecificPreferences) {
+        self.userPreferences = userPrefs
+        self.currentTheme = userPrefs.appTheme
         
-        // Subscribe to theme changes from AppPreferences
-        AppPreferences.shared.objectWillChange
-            .sink { [weak self] _ in
-                self?.currentTheme = AppPreferences.shared.appTheme
-                self?.objectWillChange.send()
+        // Subscribe to theme changes from UserSpecificPreferences
+        userPrefs.$appTheme
+            .sink { [weak self] newTheme in
+                DispatchQueue.main.async {
+                    self?.currentTheme = newTheme
+                    self?.objectWillChange.send()
+                }
             }
             .store(in: &cancellables)
     }
@@ -56,7 +65,6 @@ class ThemeManager: ObservableObject {
 // MARK: - Theme-aware View Modifier
 struct ThemedView: ViewModifier {
     @ObservedObject private var themeManager = ThemeManager.shared
-    @ObservedObject private var appPreferences = AppPreferences.shared
     @Environment(\.colorScheme) private var systemColorScheme
     
     func body(content: Content) -> some View {
@@ -65,7 +73,7 @@ struct ThemedView: ViewModifier {
     }
     
     private var preferredColorScheme: ColorScheme? {
-        switch appPreferences.appTheme {
+        switch themeManager.currentTheme {
         case .light:
             return .light
         case .dark:
@@ -86,16 +94,16 @@ extension View {
 extension Design.Colors {
     // Helper function to get colors based on current theme
     static func getColor(light: Color, dark: Color) -> Color {
-        let appPreferences = AppPreferences.shared
+        let themeManager = ThemeManager.shared
+        let currentTheme = themeManager.currentTheme
         
-        switch appPreferences.appTheme {
+        switch currentTheme {
         case .light:
             return light
         case .dark:
             return dark
         case .system:
-            // This will use the actual system color scheme
-            // In practice, SwiftUI will handle this automatically with Color assets
+            // For system mode, we still use the dynamic approach
             return Color(UIColor { traitCollection in
                 switch traitCollection.userInterfaceStyle {
                 case .dark:

@@ -82,7 +82,7 @@ class SubscriptionStore: ObservableObject {
                 self?.updateSubscriptionCategories()
             }
         } catch {
-            print("Error fetching subscriptions: \(error)")
+            // Failed to fetch subscriptions
         }
     }
     
@@ -117,7 +117,6 @@ class SubscriptionStore: ObservableObject {
                   originalAmount: Double? = nil, exchangeRate: Double? = nil) -> Subscription? {
         
         guard let userID = currentUserID else {
-            print("Error: Cannot create subscription without a logged-in user")
             return nil
         }
         
@@ -239,7 +238,7 @@ class SubscriptionStore: ObservableObject {
             do {
                 try viewContext.save()
             } catch {
-                print("Error saving context: \(error)")
+                // Failed to save context
             }
         }
     }

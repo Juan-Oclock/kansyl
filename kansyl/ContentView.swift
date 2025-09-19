@@ -12,9 +12,10 @@ import CoreData
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var authManager: SupabaseAuthManager
+    @EnvironmentObject private var userPreferences: UserSpecificPreferences  // This will trigger updates
     @StateObject private var navigationCoordinator = NavigationCoordinator.shared
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @ObservedObject private var subscriptionStore = SubscriptionStore.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     
     init() {
         // Customize tab bar appearance
@@ -28,19 +29,29 @@ struct ContentView: View {
     }
     
     var body: some View {
-        if hasCompletedOnboarding {
-            mainAppView
-                .onAppear {
-                    // Update subscription store with current user ID
-                    subscriptionStore.updateCurrentUser(userID: authManager.currentUser?.id.uuidString)
-                }
-                .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
-                    // Update subscription store when user changes
-                    subscriptionStore.updateCurrentUser(userID: newUserID)
-                }
-        } else {
-            OnboardingView()
-        }
+        // ContentView now assumes onboarding is complete (checked by AuthenticationWrapperView)
+        mainAppView
+            .onAppear {
+                // Update subscription store with current user ID
+                subscriptionStore.updateCurrentUser(userID: authManager.currentUser?.id.uuidString)
+                
+                // Connect theme manager to user preferences
+                themeManager.setUserPreferences(userPreferences)
+                
+                // Sync user preferences to app preferences for backward compatibility
+                AppPreferences.shared.syncWithUserPreferences(userPreferences)
+            }
+            .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
+                // Update subscription store when user changes
+                subscriptionStore.updateCurrentUser(userID: newUserID)
+            }
+            .onChange(of: userPreferences.appTheme) { _ in
+                // Force UI refresh when theme changes
+                themeManager.applyTheme()
+                
+                // Sync the theme change to app preferences for backward compatibility
+                AppPreferences.shared.syncWithUserPreferences(userPreferences)
+            }
     }
     
     var mainAppView: some View {
@@ -66,12 +77,14 @@ struct ContentView: View {
                         .environmentObject(subscriptionStore)
                 }
             }
+            .id("main-content-\(themeManager.currentTheme.rawValue)")
             
             // Custom Tab Bar
             VStack(spacing: 0) {
                 Spacer()
                 
                 customTabBar
+                    .id("tabbar-\(themeManager.currentTheme.rawValue)")
                     .background(
                         Design.Colors.surface
                             .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)

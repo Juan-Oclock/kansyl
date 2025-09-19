@@ -53,7 +53,7 @@ struct PersistenceController {
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error as NSError? {
                 // Log the error and attempt recovery
-                print("Core Data error: \(error), \(error.userInfo)")
+                // Debug: // Debug: print("Core Data error: \(error), \(error.userInfo)")
                 
                 // In production, you might want to:
                 // 1. Try to delete and recreate the store

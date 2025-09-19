@@ -158,7 +158,7 @@ func generateAppIcons() {
             let icon = AppIconMinimalView(size: actualSize)
             // Save or export the icon
             _ = icon.snapshot()
-            print("Generated icon: \(sizeConfig.name)@\(scale)x - \(actualSize)x\(actualSize)px")
+            // Debug: print("Generated icon: \(sizeConfig.name)@\(scale)x - \(actualSize)x\(actualSize)px")
         }
     }
 }

@@ -26,7 +26,6 @@ struct kansylApp: App {
         WindowGroup {
             AuthenticationWrapperView()
                 .environmentObject(supabaseAuth)
-                .themed()
                 .onAppear {
                     notificationManager.setupNotificationCategories()
                     notificationManager.requestNotificationPermission()
@@ -100,7 +99,7 @@ struct kansylApp: App {
         // Prevent duplicate processing
         let activityID = userActivity.persistentIdentifier ?? UUID().uuidString
         guard lastProcessedActivityID != activityID else {
-            print("Add trial activity already processed: \(activityID)")
+            // Debug: // Debug: print("Add trial activity already processed: \(activityID)")
             return
         }
         lastProcessedActivityID = activityID
@@ -153,13 +152,13 @@ struct kansylApp: App {
         // Prevent duplicate processing
         let activityID = userActivity.persistentIdentifier ?? UUID().uuidString
         guard lastProcessedActivityID != activityID else {
-            print("Activity already processed: \(activityID)")
+            // Debug: // Debug: print("Activity already processed: \(activityID)")
             return
         }
         
         // Prevent concurrent processing
         guard !isProcessingShortcut else {
-            print("Already processing another shortcut")
+            // Debug: // Debug: print("Already processing another shortcut")
             return
         }
         
@@ -180,14 +179,14 @@ struct kansylApp: App {
         }
         
         if !recentSubscriptions.isEmpty {
-            print("Duplicate subscription detected for \(serviceName), skipping")
+            // Debug: // Debug: print("Duplicate subscription detected for \(serviceName), skipping")
             isProcessingShortcut = false
             return
         }
         
         // For quick add, create via the shared SubscriptionStore so userID and refresh logic are handled
         let endDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
-        if let newSubscription = SubscriptionStore.shared.addSubscription(
+        if SubscriptionStore.shared.addSubscription(
             name: serviceName,
             startDate: Date(),
             endDate: endDate,
@@ -195,7 +194,7 @@ struct kansylApp: App {
             serviceLogo: getServiceLogo(serviceName),
             notes: nil,
             addToCalendar: false
-        ) {
+        ) != nil {
             // Show success feedback
             DispatchQueue.main.async { [self] in
                 // Trigger haptic feedback
@@ -224,7 +223,7 @@ struct kansylApp: App {
                 )
             }
         } else {
-            print("Error: Failed to quick-add subscription via SubscriptionStore (missing userID?)")
+            // Debug: // Debug: print("Error: Failed to quick-add subscription via SubscriptionStore (missing userID?)")
             isProcessingShortcut = false
         }
     }
@@ -247,10 +246,10 @@ struct kansylApp: App {
             
             if !endingSoon.isEmpty {
                 // Could show an alert or navigate to a specific view
-                print("You have \(endingSoon.count) subscription(s) ending soon")
+                // Debug: // Debug: print("You have \(endingSoon.count) subscription(s) ending soon")
             }
         } catch {
-            print("Error checking subscriptions: \(error)")
+            // Debug: // Debug: print("Error checking subscriptions: \(error)")
         }
     }
     

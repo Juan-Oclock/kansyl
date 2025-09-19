@@ -253,7 +253,7 @@ struct NotificationSettingsView: View {
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Error sending test notification: \(error)")
+                // Debug: print("Error sending test notification: \(error)")
             }
         }
         

@@ -258,7 +258,7 @@ class EmailParser {
                 }
             }
         } catch {
-            print("Regex error: \(error)")
+            // Debug: print("Regex error: \(error)")
         }
         
         return nil

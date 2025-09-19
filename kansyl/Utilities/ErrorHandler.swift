@@ -220,11 +220,11 @@ class ErrorLogger {
     
     func log(_ error: Error, context: String? = nil) {
         #if DEBUG
-        print("🔴 Error: \(error.localizedDescription)")
+        // Debug: print("🔴 Error: \(error.localizedDescription)")
         if let context = context {
-            print("   Context: \(context)")
+            // Debug: print("   Context: \(context)")
         }
-        print("   Stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n          "))")
+        // Debug: print("   Stack: \(Thread.callStackSymbols.prefix(5).joined(separator: "\n          "))")
         #endif
         
         // In production, you would send this to a crash reporting service
@@ -233,13 +233,13 @@ class ErrorLogger {
     
     func logWarning(_ message: String) {
         #if DEBUG
-        print("⚠️ Warning: \(message)")
+        // Debug: print("⚠️ Warning: \(message)")
         #endif
     }
     
     func logInfo(_ message: String) {
         #if DEBUG
-        print("ℹ️ Info: \(message)")
+        // Debug: print("ℹ️ Info: \(message)")
         #endif
     }
 }

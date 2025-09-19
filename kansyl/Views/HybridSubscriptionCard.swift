@@ -364,9 +364,12 @@ struct HybridSubscriptionCard: View {
             }
         })
         
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
+        // Get the root view controller in a compatible way
+        if let windowScene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            if let rootViewController = windowScene.keyWindow?.rootViewController {
+                rootViewController.present(alert, animated: true)
+            }
         }
     }
     

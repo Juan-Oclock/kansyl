@@ -177,7 +177,7 @@ class SharingManager: NSObject, ObservableObject {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
             return fileURL
         } catch {
-            print("Error saving temp file: \(error)")
+            // Debug: print("Error saving temp file: \(error)")
             return nil
         }
     }

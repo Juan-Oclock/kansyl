@@ -442,7 +442,7 @@ struct EditSubscriptionView: View {
             dismiss()
         } catch {
             saveError = error.localizedDescription
-            print("Error updating subscription: \(error)")
+            // Debug: // Debug: print("Error updating subscription: \(error)")
         }
     }
     
@@ -459,7 +459,7 @@ struct EditSubscriptionView: View {
             try imageData.write(to: fileURL)
             return fileName // Return just the filename, not the full path
         } catch {
-            print("Error saving image: \(error)")
+            // Debug: // Debug: print("Error saving image: \(error)")
             return nil
         }
     }

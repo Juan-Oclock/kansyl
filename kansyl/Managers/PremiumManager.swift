@@ -58,7 +58,7 @@ class PremiumManager: ObservableObject {
         do {
             products = try await Product.products(for: [premiumProductId, premiumYearlyProductId])
         } catch {
-            print("Failed to load products: \(error)")
+            // Debug: print("Failed to load products: \(error)")
         }
     }
     

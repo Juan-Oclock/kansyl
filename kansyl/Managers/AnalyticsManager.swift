@@ -101,7 +101,7 @@ class AnalyticsManager: ObservableObject {
         guard isAnalyticsEnabled else { return }
         
         // Log event locally (privacy-compliant)
-        logger.info("Event: \(event.rawValue), Properties: \(properties?.dictionary ?? [:])")
+        // Event tracking is enabled
         
         // Update local statistics
         updateLocalStats(for: event, properties: properties)
@@ -360,9 +360,12 @@ class AnalyticsManager: ObservableObject {
         // Only request if user has completed certain actions
         guard usageStats.totalSubscriptionsCanceled >= 3 || usageStats.appOpenCount >= 10 else { return }
         
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            SKStoreReviewController.requestReview(in: windowScene)
-            track(.appOpened, properties: AnalyticsProperties(source: "review_requested"))
+        if #available(iOS 14.0, *) {
+            // Use the scene-based API for iOS 14+
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                SKStoreReviewController.requestReview(in: windowScene)
+                track(.appOpened, properties: AnalyticsProperties(source: "review_requested"))
+            }
         }
     }
     

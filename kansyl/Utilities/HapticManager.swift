@@ -30,7 +30,7 @@ class HapticManager {
             engine = try CHHapticEngine()
             try engine?.start()
         } catch {
-            print("Haptic engine failed to start: \(error)")
+            // Debug: print("Haptic engine failed to start: \(error)")
         }
         
         // Prepare generators

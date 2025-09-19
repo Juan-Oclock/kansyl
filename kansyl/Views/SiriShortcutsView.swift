@@ -9,22 +9,19 @@ import SwiftUI
 import Intents
 import IntentsUI
 
-// Make INShortcut Identifiable for sheet presentation
-extension INShortcut: Identifiable {
-    public var id: String {
-        if let userActivity = userActivity {
-            return userActivity.persistentIdentifier ?? userActivity.activityType
-        } else if let intent = intent {
-            return String(describing: intent)
-        } else {
-            return UUID().uuidString
-        }
+// Wrapper to make INShortcut work with SwiftUI sheets without conformance warning
+struct IdentifiableShortcut: Identifiable {
+    let id = UUID()
+    let shortcut: INShortcut
+    
+    init(_ shortcut: INShortcut) {
+        self.shortcut = shortcut
     }
 }
 
 struct SiriShortcutsView: View {
     @ObservedObject private var shortcutsManager = ShortcutsManager.shared
-    @State private var selectedShortcut: INShortcut?
+    @State private var selectedShortcut: IdentifiableShortcut?
     @State private var existingVoiceShortcuts: [INVoiceShortcut] = []
     
     var body: some View {
@@ -155,8 +152,8 @@ struct SiriShortcutsView: View {
         .onAppear {
             loadExistingShortcuts()
         }
-        .sheet(item: $selectedShortcut) { shortcut in
-            ShortcutButton(shortcut: shortcut) {
+        .sheet(item: $selectedShortcut) { identifiableShortcut in
+            ShortcutButton(shortcut: identifiableShortcut.shortcut) {
                 // Refresh shortcuts list after adding
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     loadExistingShortcuts()
@@ -195,7 +192,7 @@ struct SiriShortcutsView: View {
         
         // Create an INShortcut from the user activity
         let shortcut = INShortcut(userActivity: userActivity)
-        selectedShortcut = shortcut
+        selectedShortcut = IdentifiableShortcut(shortcut)
     }
     
     private func createAndPresentGenericAddTrialShortcut() {
@@ -215,7 +212,7 @@ struct SiriShortcutsView: View {
         
         // Create an INShortcut from the user activity
         let shortcut = INShortcut(userActivity: userActivity)
-        selectedShortcut = shortcut
+        selectedShortcut = IdentifiableShortcut(shortcut)
     }
     
     private func createCheckTrialsIntent() -> INIntent {

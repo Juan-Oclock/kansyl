@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Binding var deviceHasCompletedOnboarding: Bool
+    @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var notificationManager = NotificationManager.shared
     @State private var currentPage = 0
     @State private var showingNotificationPrompt = false
@@ -48,6 +49,14 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             // Skip button
             HStack {
+                #if DEBUG
+                Button("Reset") {
+                    DebugHelper.resetOnboardingForUser(authManager.currentUser?.id.uuidString)
+                }
+                .foregroundColor(.red)
+                .padding()
+                #endif
+                
                 Spacer()
                 Button("Skip") {
                     completeOnboarding()
@@ -135,7 +144,7 @@ struct OnboardingView: View {
         impactFeedback.impactOccurred()
         
         withAnimation(.easeInOut(duration: 0.3)) {
-            hasCompletedOnboarding = true
+            deviceHasCompletedOnboarding = true
         }
     }
 }
@@ -301,7 +310,23 @@ struct NotificationBenefit: View {
 
 // MARK: - Preview
 struct OnboardingView_Previews: PreviewProvider {
+    struct PreviewWrapper: View {
+        @State private var deviceHasCompletedOnboarding = false
+        private let userPreferences = UserSpecificPreferences()
+        
+        init() {
+            // Set up preview user preferences
+            userPreferences.setCurrentUser("preview_user")
+        }
+        
+        var body: some View {
+            OnboardingView(deviceHasCompletedOnboarding: $deviceHasCompletedOnboarding)
+                .environmentObject(userPreferences)
+                .environmentObject(SupabaseAuthManager.shared)
+        }
+    }
+    
     static var previews: some View {
-        OnboardingView()
+        PreviewWrapper()
     }
 }

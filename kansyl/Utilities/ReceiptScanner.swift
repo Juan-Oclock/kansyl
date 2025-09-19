@@ -10,6 +10,7 @@ import Vision
 import UIKit
 import Combine
 
+@MainActor
 class ReceiptScanner: ObservableObject {
     
     // MARK: - Parsed Receipt Data
@@ -41,15 +42,11 @@ class ReceiptScanner: ObservableObject {
     
     // MARK: - Main Scanning Function
     func scanReceipt(from image: UIImage) async -> ParsedReceiptData? {
-        DispatchQueue.main.async {
-            self.isProcessing = true
-            self.errorMessage = nil
-        }
+        isProcessing = true
+        errorMessage = nil
         
         defer {
-            DispatchQueue.main.async {
-                self.isProcessing = false
-            }
+            isProcessing = false
         }
         
         do {
@@ -59,16 +56,12 @@ class ReceiptScanner: ObservableObject {
             // Step 2: Analyze with AI to identify subscription information
             let parsedData = try await aiAnalysisService.analyzeReceiptText(extractedText)
             
-            DispatchQueue.main.async {
-                self.lastScanResult = parsedData
-            }
+            lastScanResult = parsedData
             
             return parsedData
             
         } catch {
-            DispatchQueue.main.async {
-                self.errorMessage = "Failed to scan receipt: \(error.localizedDescription)"
-            }
+            errorMessage = "Failed to scan receipt: \(error.localizedDescription)"
             return nil
         }
     }
@@ -211,8 +204,8 @@ class AIAnalysisService {
         
         // Parse DeepSeek response and extract the JSON content
         guard let aiResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            print("❌ Failed to parse API response as JSON")
-            print("📦 Raw response: \(String(data: data, encoding: .utf8) ?? "nil")")
+            // Debug: // Debug: print("❌ Failed to parse API response as JSON")
+            // Debug: // Debug: print("📦 Raw response: \(String(data: data, encoding: .utf8) ?? "nil")")
             throw ReceiptScannerError.invalidAPIResponse
         }
         
@@ -220,12 +213,12 @@ class AIAnalysisService {
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            print("❌ Failed to extract content from API response")
-            print("📦 Response structure: \(aiResponse)")
+            // Debug: // Debug: print("❌ Failed to extract content from API response")
+            // Debug: // Debug: print("📦 Response structure: \(aiResponse)")
             throw ReceiptScannerError.invalidAPIResponse
         }
         
-        print("📤 AI Response content: \(content.prefix(200))...")
+        // Debug: // Debug: print("📤 AI Response content: \(content.prefix(200))...")
         
         // Clean the content - remove markdown code blocks if present
         let cleanedContent = content
@@ -235,16 +228,16 @@ class AIAnalysisService {
         
         // Parse the AI-generated JSON
         guard let contentData = cleanedContent.data(using: .utf8) else {
-            print("❌ Failed to convert content to data")
+            // Debug: // Debug: print("❌ Failed to convert content to data")
             throw ReceiptScannerError.invalidJSONResponse
         }
         
         do {
             guard let parsedJSON = try JSONSerialization.jsonObject(with: contentData) as? [String: Any] else {
-                print("❌ Parsed JSON is not a dictionary")
+                // Debug: // Debug: print("❌ Parsed JSON is not a dictionary")
                 throw ReceiptScannerError.invalidJSONResponse
             }
-            print("✅ Successfully parsed AI response JSON")
+            // Debug: // Debug: print("✅ Successfully parsed AI response JSON")
             var receiptData = try parseReceiptDataFromJSON(parsedJSON)
             
             // Convert currency if needed
@@ -252,7 +245,7 @@ class AIAnalysisService {
             if let originalCurrency = receiptData.originalCurrency,
                let originalAmount = receiptData.amount,
                originalCurrency != userCurrency {
-                print("💱 Currency conversion needed: \(originalCurrency) → \(userCurrency)")
+                // Debug: // Debug: print("💱 Currency conversion needed: \(originalCurrency) → \(userCurrency)")
                 
                 if let convertedAmount = await CurrencyConversionService.shared.convert(
                     amount: originalAmount,
@@ -261,23 +254,23 @@ class AIAnalysisService {
                 ) {
                     receiptData.amount = convertedAmount
                     receiptData.currency = userCurrency
-                    print("✅ Converted: \(originalAmount) \(originalCurrency) = \(String(format: "%.2f", convertedAmount)) \(userCurrency)")
+                    // Debug: // Debug: print("✅ Converted: \(originalAmount) \(originalCurrency) = \(String(format: "%.2f", convertedAmount)) \(userCurrency)")
                 } else {
-                    print("⚠️ Conversion failed, using original amount")
+                    // Debug: // Debug: print("⚠️ Conversion failed, using original amount")
                 }
             }
             
             return receiptData
         } catch {
-            print("❌ JSON parsing error: \(error)")
-            print("📦 Content that failed to parse: \(cleanedContent)")
+            // Debug: // Debug: print("❌ JSON parsing error: \(error)")
+            // Debug: // Debug: print("📦 Content that failed to parse: \(cleanedContent)")
             throw ReceiptScannerError.invalidJSONResponse
         }
     }
     
     private func parseReceiptDataFromJSON(_ json: [String: Any]) throws -> ReceiptScanner.ParsedReceiptData {
-        print("🔍 Parsing receipt data from JSON")
-        print("📦 JSON keys: \(json.keys.joined(separator: ", "))")
+        // Debug: // Debug: print("🔍 Parsing receipt data from JSON")
+        // Debug: // Debug: print("📦 JSON keys: \(json.keys.joined(separator: ", "))")
         
         var data = ReceiptScanner.ParsedReceiptData()
         
@@ -328,7 +321,7 @@ class AIAnalysisService {
         
         data.confidence = (receiptData["confidence"] as? Float) ?? 0.0
         
-        print("  ✅ Parsed: \(data.serviceName ?? "Unknown") - $\(data.amount ?? 0)")
+        // Debug: // Debug: print("  ✅ Parsed: \(data.serviceName ?? "Unknown") - $\(data.amount ?? 0)")
         
         // Parse date - try multiple formats and key variations
         var dateString: String?
@@ -338,12 +331,12 @@ class AIAnalysisService {
                     (receiptData["purchase_date"] as? String)
         
         if let dateStr = dateString {
-            print("  📅 Parsing date string: \(dateStr)")
+            // Debug: // Debug: print("  📅 Parsing date string: \(dateStr)")
             data.date = parseDate(from: dateStr)
             if data.date != nil {
-                print("  ✅ Successfully parsed date: \(DateFormatter.localizedString(from: data.date!, dateStyle: .medium, timeStyle: .none))")
+                // Debug: // Debug: print("  ✅ Successfully parsed date: \(DateFormatter.localizedString(from: data.date!, dateStyle: .medium, timeStyle: .none))")
             } else {
-                print("  ⚠️ Could not parse date, using today's date")
+                // Debug: // Debug: print("  ⚠️ Could not parse date, using today's date")
             }
         }
         
@@ -462,15 +455,15 @@ extension ReceiptScanner {
     func createSubscriptionFromReceipt(_ parsedData: ParsedReceiptData, 
                                      subscriptionStore: SubscriptionStore) -> Subscription? {
         guard parsedData.isValid else {
-            print("❌ Receipt data is not valid, cannot create subscription")
+            // Debug: // Debug: print("❌ Receipt data is not valid, cannot create subscription")
             return nil
         }
         
-        print("📦 Creating subscription from receipt data:")
-        print("  Service: \(parsedData.serviceName ?? "Unknown")")
-        print("  Amount: \(parsedData.amount ?? 0)")
-        print("  Type: \(parsedData.subscriptionType ?? "Unknown")")
-        print("  Date from receipt: \(parsedData.date != nil ? DateFormatter.localizedString(from: parsedData.date!, dateStyle: .medium, timeStyle: .none) : "Not found")")
+        // Debug: // Debug: print("📦 Creating subscription from receipt data:")
+        // Debug: // Debug: print("  Service: \(parsedData.serviceName ?? "Unknown")")
+        // Debug: // Debug: print("  Amount: \(parsedData.amount ?? 0)")
+        // Debug: // Debug: print("  Type: \(parsedData.subscriptionType ?? "Unknown")")
+        // Debug: // Debug: print("  Date from receipt: \(parsedData.date != nil ? DateFormatter.localizedString(from: parsedData.date!, dateStyle: .medium, timeStyle: .none) : "Not found")")
         
         let serviceName = parsedData.serviceName ?? "Unknown Service"
         // Use the date from the receipt if available, otherwise use today
@@ -503,9 +496,9 @@ extension ReceiptScanner {
             }
         }
         
-        print("💵 Using original price: $\(amount) per \(billingPeriodDescription.lowercased())")
-        print("📅 Subscription period: \(subscriptionLength) days")
-        print("📆 Start date: \(DateFormatter.localizedString(from: startDate, dateStyle: .medium, timeStyle: .none))")
+        // Debug: // Debug: print("💵 Using original price: $\(amount) per \(billingPeriodDescription.lowercased())")
+        // Debug: // Debug: print("📅 Subscription period: \(subscriptionLength) days")
+        // Debug: // Debug: print("📆 Start date: \(DateFormatter.localizedString(from: startDate, dateStyle: .medium, timeStyle: .none))")
         
         let endDate = Calendar.current.date(byAdding: .day, value: subscriptionLength, to: startDate) ?? startDate
         
@@ -515,15 +508,15 @@ extension ReceiptScanner {
         
         if let template = matchResult.template, matchResult.confidence > 0.5 {
             logoName = template.logoName
-            print("🎯 Matched with template (confidence: \(matchResult.confidence))")
+            // Debug: // Debug: print("🎯 Matched with template (confidence: \(matchResult.confidence))")
         }
         
-        print("🔄 Adding subscription to store...")
-        print("  Name: \(serviceName)")
-        print("  Price: $\(amount) per \(billingPeriodDescription.lowercased())")
-        print("  Start Date: \(DateFormatter.localizedString(from: startDate, dateStyle: .medium, timeStyle: .none))")
-        print("  End Date: \(DateFormatter.localizedString(from: endDate, dateStyle: .medium, timeStyle: .none))")
-        print("  Logo: \(logoName)")
+        // Debug: // Debug: print("🔄 Adding subscription to store...")
+        // Debug: // Debug: print("  Name: \(serviceName)")
+        // Debug: // Debug: print("  Price: $\(amount) per \(billingPeriodDescription.lowercased())")
+        // Debug: // Debug: print("  Start Date: \(DateFormatter.localizedString(from: startDate, dateStyle: .medium, timeStyle: .none))")
+        // Debug: // Debug: print("  End Date: \(DateFormatter.localizedString(from: endDate, dateStyle: .medium, timeStyle: .none))")
+        // Debug: // Debug: print("  Logo: \(logoName)")
         
         // Calculate monthly price for storage (SubscriptionStore expects monthly price)
         var monthlyPrice = amount
@@ -540,7 +533,7 @@ extension ReceiptScanner {
             monthlyPrice = amount
         }
         
-        print("📊 Calculated monthly price for storage: $\(String(format: "%.2f", monthlyPrice))")
+        // Debug: // Debug: print("📊 Calculated monthly price for storage: $\(String(format: "%.2f", monthlyPrice))")
         
         // Create notes with currency conversion info if applicable
         var notes = "Added from receipt scan. \(billingPeriodDescription) billing: \(parsedData.currency ?? "USD") \(String(format: "%.2f", amount)) every \(subscriptionLength) days."
@@ -559,7 +552,7 @@ extension ReceiptScanner {
            let origCurrency = parsedData.originalCurrency,
            origAmount > 0 && origCurrency != parsedData.currency {
             exchangeRate = amount / origAmount
-            print("📊 Exchange rate used: 1 \(origCurrency) = \(String(format: "%.4f", exchangeRate ?? 0)) \(parsedData.currency ?? "")")
+            // Debug: // Debug: print("📊 Exchange rate used: 1 \(origCurrency) = \(String(format: "%.4f", exchangeRate ?? 0)) \(parsedData.currency ?? "")")
         }
         
         let subscription = subscriptionStore.addSubscription(
@@ -578,9 +571,9 @@ extension ReceiptScanner {
         )
         
         if let subscription = subscription {
-            print("✅ Successfully created subscription with ID: \(subscription.id?.uuidString ?? "unknown")")
+            // Debug: // Debug: print("✅ Successfully created subscription with ID: \(subscription.id?.uuidString ?? "unknown")")
         } else {
-            print("❌ Failed to create subscription - user not logged in")
+            // Debug: // Debug: print("❌ Failed to create subscription - user not logged in")
         }
         
         return subscription

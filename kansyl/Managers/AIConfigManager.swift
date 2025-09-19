@@ -87,7 +87,7 @@ class AIConfigManager: ObservableObject {
     
     func recordAIScan() {
         currentUserScanCount += 1
-        print("📊 AI scan recorded. Total scans: \(currentUserScanCount)")
+        // Debug: print("📊 AI scan recorded. Total scans: \(currentUserScanCount)")
     }
     
     // MARK: - Alternative AI Services

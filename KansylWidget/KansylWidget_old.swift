@@ -108,7 +108,7 @@ struct TrialWidgetProvider: IntentTimelineProvider {
                 configuration: configuration
             )
         } catch {
-            print("Widget data fetch error: \(error)")
+            // Debug: print("Widget data fetch error: \(error)")
             return TrialWidgetEntry(
                 date: Date(),
                 upcomingTrials: [],

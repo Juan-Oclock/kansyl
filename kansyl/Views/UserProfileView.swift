@@ -130,7 +130,7 @@ struct UserProfileView: View {
                     do {
                         try await authManager.signOut()
                     } catch {
-                        print("Sign out error: \(error.localizedDescription)")
+                        // Sign out failed
                     }
                 }
             }
@@ -160,10 +160,9 @@ struct UserProfileView: View {
         Task {
             do {
                 try await authManager.resetPassword(email: email)
-                // Show success message
-                print("Password reset email sent to \(email)")
+                // Password reset email sent
             } catch {
-                print("Password reset failed: \(error.localizedDescription)")
+                // Password reset failed
             }
         }
     }
@@ -172,12 +171,10 @@ struct UserProfileView: View {
         // TODO: Implement data export functionality
         // This should create a JSON file with all user data
         // and present a share sheet
-        print("Exporting user data...")
     }
     
     private func backupToiCloud() {
         // TODO: Implement iCloud backup functionality
-        print("Backing up to iCloud...")
     }
     
     private func deleteAccount() {
@@ -187,11 +184,10 @@ struct UserProfileView: View {
             // 1. Delete all user data from Supabase
             // 2. Delete the user account
             // 3. Sign out the user
-            print("Deleting account...")
             do {
                 try await authManager.signOut()
             } catch {
-                print("Sign out error during account deletion: \(error.localizedDescription)")
+                // Sign out failed during account deletion
             }
         }
     }
@@ -276,7 +272,7 @@ struct EditProfileView: View {
                     presentationMode.wrappedValue.dismiss()
                 }
             } catch {
-                print("Failed to save profile changes: \(error.localizedDescription)")
+                // Debug: print("Failed to save profile changes: \(error.localizedDescription)")
             }
         }
     }

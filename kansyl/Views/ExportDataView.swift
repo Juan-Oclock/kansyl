@@ -86,7 +86,7 @@ struct ExportDataView: View {
             exportData = String(data: jsonData, encoding: .utf8) ?? ""
             
         } catch {
-            print("Error exporting data: \(error)")
+            // Debug: print("Error exporting data: \(error)")
             exportData = "Error generating export data"
         }
     }

@@ -11,7 +11,7 @@ import CoreData
 struct SettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var authManager: SupabaseAuthManager
-    @ObservedObject private var appPreferences = AppPreferences.shared
+    @EnvironmentObject private var userPreferences: UserSpecificPreferences
     @StateObject private var configManager = AIConfigManager.shared
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingClearDataAlert = false
@@ -35,7 +35,7 @@ struct SettingsView: View {
                 userProfileSection
                 
                 // Premium Status (if applicable)
-                if appPreferences.isPremiumUser {
+                if userPreferences.isPremiumUser {
                     Section {
                         HStack(spacing: 16) {
                             Image(systemName: "person.crop.circle.fill")
@@ -45,7 +45,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Premium Member")
                                     .font(.headline)
-                                if let expiration = appPreferences.premiumExpirationDate {
+                                if let expiration = userPreferences.premiumExpirationDate {
                                     Text("Expires \(expiration, formatter: dateFormatter)")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -68,9 +68,9 @@ struct SettingsView: View {
                 Section {
                     // Theme selector
                     HStack {
-                        Label("Theme", systemImage: appPreferences.appTheme.iconName)
+                        Label("Theme", systemImage: userPreferences.appTheme.iconName)
                         Spacer()
-                        Picker("", selection: $appPreferences.appTheme) {
+                        Picker("", selection: $userPreferences.appTheme) {
                             ForEach(AppTheme.allCases, id: \.self) { theme in
                                 HStack {
                                     Image(systemName: theme.iconName)
@@ -83,11 +83,11 @@ struct SettingsView: View {
                         .labelsHidden()
                     }
                     
-                    Toggle(isOn: $appPreferences.compactMode) {
+                    Toggle(isOn: $userPreferences.compactMode) {
                         Label("Compact View", systemImage: "rectangle.compress.vertical")
                     }
                     
-                    Toggle(isOn: $appPreferences.groupByEndDate) {
+                    Toggle(isOn: $userPreferences.groupByEndDate) {
                         Label("Group by End Date", systemImage: "calendar.badge.clock")
                     }
                 } header: {
@@ -102,13 +102,13 @@ struct SettingsView: View {
                         Label("Default Trial Length", systemImage: "calendar")
                         Spacer()
                         HStack(spacing: 4) {
-                            TextField("Length", value: $appPreferences.defaultTrialLength, formatter: NumberFormatter())
+                            TextField("Length", value: $userPreferences.defaultTrialLength, formatter: NumberFormatter())
                                 .frame(width: 50)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .keyboardType(.numberPad)
                                 .focused($isTrialLengthFocused)
                             
-                            Picker("Unit", selection: $appPreferences.defaultTrialLengthUnit) {
+                            Picker("Unit", selection: $userPreferences.defaultTrialLengthUnit) {
                                 ForEach(TrialLengthUnit.allCases, id: \.self) { unit in
                                     Text(unit.displayName).tag(unit)
                                 }
@@ -123,11 +123,11 @@ struct SettingsView: View {
                             Spacer()
                             
                             VStack(alignment: .trailing, spacing: 2) {
-                                if let currencyInfo = CurrencyManager.shared.getCurrencyInfo(for: appPreferences.currencyCode) {
+                                if let currencyInfo = CurrencyManager.shared.getCurrencyInfo(for: userPreferences.currencyCode) {
                                     Text("\(currencyInfo.code) (\(currencyInfo.symbol))")
                                         .foregroundColor(.secondary)
                                 } else {
-                                    Text(appPreferences.currencyCode)
+                                    Text(userPreferences.currencyCode)
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -138,7 +138,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Toggle(isOn: $appPreferences.showTrialLogos) {
+                    Toggle(isOn: $userPreferences.showTrialLogos) {
                         Label("Show Service Icons", systemImage: "app.badge")
                     }
                 } header: {
@@ -249,10 +249,10 @@ struct SettingsView: View {
                 
                 // 8. Advanced Section
                 Section {
-                    Toggle(isOn: $appPreferences.analyticsEnabled) {
+                    Toggle(isOn: $userPreferences.analyticsEnabled) {
                         Label("Share Analytics", systemImage: "chart.bar.xaxis")
                     }
-                    Toggle(isOn: $appPreferences.crashReportingEnabled) {
+                    Toggle(isOn: $userPreferences.crashReportingEnabled) {
                         Label("Crash Reporting", systemImage: "exclamationmark.triangle")
                     }
                     Button(action: { showingResetAlert = true }) {
@@ -270,7 +270,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("\(appPreferences.appVersion) (\(appPreferences.buildNumber))")
+                        Text("\(userPreferences.appVersion) (\(userPreferences.buildNumber))")
                             .foregroundColor(.secondary)
                     }
                     
@@ -382,7 +382,7 @@ struct SettingsView: View {
             .alert("Reset All Settings?", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Reset", role: .destructive) {
-                    appPreferences.resetToDefaults()
+                    userPreferences.resetToDefaults()
                 }
             } message: {
                 Text("This will reset all preferences to their defaults.")
@@ -505,7 +505,7 @@ struct SettingsView: View {
             try await authManager.signOut()
         } catch {
             // Handle error - could show an error alert
-            print("Sign out error: \(error)")
+            // Debug: // Debug: print("Sign out error: \(error)")
         }
     }
     
@@ -521,7 +521,7 @@ struct SettingsView: View {
             try viewContext.execute(deleteTemplatesRequest)
             try viewContext.save()
         } catch {
-            print("Error clearing data: \(error)")
+            // Debug: // Debug: print("Error clearing data: \(error)")
         }
     }
 }

@@ -55,7 +55,7 @@ final class CalendarManager: ObservableObject {
                     event.calendar = writable
                 } else {
                     // No writable calendars available; abort
-                    print("CalendarManager: No writable calendars available")
+                    // Debug: print("CalendarManager: No writable calendars available")
                     return
                 }
             }
@@ -87,7 +87,7 @@ final class CalendarManager: ObservableObject {
                 map[id] = event.eventIdentifier
                 self.idMap = map
             } catch {
-                print("Calendar event save error: \(error)")
+                // Debug: print("Calendar event save error: \(error)")
             }
         }
     }
@@ -104,7 +104,7 @@ final class CalendarManager: ObservableObject {
                 map.removeValue(forKey: id)
                 self.idMap = map
             } catch {
-                print("Calendar event remove error: \(error)")
+                // Debug: print("Calendar event remove error: \(error)")
             }
         }
     }

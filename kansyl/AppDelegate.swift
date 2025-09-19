@@ -61,7 +61,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     }
                 }
             } catch {
-                print("Error handling subscription action: \(error)")
+                // Debug: print("Error handling subscription action: \(error)")
             }
         }
     }

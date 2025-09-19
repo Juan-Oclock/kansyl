@@ -108,7 +108,7 @@ struct SubscriptionWidgetProvider: IntentTimelineProvider {
                 configuration: configuration
             )
         } catch {
-            print("Widget data fetch error: \(error)")
+            // Debug: // Debug: print("Widget data fetch error: \(error)")
             return SubscriptionWidgetEntry(
                 date: Date(),
                 upcomingSubscriptions: [],

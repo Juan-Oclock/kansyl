@@ -44,7 +44,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
             }
             
             if let error = error {
-                print("Notification permission error: \(error)")
+                // Failed to request notification permission
             }
         }
     }
@@ -186,7 +186,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
                     let attachment = try UNNotificationAttachment(identifier: "logo", url: imageURL, options: nil)
                     content.attachments = [attachment]
                 } catch {
-                    print("Error creating attachment: \(error)")
+                    // Failed to create notification attachment
                 }
             }
         }
@@ -200,7 +200,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Error scheduling notification: \(error)")
+                // Failed to schedule notification
             }
         }
     }

@@ -23,7 +23,7 @@ struct ProductionAIConfig {
         guard let path = Bundle.main.path(forResource: "Config", ofType: "plist"),
               let config = NSDictionary(contentsOfFile: path),
               let apiKey = config["DeepSeekAPIKey"] as? String else {
-            print("⚠️ ProductionAIConfig: Could not load API key from Config.plist")
+            // Debug: print("⚠️ ProductionAIConfig: Could not load API key from Config.plist")
             return ""
         }
         return apiKey
@@ -50,21 +50,21 @@ struct ProductionAIConfig {
         let _ = deepSeekAPIKey
         
         if !isValidAPIKey {
-            print("⚠️ ProductionAIConfig: Invalid or missing API key")
-            print("📝 To fix this:")
-            print("   1. Get your production API key from https://platform.deepseek.com")
-            print("   2. Add it to Config.plist as 'DeepSeekAPIKey'")
-            print("   3. Make sure Config.plist is added to your Xcode project")
+            // Debug: print("⚠️ ProductionAIConfig: Invalid or missing API key")
+            // Debug: print("📝 To fix this:")
+            // Debug: print("   1. Get your production API key from https://platform.deepseek.com")
+            // Debug: print("   2. Add it to Config.plist as 'DeepSeekAPIKey'")
+            // Debug: print("   3. Make sure Config.plist is added to your Xcode project")
         }
     }
     
     static func getAPIKey() -> String? {
         guard isValidAPIKey else {
-            print("⚠️ ProductionAIConfig: Invalid production API key")
-            print("📝 To fix this:")
-            print("   1. Get your production API key from https://platform.deepseek.com")
-            print("   2. Replace 'sk-your-production-deepseek-api-key-here' above")
-            print("   3. This key will be used for all users")
+            // Debug: print("⚠️ ProductionAIConfig: Invalid production API key")
+            // Debug: print("📝 To fix this:")
+            // Debug: print("   1. Get your production API key from https://platform.deepseek.com")
+            // Debug: print("   2. Replace 'sk-your-production-deepseek-api-key-here' above")
+            // Debug: print("   3. This key will be used for all users")
             return nil
         }
         

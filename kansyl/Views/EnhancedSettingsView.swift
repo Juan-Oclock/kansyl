@@ -406,7 +406,7 @@ struct EnhancedSettingsView: View {
             try await authManager.signOut()
         } catch {
             // Handle error - could show an error alert
-            print("Sign out error: \(error)")
+            // Debug: print("Sign out error: \(error)")
         }
     }
     
@@ -422,7 +422,7 @@ struct EnhancedSettingsView: View {
             try viewContext.execute(deleteTemplatesRequest)
             try viewContext.save()
         } catch {
-            print("Error clearing data: \(error)")
+            // Debug: print("Error clearing data: \(error)")
         }
     }
     

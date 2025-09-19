@@ -30,10 +30,10 @@ struct ReceiptScanView: View {
     // Helper to detect if running on simulator
     private var isRunningOnSimulator: Bool {
         #if targetEnvironment(simulator)
-        print("📱 Detected: Running on iOS Simulator")
+        // Debug: // Debug: print("📱 Detected: Running on iOS Simulator")
         return true
         #else
-        print("📱 Detected: Running on real device")
+        // Debug: // Debug: print("📱 Detected: Running on real device")
         return false
         #endif
     }
@@ -113,7 +113,7 @@ struct ReceiptScanView: View {
                         subscriptionStore: subscriptionStore,
                         isPresented: $showingConfirmation,
                         onSave: { subscription in
-                            print("🎉 ReceiptScanView: Subscription added successfully, dismissing view")
+                            // Debug: // Debug: print("🎉 ReceiptScanView: Subscription added successfully, dismissing view")
                             // Call the original onSave callback if provided
                             onSave?(subscription)
                             // Dismiss the entire receipt scan view
@@ -184,20 +184,20 @@ struct ReceiptScanView: View {
             VStack(spacing: 16) {
                 // Camera button
                 Button(action: {
-                    print("🔘 Camera button tapped")
-                    print("📱 isRunningOnSimulator: \(isRunningOnSimulator)")
-                    print("📷 Camera available: \(UIImagePickerController.isSourceTypeAvailable(.camera))")
+                    // Debug: // Debug: print("🔘 Camera button tapped")
+                    // Debug: // Debug: print("📱 isRunningOnSimulator: \(isRunningOnSimulator)")
+                    // Debug: // Debug: print("📷 Camera available: \(UIImagePickerController.isSourceTypeAvailable(.camera))")
                     
                     if isRunningOnSimulator {
                         // On simulator, use photo library
-                        print("📱 Simulator detected, using photo library")
+                        // Debug: // Debug: print("📱 Simulator detected, using photo library")
                         showingPhotoLibraryPicker = true
                     } else if UIImagePickerController.isSourceTypeAvailable(.camera) {
                         // On real device with camera available
-                        print("📷 Camera available, requesting access")
+                        // Debug: // Debug: print("📷 Camera available, requesting access")
                         requestCameraAccess()
                     } else {
-                        print("⚠️ Camera not available, showing alert")
+                        // Debug: // Debug: print("⚠️ Camera not available, showing alert")
                         // Camera not available, show alert instead of automatic fallback
                         showingCameraUnavailableAlert = true
                     }
@@ -218,11 +218,11 @@ struct ReceiptScanView: View {
                 
                 // Photo library button
                 Button(action: {
-                    print("📚 Photo Library button tapped")
+                    // Debug: // Debug: print("📚 Photo Library button tapped")
                     
                     // Show photo library picker directly
                     showingPhotoLibraryPicker = true
-                    print("📸 Showing photo library picker")
+                    // Debug: // Debug: print("📸 Showing photo library picker")
                 }) {
                     HStack(spacing: 12) {
                         Image(systemName: "photo.on.rectangle")
@@ -458,33 +458,33 @@ struct ReceiptScanView: View {
         // Pre-check camera availability and permissions on appear
         if !isRunningOnSimulator && UIImagePickerController.isSourceTypeAvailable(.camera) {
             let status = AVCaptureDevice.authorizationStatus(for: .video)
-            print("🎬 Camera pre-check - Status: \(status.rawValue)")
+            // Debug: // Debug: print("🎬 Camera pre-check - Status: \(status.rawValue)")
             
             // Pre-warm camera if already authorized
             if status == .authorized {
                 cameraInitialized = true
-                print("✅ Camera pre-initialized and ready")
+                // Debug: // Debug: print("✅ Camera pre-initialized and ready")
             } else if status == .notDetermined {
                 // Don't request permission yet, but mark as available
-                print("🔔 Camera available but permission not determined")
+                // Debug: // Debug: print("🔔 Camera available but permission not determined")
             }
         }
     }
     
     // MARK: - Camera Permissions
     private func requestCameraAccess() {
-        print("📸 ReceiptScanView: Requesting camera access...")
+        // Debug: // Debug: print("📸 ReceiptScanView: Requesting camera access...")
         
         // Check if we're on simulator first
         if isRunningOnSimulator {
-            print("📱 ReceiptScanView: Running on simulator, showing alert")
+            // Debug: // Debug: print("📱 ReceiptScanView: Running on simulator, showing alert")
             showingCameraUnavailableAlert = true
             return
         }
         
         // Check if camera source type is available
         if !UIImagePickerController.isSourceTypeAvailable(.camera) {
-            print("📷 ReceiptScanView: Camera source type not available")
+            // Debug: // Debug: print("📷 ReceiptScanView: Camera source type not available")
             showingCameraUnavailableAlert = true
             return
         }
@@ -492,29 +492,29 @@ struct ReceiptScanView: View {
           
         // Check current permission status
         let cameraAuthStatus = AVCaptureDevice.authorizationStatus(for: .video)
-        print("🔐 ReceiptScanView: Camera auth status: \(cameraAuthStatus.rawValue)")
+        // Debug: // Debug: print("🔐 ReceiptScanView: Camera auth status: \(cameraAuthStatus.rawValue)")
         
         // Handle camera permissions
         switch cameraAuthStatus {
         case .authorized:
             // Camera access already granted, open immediately
-            print("✅ Camera already authorized, opening immediately")
+            // Debug: // Debug: print("✅ Camera already authorized, opening immediately")
             DispatchQueue.main.async {
-                print("📷 Opening camera picker directly")
+                // Debug: // Debug: print("📷 Opening camera picker directly")
                 self.showingCameraPicker = true
             }
             
         case .notDetermined:
             // Request camera permission
-            print("🔔 Requesting camera permission...")
+            // Debug: // Debug: print("🔔 Requesting camera permission...")
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
                     if granted {
-                        print("✅ Camera permission granted by user")
-                        print("📷 Opening camera picker after permission granted")
+                        // Debug: // Debug: print("✅ Camera permission granted by user")
+                        // Debug: // Debug: print("📷 Opening camera picker after permission granted")
                         self.showingCameraPicker = true
                     } else {
-                        print("❌ Camera permission denied by user")
+                        // Debug: // Debug: print("❌ Camera permission denied by user")
                         self.showingCameraUnavailableAlert = true
                     }
                 }
@@ -522,14 +522,14 @@ struct ReceiptScanView: View {
             
         case .denied, .restricted:
             // Camera access denied or restricted, show alert
-            print("🚫 Camera access denied or restricted")
+            // Debug: // Debug: print("🚫 Camera access denied or restricted")
             DispatchQueue.main.async {
                 self.showingCameraUnavailableAlert = true
             }
             
         @unknown default:
             // Unknown case, show alert
-            print("❓ Unknown camera permission state")
+            // Debug: // Debug: print("❓ Unknown camera permission state")
             DispatchQueue.main.async {
                 self.showingCameraUnavailableAlert = true
             }
@@ -540,7 +540,7 @@ struct ReceiptScanView: View {
     // Keeping for backward compatibility if needed
     private func handleCameraPermission(status: AVAuthorizationStatus) {
         // Deprecated - functionality moved to requestCameraAccess
-        print("⚠️ handleCameraPermission called - this is deprecated")
+        // Debug: // Debug: print("⚠️ handleCameraPermission called - this is deprecated")
         requestCameraAccess()
     }
 }
@@ -656,7 +656,7 @@ struct ReceiptConfirmationSheet: View {
     }
     
     private func createSubscription() async {
-        print("🔄 ReceiptConfirmationSheet: Creating subscription...")
+        // Debug: // Debug: print("🔄 ReceiptConfirmationSheet: Creating subscription...")
         isCreating = true
         
         let subscription = receiptScanner.createSubscriptionFromReceipt(receiptData, subscriptionStore: subscriptionStore)
@@ -664,7 +664,7 @@ struct ReceiptConfirmationSheet: View {
         DispatchQueue.main.async {
             self.isCreating = false
             
-            print("✅ ReceiptConfirmationSheet: Subscription created successfully")
+            // Debug: // Debug: print("✅ ReceiptConfirmationSheet: Subscription created successfully")
             // Refresh the subscription store to ensure the new subscription appears
             self.subscriptionStore.fetchSubscriptions()
             
@@ -707,14 +707,14 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
     }
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
-        print("🎬 DirectImagePickerView: Creating picker with sourceType: \(sourceType == .camera ? "camera" : "photoLibrary")")
+        // Debug: // Debug: print("🎬 DirectImagePickerView: Creating picker with sourceType: \(sourceType == .camera ? "camera" : "photoLibrary")")
         
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         
         // Set source type immediately and directly
         picker.sourceType = sourceType
-        print("✅ Direct setting picker source to: \(sourceType == .camera ? "camera" : "photoLibrary")")
+        // Debug: // Debug: print("✅ Direct setting picker source to: \(sourceType == .camera ? "camera" : "photoLibrary")")
         
         picker.allowsEditing = true
         picker.mediaTypes = ["public.image"]
@@ -722,10 +722,10 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
         // Force immediate source type update
         DispatchQueue.main.async {
             picker.sourceType = sourceType
-            print("🔄 Forcing picker source type update to: \(sourceType == .camera ? "camera" : "photoLibrary")")
+            // Debug: // Debug: print("🔄 Forcing picker source type update to: \(sourceType == .camera ? "camera" : "photoLibrary")")
         }
         
-        print("📷 Final picker source type: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
+        // Debug: // Debug: print("📷 Final picker source type: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
         
         return picker
     }
@@ -734,7 +734,7 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
         // Ensure the picker stays updated with the correct source type
         DispatchQueue.main.async {
             if uiViewController.sourceType != sourceType {
-                print("🔄 Correcting picker source type from \(uiViewController.sourceType == .camera ? "camera" : "photoLibrary") to \(sourceType == .camera ? "camera" : "photoLibrary")")
+                // Debug: // Debug: print("🔄 Correcting picker source type from \(uiViewController.sourceType == .camera ? "camera" : "photoLibrary") to \(sourceType == .camera ? "camera" : "photoLibrary")")
                 uiViewController.sourceType = sourceType
             }
         }
@@ -749,7 +749,7 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             // Ensure correct source type was used
-            print("📸 Picker finished with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
+            // Debug: // Debug: print("📸 Picker finished with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
             
             if let editedImage = info[.editedImage] as? UIImage {
                 parent.onImageSelected(editedImage)
@@ -761,7 +761,7 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
         }
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            print("🚫 Picker cancelled with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
+            // Debug: // Debug: print("🚫 Picker cancelled with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
             parent.isPresented = false
         }
     }

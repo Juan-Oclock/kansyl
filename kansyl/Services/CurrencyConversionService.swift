@@ -58,8 +58,8 @@ class CurrencyConversionService {
         // This converts to USD first, then to target currency
         let convertedAmount = (amount / fromRate) * toRate
         
-        print("💱 Currency conversion: \(amount) \(fromCurrency) = \(String(format: "%.2f", convertedAmount)) \(toCurrency)")
-        print("   Exchange rates: 1 USD = \(fromRate) \(fromCurrency), 1 USD = \(toRate) \(toCurrency)")
+        // Debug: // Debug: print("💱 Currency conversion: \(amount) \(fromCurrency) = \(String(format: "%.2f", convertedAmount)) \(toCurrency)")
+        // Debug: // Debug: print("   Exchange rates: 1 USD = \(fromRate) \(fromCurrency), 1 USD = \(toRate) \(toCurrency)")
         
         return convertedAmount
     }
@@ -106,7 +106,7 @@ class CurrencyConversionService {
         let urlString = "https://api.exchangerate-api.com/v4/latest/USD"
         
         guard let url = URL(string: urlString) else {
-            print("⚠️ Invalid exchange rate API URL")
+            // Debug: // Debug: print("⚠️ Invalid exchange rate API URL")
             return nil
         }
         
@@ -115,17 +115,17 @@ class CurrencyConversionService {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("⚠️ Exchange rate API returned error")
+                // Debug: // Debug: print("⚠️ Exchange rate API returned error")
                 return nil
             }
             
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let rates = json["rates"] as? [String: Double] {
-                print("✅ Fetched fresh exchange rates for \(rates.count) currencies")
+                // Debug: // Debug: print("✅ Fetched fresh exchange rates for \(rates.count) currencies")
                 return rates
             }
         } catch {
-            print("⚠️ Failed to fetch exchange rates: \(error.localizedDescription)")
+            // Debug: // Debug: print("⚠️ Failed to fetch exchange rates: \(error.localizedDescription)")
         }
         
         return nil

@@ -710,7 +710,7 @@ struct AddSubscriptionView: View {
             try imageData.write(to: fileURL)
             return fileName // Return just the filename, not the full path
         } catch {
-            print("Error saving image: \(error)")
+            // Debug: // Debug: print("Error saving image: \(error)")
             return nil
         }
     }
