@@ -311,42 +311,65 @@ struct EmailLoginView: View {
     @State private var showingPassword = false
     @State private var formAnimation = false
     @State private var buttonAnimation = false
+    @State private var headerAnimation = false
     
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
-                VStack(spacing: 0) {
-                    // Modern header
-                    VStack(spacing: Design.Spacing.lg) {
-                        // Close indicator
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Design.Colors.border)
-                            .frame(width: 40, height: 6)
-                            .padding(.top, Design.Spacing.sm)
-                        
-                        VStack(spacing: Design.Spacing.sm) {
-                            Text("Sign In")
-                                .font(Design.Typography.title2(.bold))
-                                .foregroundColor(Design.Colors.textPrimary)
-                            
-                            Text("Enter your credentials to access your account")
-                                .font(Design.Typography.callout(.medium))
-                                .foregroundColor(Design.Colors.textSecondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .opacity(formAnimation ? 1.0 : 0.0)
-                        .offset(y: formAnimation ? 0 : 20)
-                        .animation(Design.Animation.spring.delay(0.2), value: formAnimation)
-                    }
-                    .padding(.horizontal, Design.Spacing.xl)
-                    .padding(.top, Design.Spacing.md)
-                
-                    Spacer(minLength: geometry.size.height * 0.05)
+                ZStack {
+                    // Modern background gradient
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Design.Colors.background,
+                            Design.Colors.background.opacity(0.8)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea(.all)
                     
-                    // Modern form
-                    VStack(spacing: Design.Spacing.xl) {
-                        // Email field - Modern styling
-                        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    VStack(spacing: 0) {
+                        // Modern sleek header
+                        VStack(spacing: Design.Spacing.xl) {
+                            // Close indicator - more subtle
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Design.Colors.border.opacity(0.4))
+                                .frame(width: 36, height: 4)
+                                .padding(.top, Design.Spacing.md)
+                                .scaleEffect(headerAnimation ? 1.0 : 0.8)
+                                .opacity(headerAnimation ? 1.0 : 0.0)
+                                .animation(Design.Animation.spring.delay(0.1), value: headerAnimation)
+                            
+                            VStack(spacing: Design.Spacing.md) {
+                                Text("Sign In")
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Design.Colors.primary, Design.Colors.secondary],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                
+                                Text("Enter your credentials to access your account")
+                                    .font(Design.Typography.body(.medium))
+                                    .foregroundColor(Design.Colors.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                            }
+                            .opacity(formAnimation ? 1.0 : 0.0)
+                            .offset(y: formAnimation ? 0 : 20)
+                            .animation(Design.Animation.spring.delay(0.3), value: formAnimation)
+                        }
+                        .padding(.horizontal, Design.Spacing.xl)
+                        .padding(.top, Design.Spacing.lg)
+                    
+                        Spacer(minLength: geometry.size.height * 0.08)
+                    
+                    // Sleek modern form
+                    VStack(spacing: Design.Spacing.xxl) {
+                        // Email field - Sleek styling
+                        VStack(alignment: .leading, spacing: Design.Spacing.md) {
                             Text("Email")
                                 .font(Design.Typography.callout(.semibold))
                                 .foregroundColor(Design.Colors.textPrimary)
@@ -354,13 +377,15 @@ struct EmailLoginView: View {
                             TextField("Enter your email", text: $email)
                                 .font(Design.Typography.body(.medium))
                                 .padding(.horizontal, Design.Spacing.lg)
-                                .padding(.vertical, Design.Spacing.md)
+                                .padding(.vertical, Design.Spacing.lg)
                                 .background(
-                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                        .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                                .stroke(Design.Colors.border.opacity(0.3), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: Design.Radius.xl)
+                                        .fill(.white)
+                                        .shadow(
+                                            color: Design.Colors.textPrimary.opacity(0.05),
+                                            radius: 8,
+                                            x: 0,
+                                            y: 2
                                         )
                                 )
                                 .textContentType(.emailAddress)
@@ -368,8 +393,8 @@ struct EmailLoginView: View {
                                 .autocapitalization(.none)
                         }
                         
-                        // Password field - Modern styling
-                        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                        // Password field - Sleek styling
+                        VStack(alignment: .leading, spacing: Design.Spacing.md) {
                             Text("Password")
                                 .font(Design.Typography.callout(.semibold))
                                 .foregroundColor(Design.Colors.textPrimary)
@@ -385,21 +410,26 @@ struct EmailLoginView: View {
                                 .font(Design.Typography.body(.medium))
                                 
                                 Button(action: {
-                                    showingPassword.toggle()
+                                    withAnimation(.spring(response: 0.3)) {
+                                        showingPassword.toggle()
+                                    }
                                 }) {
                                     Image(systemName: showingPassword ? "eye.slash.fill" : "eye.fill")
                                         .font(.system(size: 18, weight: .medium))
                                         .foregroundColor(Design.Colors.textSecondary)
+                                        .scaleEffect(showingPassword ? 1.1 : 1.0)
                                 }
                             }
                             .padding(.horizontal, Design.Spacing.lg)
-                            .padding(.vertical, Design.Spacing.md)
+                            .padding(.vertical, Design.Spacing.lg)
                             .background(
-                                RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                            .stroke(Design.Colors.border.opacity(0.3), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: Design.Radius.xl)
+                                    .fill(.white)
+                                    .shadow(
+                                        color: Design.Colors.textPrimary.opacity(0.05),
+                                        radius: 8,
+                                        x: 0,
+                                        y: 2
                                     )
                             )
                             .textContentType(.password)
@@ -408,11 +438,11 @@ struct EmailLoginView: View {
                     .padding(.horizontal, Design.Spacing.xl)
                     .opacity(formAnimation ? 1.0 : 0.0)
                     .offset(y: formAnimation ? 0 : 30)
-                    .animation(Design.Animation.spring.delay(0.4), value: formAnimation)
+                    .animation(Design.Animation.spring.delay(0.5), value: formAnimation)
                 
-                    Spacer(minLength: geometry.size.height * 0.05)
+                    Spacer(minLength: geometry.size.height * 0.08)
                     
-                    // Modern sign in button
+                    // Sleek sign in button
                     Button(action: {
                         Task {
                             do {
@@ -438,55 +468,69 @@ struct EmailLoginView: View {
                         .frame(height: 56)
                         .background(
                             LinearGradient(
-                                colors: [Design.Colors.buttonPrimary, Design.Colors.buttonPrimary.opacity(0.8)],
+                                colors: [Design.Colors.primary, Design.Colors.secondary],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .cornerRadius(Design.Radius.lg)
+                        .cornerRadius(Design.Radius.xl)
                         .shadow(
-                            color: Design.Colors.buttonPrimary.opacity(0.3),
-                            radius: 12,
+                            color: Design.Colors.primary.opacity(0.3),
+                            radius: 16,
                             x: 0,
-                            y: 6
+                            y: 8
                         )
                         .scaleEffect(buttonAnimation ? 1.0 : 0.95)
                         .opacity(buttonAnimation ? 1.0 : 0.0)
-                        .animation(Design.Animation.spring.delay(0.6), value: buttonAnimation)
+                        .animation(Design.Animation.spring.delay(0.7), value: buttonAnimation)
                     }
                     .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
                     .padding(.horizontal, Design.Spacing.xl)
                 
+                    Spacer(minLength: Design.Spacing.lg)
                     
-                    // Modern error message
+                    // Sleek error message
                     if let errorMessage = authManager.errorMessage {
                         Text(errorMessage)
                             .font(Design.Typography.callout(.medium))
                             .foregroundColor(Design.Colors.danger)
                             .padding(.horizontal, Design.Spacing.lg)
-                            .padding(.vertical, Design.Spacing.sm)
+                            .padding(.vertical, Design.Spacing.md)
                             .background(
-                                RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .fill(Design.Colors.danger.opacity(0.1))
+                                RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                    .fill(Design.Colors.danger.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                            .stroke(Design.Colors.danger.opacity(0.2), lineWidth: 1)
+                                    )
                             )
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Design.Spacing.xl)
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .opacity
+                            ))
                     }
                     
                     Spacer()
+                    }
                 }
             }
-            .background(Design.Colors.background)
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarHidden(true)
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Staggered animation sequence for smooth entrance
+                withAnimation {
+                    headerAnimation = true
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     withAnimation {
                         formAnimation = true
                     }
                 }
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     withAnimation {
                         buttonAnimation = true
                     }
