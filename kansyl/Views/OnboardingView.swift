@@ -3,6 +3,7 @@
 //  kansyl
 //
 //  Created on 9/12/25.
+//  Modern single-page onboarding design
 //
 
 import SwiftUI
@@ -11,101 +12,141 @@ struct OnboardingView: View {
     @Binding var deviceHasCompletedOnboarding: Bool
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var notificationManager = NotificationManager.shared
-    @State private var currentPage = 0
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingNotificationPrompt = false
-    
-    let onboardingPages: [OnboardingPage] = [
-        OnboardingPage(
-            title: "Never Forget to Cancel",
-            subtitle: "Track all your free trials in one place",
-            imageName: "calendar.badge.exclamationmark",
-            imageColor: .blue,
-            description: "Get timely reminders before trials end, so you never pay for services you don't want."
-        ),
-        OnboardingPage(
-            title: "Save Money Effortlessly",
-            subtitle: "See your potential savings at a glance",
-            imageName: "dollarsign.circle.fill",
-            imageColor: .green,
-            description: "Track how much you've saved by canceling unwanted subscriptions before they charge."
-        ),
-        OnboardingPage(
-            title: "Lightning-Fast Setup",
-            subtitle: "Add trials in seconds",
-            imageName: "bolt.fill",
-            imageColor: .orange,
-            description: "Choose from popular services or add custom trials with our streamlined interface."
-        ),
-        OnboardingPage(
-            title: "Smart Notifications",
-            subtitle: "Never miss a trial deadline",
-            imageName: "bell.badge.fill",
-            imageColor: .purple,
-            description: "Customizable reminders at 3 days, 1 day, and day-of trial expiration."
-        )
-    ]
+    @State private var logoAnimation = false
+    @State private var contentAnimation = false
+    @State private var buttonAnimation = false
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Skip button
-            HStack {
-                #if DEBUG
-                Button("Reset") {
-                    DebugHelper.resetOnboardingForUser(authManager.currentUser?.id.uuidString)
-                }
-                .foregroundColor(.red)
-                .padding()
-                #endif
+        GeometryReader { geometry in
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Design.Colors.background,
+                        Design.Colors.background.opacity(0.8)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea(.all)
                 
-                Spacer()
-                Button("Skip") {
-                    completeOnboarding()
-                }
-                .foregroundColor(.secondary)
-                .padding()
-            }
-            
-            // Content
-            TabView(selection: $currentPage) {
-                ForEach(0..<onboardingPages.count, id: \.self) { index in
-                    OnboardingPageView(page: onboardingPages[index])
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .animation(.easeInOut, value: currentPage)
-            
-            // Page indicators and button
-            VStack(spacing: 20) {
-                // Custom page indicators
-                HStack(spacing: 8) {
-                    ForEach(0..<onboardingPages.count, id: \.self) { index in
-                        Circle()
-                            .fill(currentPage == index ? Color.accentColor : Color.gray.opacity(0.3))
-                            .frame(width: 8, height: 8)
-                            .scaleEffect(currentPage == index ? 1.2 : 1.0)
-                            .animation(.spring(response: 0.3), value: currentPage)
+                VStack(spacing: 0) {
+                    // Skip button (top right)
+                    HStack {
+                        Spacer()
+                        
+                        Button("Skip") {
+                            completeOnboarding()
+                        }
+                        .font(Design.Typography.callout(.medium))
+                        .foregroundColor(Design.Colors.textSecondary)
+                        .padding(.trailing, Design.Spacing.xl)
+                        .padding(.top, Design.Spacing.lg)
                     }
+                    
+                    Spacer(minLength: geometry.size.height * 0.1)
+                    
+                    // Main content
+                    VStack(spacing: Design.Spacing.xxxl) {
+                        // Kansyl Logo - Text only, sleek and modern
+                        VStack(spacing: Design.Spacing.sm) {
+                            Text("Kansyl")
+                                .font(.system(size: 64, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Design.Colors.primary, Design.Colors.secondary],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .scaleEffect(logoAnimation ? 1.0 : 0.8)
+                                .opacity(logoAnimation ? 1.0 : 0.0)
+                                .animation(Design.Animation.spring.delay(0.2), value: logoAnimation)
+                            
+                            Text("Never miss a subscription deadline")
+                                .font(Design.Typography.callout(.medium))
+                                .foregroundColor(Design.Colors.textSecondary)
+                                .opacity(contentAnimation ? 1.0 : 0.0)
+                                .offset(y: contentAnimation ? 0 : 20)
+                                .animation(Design.Animation.spring.delay(0.6), value: contentAnimation)
+                        }
+                        
+                        // Feature highlights
+                        VStack(spacing: Design.Spacing.xl) {
+                            OnboardingFeatureRow(
+                                title: "Track Free (and Premium) Subscriptions",
+                                description: "Never forget to cancel unwanted subscriptions",
+                                delay: 0.8
+                            )
+                            
+                            OnboardingFeatureRow(
+                                title: "Smart Reminders",
+                                description: "Get notified before trials expire",
+                                delay: 1.0
+                            )
+                            
+                            OnboardingFeatureRow(
+                                title: "Save Money",
+                                description: "Track your savings with every cancellation",
+                                delay: 1.2
+                            )
+                        }
+                        .opacity(contentAnimation ? 1.0 : 0.0)
+                        .offset(y: contentAnimation ? 0 : 30)
+                        .animation(Design.Animation.spring.delay(0.8), value: contentAnimation)
+                    }
+                    
+                    Spacer(minLength: geometry.size.height * 0.1)
+                    
+                    // Get Started button
+                    VStack(spacing: Design.Spacing.lg) {
+                        Button(action: handleGetStartedAction) {
+                            HStack {
+                                Text("Get Started")
+                                    .font(Design.Typography.headline(.semibold))
+                                    .foregroundColor(Design.Colors.background)
+                                
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(Design.Colors.background)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Design.Spacing.lg)
+                            .background(
+                                LinearGradient(
+                                    colors: [Design.Colors.textPrimary, Design.Colors.primary],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(Design.Radius.lg)
+                            .shadow(
+                                color: Design.Colors.textPrimary.opacity(0.3),
+                                radius: 12,
+                                x: 0,
+                                y: 6
+                            )
+                        }
+                        .scaleEffect(buttonAnimation ? 1.0 : 0.9)
+                        .opacity(buttonAnimation ? 1.0 : 0.0)
+                        .animation(Design.Animation.spring.delay(1.4), value: buttonAnimation)
+                        .padding(.horizontal, Design.Spacing.xl)
+                        
+                        Text("Start tracking your subscriptions today")
+                            .font(Design.Typography.caption(.regular))
+                            .foregroundColor(Design.Colors.textSecondary)
+                            .opacity(buttonAnimation ? 1.0 : 0.0)
+                            .animation(Design.Animation.spring.delay(1.6), value: buttonAnimation)
+                    }
+                    .padding(.bottom, Design.Spacing.xxxl)
                 }
-                .padding(.bottom, 20)
-                
-                // Action button
-                Button(action: handleButtonAction) {
-                    Text(buttonTitle)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.accentColor)
-                        )
-                }
-                .padding(.horizontal, 40)
-                .padding(.bottom, 50)
             }
         }
-        .background(Color(.systemBackground))
+        .onAppear {
+            startAnimationSequence()
+        }
         .sheet(isPresented: $showingNotificationPrompt) {
             NotificationPermissionView {
                 completeOnboarding()
@@ -113,107 +154,89 @@ struct OnboardingView: View {
         }
     }
     
-    private var buttonTitle: String {
-        if currentPage < onboardingPages.count - 1 {
-            return "Next"
-        } else {
-            return "Get Started"
+    private func startAnimationSequence() {
+        // Stagger the animations for a smooth entrance
+        withAnimation {
+            logoAnimation = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation {
+                contentAnimation = true
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation {
+                buttonAnimation = true
+            }
         }
     }
     
-    private func handleButtonAction() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
+    private func handleGetStartedAction() {
+        HapticManager.shared.playButtonTap()
         
-        if currentPage < onboardingPages.count - 1 {
-            withAnimation {
-                currentPage += 1
-            }
+        // Request notifications then complete onboarding
+        if !notificationManager.notificationsEnabled {
+            showingNotificationPrompt = true
         } else {
-            // Last page - request notifications then complete
-            if !notificationManager.notificationsEnabled {
-                showingNotificationPrompt = true
-            } else {
-                completeOnboarding()
-            }
+            completeOnboarding()
         }
     }
     
     private func completeOnboarding() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        HapticManager.shared.playButtonTap()
         
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(Design.Animation.smooth) {
             deviceHasCompletedOnboarding = true
         }
     }
 }
 
-struct OnboardingPage {
+// MARK: - Onboarding Feature Row Component
+struct OnboardingFeatureRow: View {
     let title: String
-    let subtitle: String
-    let imageName: String
-    let imageColor: Color
     let description: String
-}
-
-struct OnboardingPageView: View {
-    let page: OnboardingPage
-    @State private var isAnimating = false
+    let delay: Double
+    @State private var isVisible = false
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        VStack(spacing: 30) {
-            Spacer()
-            
-            // Icon
+        HStack(spacing: Design.Spacing.lg) {
+            // Checkmark circle
             ZStack {
                 Circle()
-                    .fill(page.imageColor.opacity(0.1))
-                    .frame(width: 150, height: 150)
-                    .scaleEffect(isAnimating ? 1.05 : 0.95)
-                    .animation(
-                        .easeInOut(duration: 2.0)
-                        .repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
+                    .fill(Design.Colors.success.opacity(0.1))
+                    .frame(width: 44, height: 44)
                 
-                Image(systemName: page.imageName)
-                    .font(.system(size: 70))
-                    .foregroundColor(page.imageColor)
-                    .scaleEffect(isAnimating ? 1.0 : 0.9)
-                    .animation(
-                        .easeInOut(duration: 2.0)
-                        .repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
             }
+            .scaleEffect(isVisible ? 1.0 : 0.5)
+            .opacity(isVisible ? 1.0 : 0.0)
+            .animation(Design.Animation.spring.delay(delay), value: isVisible)
             
             // Text content
-            VStack(spacing: 16) {
-                Text(page.title)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: Design.Spacing.xxs) {
+                Text(title)
+                    .font(Design.Typography.headline(.semibold))
+                    .foregroundColor(Design.Colors.textPrimary)
                 
-                Text(page.subtitle)
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                Text(page.description)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                Text(description)
+                    .font(Design.Typography.callout(.regular))
+                    .foregroundColor(Design.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .opacity(isVisible ? 1.0 : 0.0)
+            .offset(x: isVisible ? 0 : 20)
+            .animation(Design.Animation.spring.delay(delay + 0.1), value: isVisible)
             
             Spacer()
-            Spacer()
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Design.Spacing.xl)
         .onAppear {
-            isAnimating = true
+            isVisible = true
         }
     }
 }
@@ -221,6 +244,7 @@ struct OnboardingPageView: View {
 struct NotificationPermissionView: View {
     let onComplete: () -> Void
     @State private var isAnimating = false
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 30) {
@@ -239,7 +263,7 @@ struct NotificationPermissionView: View {
             // Bell animation
             Image(systemName: "bell.badge.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.purple)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
                 .rotationEffect(.degrees(isAnimating ? -10 : 10))
                 .animation(
                     .easeInOut(duration: 0.2)
@@ -292,12 +316,13 @@ struct NotificationPermissionView: View {
 struct NotificationBenefit: View {
     let icon: String
     let text: String
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.purple)
+                .foregroundColor(colorScheme == .dark ? .white : .black)
                 .frame(width: 30)
             
             Text(text)

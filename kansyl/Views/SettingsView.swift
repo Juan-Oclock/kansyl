@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var showingResetAlert = false
     @State private var showingUserProfile = false
     @State private var showingSignOutAlert = false
+    @State private var showingResetOnboardingAlert = false
     @FocusState private var isTrialLengthFocused: Bool
     
     var body: some View {
@@ -259,6 +260,13 @@ struct SettingsView: View {
                         Label("Reset All Settings", systemImage: "arrow.counterclockwise")
                             .foregroundColor(.orange)
                     }
+                    
+                    #if DEBUG
+                    Button(action: { showingResetOnboardingAlert = true }) {
+                        Label("Reset Onboarding (Debug)", systemImage: "rectangle.and.arrow.up.right.and.arrow.down.left")
+                            .foregroundColor(.purple)
+                    }
+                    #endif
                 } header: {
                     Text("Advanced")
                 } footer: {
@@ -403,6 +411,14 @@ struct SettingsView: View {
             } message: {
                 Text("Are you sure you want to sign out?")
             }
+            .alert("Reset Onboarding?", isPresented: $showingResetOnboardingAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    resetOnboarding()
+                }
+            } message: {
+                Text("This will show the onboarding screen again next time you open the app.")
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -523,6 +539,11 @@ struct SettingsView: View {
         } catch {
             // Debug: // Debug: print("Error clearing data: \(error)")
         }
+    }
+    
+    private func resetOnboarding() {
+        UserDefaults.standard.removeObject(forKey: "device_has_completed_onboarding")
+        UserDefaults.standard.synchronize()
     }
 }
 
