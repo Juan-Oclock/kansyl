@@ -50,6 +50,24 @@ struct kansylApp: App {
                         handleCheckTrialsActivity(userActivity)
                     }
                 }
+                .onOpenURL { url in
+                    // Handle OAuth callbacks for Google/Apple Sign In
+                    if url.scheme == "kansyl" {
+                        Task {
+                            do {
+                                try await supabaseAuth.handleOAuthCallback(url: url)
+                                // Add haptic feedback on successful auth
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                            } catch {
+                                print("OAuth callback failed: \(error.localizedDescription)")
+                                // Show error feedback
+                                let errorFeedback = UINotificationFeedbackGenerator()
+                                errorFeedback.notificationOccurred(.error)
+                            }
+                        }
+                    }
+                }
                 .sheet(isPresented: $shouldShowAddSubscription) {
                     AddSubscriptionView(
                         subscriptionStore: SubscriptionStore.shared,

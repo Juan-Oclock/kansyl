@@ -72,23 +72,36 @@ struct LoginView: View {
                         
                         // Modern authentication options
                         VStack(spacing: Design.Spacing.lg) {
-                            // Apple Sign In - Modern styling
-                            SignInWithAppleButton(.signIn) { request in
-                                request.requestedScopes = [.fullName, .email]
-                            } onCompletion: { result in
+                            // Apple Sign In - Custom modern styling
+                            Button(action: {
+                                // For now, show the error message since we don't have paid developer account
                                 Task {
-                                    await handleAppleSignIn(result)
+                                    await handleAppleSignIn(.failure(NSError(domain: "AppleSignIn", code: -1)))
                                 }
+                            }) {
+                                HStack(spacing: Design.Spacing.sm) {
+                                    Image(systemName: "apple.logo")
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.black)
+                                    
+                                    Text("Continue with Apple")
+                                        .font(Design.Typography.headline(.semibold))
+                                        .foregroundColor(.black)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                        .fill(.white)
+                                )
+                                .cornerRadius(Design.Radius.lg)
+                                .shadow(
+                                    color: Design.Colors.textPrimary.opacity(0.1),
+                                    radius: 8,
+                                    x: 0,
+                                    y: 4
+                                )
                             }
-                            .signInWithAppleButtonStyle(.white)
-                            .frame(height: 56)
-                            .cornerRadius(Design.Radius.lg)
-                            .shadow(
-                                color: Design.Colors.textPrimary.opacity(0.1),
-                                radius: 8,
-                                x: 0,
-                                y: 4
-                            )
                             
                             // Google Sign In - Modern styling
                             Button(action: {
@@ -271,32 +284,22 @@ struct LoginView: View {
     // MARK: - Helper Methods
     
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
-        switch result {
-        case .success(let authorization):
-            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-                guard let identityToken = appleIDCredential.identityToken,
-                      let tokenString = String(data: identityToken, encoding: .utf8) else {
-                    return
-                }
-                
-                do {
-                    // For Apple Sign In, we need to use the identity token and nonce
-                    // For now, we'll use a simple nonce. In production, you should generate a proper nonce.
-                    let nonce = UUID().uuidString
-                    try await authManager.signInWithApple(idToken: tokenString, nonce: nonce)
-                } catch {
-                    // Error is handled by the auth manager
-                }
-            }
-        case .failure(_):
-            // Apple Sign In failed - error is handled by auth manager
-            return
-        }
+        // Note: Sign In with Apple requires a paid Apple Developer Program membership
+        // For personal development teams, show a helpful message
+        authManager.errorMessage = "Sign In with Apple requires a paid Apple Developer Program membership ($99/year). Please use Email sign-in for now or upgrade your developer account."
+        
+        // When you have a paid Apple Developer account:
+        // 1. Uncomment the entitlement in kansyl.entitlements
+        // 2. Replace the custom button with the real SignInWithAppleButton
+        // 3. Implement the actual authentication logic here
     }
     
     private func handleGoogleSignIn() async {
-        // Google Sign In is temporarily disabled until GoogleSignIn SDK is properly configured
-        authManager.errorMessage = "Google Sign In is temporarily unavailable. Please use Apple Sign In or Email."
+        do {
+            try await authManager.signInWithGoogle()
+        } catch {
+            // Error is handled by the auth manager
+        }
     }
 }
 
