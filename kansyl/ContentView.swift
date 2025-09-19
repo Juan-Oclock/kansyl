@@ -62,6 +62,7 @@ struct ContentView: View {
                 case 0:
                     ModernSubscriptionsView()
                         .environmentObject(subscriptionStore)
+                        .environmentObject(authManager)
                 case 1:
                     HistoryView()
                         .environmentObject(subscriptionStore)
@@ -75,6 +76,7 @@ struct ContentView: View {
                 default:
                     ModernSubscriptionsView()
                         .environmentObject(subscriptionStore)
+                        .environmentObject(authManager)
                 }
             }
             .id("main-content-\(themeManager.currentTheme.rawValue)")

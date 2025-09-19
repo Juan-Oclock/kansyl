@@ -19,6 +19,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 struct ModernSubscriptionsView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
+    @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var premiumManager = PremiumManager.shared
     @ObservedObject private var appPreferences = AppPreferences.shared
     @State private var showingAddSubscription = false
@@ -29,8 +30,24 @@ struct ModernSubscriptionsView: View {
     @State private var searchText = ""
     @State private var showEndingSoonSection = true
     @State private var showActiveSection = true
-    @AppStorage("userName") private var userName = "Juan Oclock"
     @FocusState private var isSearchFocused: Bool
+    
+    // Computed property to get the display name from auth manager
+    private var displayName: String {
+        // Try to get first name only from full name
+        if let fullName = authManager.userProfile?.fullName {
+            let components = fullName.components(separatedBy: " ")
+            return components.first ?? "User"
+        }
+        
+        // Fallback to email username or generic "User"
+        if let email = authManager.currentUser?.email {
+            let emailComponents = email.components(separatedBy: "@")
+            return emailComponents.first?.capitalized ?? "User"
+        }
+        
+        return "User"
+    }
     
     var body: some View {
         NavigationView {
@@ -127,7 +144,7 @@ struct ModernSubscriptionsView: View {
     private var stickyHeader: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Hi, \(userName)")
+                Text("Hi, \(displayName)")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(Design.Colors.textSecondary)
                 
