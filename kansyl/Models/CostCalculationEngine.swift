@@ -150,7 +150,14 @@ class CostCalculationEngine: ObservableObject {
     
     private func fetchActiveSubscriptions() -> [Subscription] {
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-        request.predicate = NSPredicate(format: "status == %@", SubscriptionStatus.active.rawValue)
+        
+        // Filter by current user and active status
+        if let currentUserID = getCurrentUserID() {
+            request.predicate = NSPredicate(format: "status == %@ AND userID == %@", SubscriptionStatus.active.rawValue, currentUserID)
+        } else {
+            // If no user is logged in, return empty array
+            return []
+        }
         
         do {
             return try viewContext.fetch(request)
@@ -162,7 +169,15 @@ class CostCalculationEngine: ObservableObject {
     
     private func fetchHistoricalOutcomes() -> [SubscriptionOutcome] {
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-        request.predicate = NSPredicate(format: "status != %@", SubscriptionStatus.active.rawValue)
+        
+        // Filter by current user and non-active status
+        if let currentUserID = getCurrentUserID() {
+            request.predicate = NSPredicate(format: "status != %@ AND userID == %@", SubscriptionStatus.active.rawValue, currentUserID)
+        } else {
+            // If no user is logged in, return empty array
+            return []
+        }
+        
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: false)]
         
         do {
@@ -192,6 +207,12 @@ class CostCalculationEngine: ObservableObject {
             // Debug: print("Error fetching historical outcomes: \(error)")
             return []
         }
+    }
+    
+    // MARK: - User ID Helper
+    
+    private func getCurrentUserID() -> String? {
+        return SubscriptionStore.shared.currentUserID
     }
     
     // MARK: - Analytics Helpers

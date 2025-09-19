@@ -526,9 +526,16 @@ struct SettingsView: View {
     }
     
     private func clearAllData() {
+        // Only clear data for the current user
+        guard let currentUserID = authManager.currentUser?.id.uuidString else {
+            return
+        }
+        
         let subscriptionRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
+        subscriptionRequest.predicate = NSPredicate(format: "userID == %@", currentUserID)
         let deleteSubscriptionsRequest = NSBatchDeleteRequest(fetchRequest: subscriptionRequest)
         
+        // ServiceTemplate might not have userID, check if it needs user filtering
         let templateRequest: NSFetchRequest<NSFetchRequestResult> = ServiceTemplate.fetchRequest()
         let deleteTemplatesRequest = NSBatchDeleteRequest(fetchRequest: templateRequest)
         
@@ -536,8 +543,11 @@ struct SettingsView: View {
             try viewContext.execute(deleteSubscriptionsRequest)
             try viewContext.execute(deleteTemplatesRequest)
             try viewContext.save()
+            
+            // Refresh the subscription store after clearing data
+            SubscriptionStore.shared.fetchSubscriptions()
         } catch {
-            // Debug: // Debug: print("Error clearing data: \(error)")
+            // Debug: print("Error clearing data: \(error)")
         }
     }
     
