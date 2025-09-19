@@ -198,7 +198,8 @@ struct LoginView: View {
                 }
             }
         case .failure(_):
-            // Apple Sign In failed
+            // Apple Sign In failed - error is handled by auth manager
+            return
         }
     }
     
