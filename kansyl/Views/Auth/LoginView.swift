@@ -3,6 +3,7 @@
 //  kansyl
 //
 //  Created by Juan Oclock on 9/18/25.
+//  Modern sleek login design
 //
 
 import SwiftUI
@@ -10,162 +11,233 @@ import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingSignUp = false
     @State private var showingEmailLogin = false
     @State private var email = ""
     @State private var password = ""
     @State private var showingPassword = false
+    @State private var logoAnimation = false
+    @State private var contentAnimation = false
+    @State private var buttonAnimation = false
     
     var body: some View {
-        NavigationView {
+        GeometryReader { geometry in
             ZStack {
-                // Background gradient
+                // Modern background gradient
                 LinearGradient(
-                    colors: [
+                    gradient: Gradient(colors: [
                         Design.Colors.background,
-                        Design.Colors.surface
-                    ],
+                        Design.Colors.background.opacity(0.8)
+                    ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .ignoresSafeArea()
+                .ignoresSafeArea(.all)
                 
-                ScrollView {
-                    VStack(spacing: 32) {
-                        // App branding
-                        VStack(spacing: 16) {
-                            // App icon or logo
-                            Image(systemName: "creditcard.and.123")
-                                .font(.system(size: 80, weight: .thin))
-                                .foregroundColor(Design.Colors.primary)
+                VStack(spacing: 0) {
+                    Spacer(minLength: geometry.size.height * 0.08)
+                    
+                    // Modern app branding
+                    VStack(spacing: Design.Spacing.xxl) {
+                        // Sleek logo and title
+                        VStack(spacing: Design.Spacing.lg) {
+                            Text("Kansyl")
+                                .font(.system(size: 56, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Design.Colors.primary, Design.Colors.secondary],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .scaleEffect(logoAnimation ? 1.0 : 0.8)
+                                .opacity(logoAnimation ? 1.0 : 0.0)
+                                .animation(Design.Animation.spring.delay(0.2), value: logoAnimation)
                             
-                            VStack(spacing: 8) {
-                                Text("Welcome to Kansyl")
-                                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                            VStack(spacing: Design.Spacing.sm) {
+                                Text("Welcome back")
+                                    .font(Design.Typography.title2(.semibold))
                                     .foregroundColor(Design.Colors.textPrimary)
                                 
-                                Text("Never forget to cancel a trial again")
-                                    .font(.system(size: 18, weight: .medium))
+                                Text("Sign in to continue tracking your subscriptions")
+                                    .font(Design.Typography.callout(.medium))
                                     .foregroundColor(Design.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
+                            .opacity(contentAnimation ? 1.0 : 0.0)
+                            .offset(y: contentAnimation ? 0 : 20)
+                            .animation(Design.Animation.spring.delay(0.5), value: contentAnimation)
                         }
-                        .padding(.top, 60)
                         
-                        // Authentication options
-                        VStack(spacing: 16) {
-                            // Apple Sign In
+                        // Modern authentication options
+                        VStack(spacing: Design.Spacing.lg) {
+                            // Apple Sign In - Modern styling
                             SignInWithAppleButton(.signIn) { request in
-                                // Configure the request
                                 request.requestedScopes = [.fullName, .email]
                             } onCompletion: { result in
                                 Task {
                                     await handleAppleSignIn(result)
                                 }
                             }
-                            .signInWithAppleButtonStyle(.black)
-                            .frame(height: 50)
-                            .cornerRadius(12)
+                            .signInWithAppleButtonStyle(.white)
+                            .frame(height: 56)
+                            .cornerRadius(Design.Radius.lg)
+                            .shadow(
+                                color: Design.Colors.textPrimary.opacity(0.1),
+                                radius: 8,
+                                x: 0,
+                                y: 4
+                            )
                             
-                            // Google Sign In
+                            // Google Sign In - Modern styling
                             Button(action: {
                                 Task {
                                     await handleGoogleSignIn()
                                 }
                             }) {
-                                HStack {
+                                HStack(spacing: Design.Spacing.sm) {
                                     Image(systemName: "globe")
-                                        .font(.system(size: 18, weight: .medium))
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.black)
+                                    
                                     Text("Continue with Google")
-                                        .font(.system(size: 16, weight: .semibold))
+                                        .font(Design.Typography.headline(.semibold))
+                                        .foregroundColor(.black)
                                 }
-                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(Color.blue)
-                                .cornerRadius(12)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                        .fill(.white)
+                                )
+                                .cornerRadius(Design.Radius.lg)
+                                .shadow(
+                                    color: Design.Colors.textPrimary.opacity(0.1),
+                                    radius: 8,
+                                    x: 0,
+                                    y: 4
+                                )
                             }
                             
-                            // Email Sign In
+                            // Email Sign In - Modern styling
                             Button(action: {
                                 showingEmailLogin = true
                             }) {
-                                HStack {
+                                HStack(spacing: Design.Spacing.sm) {
                                     Image(systemName: "envelope")
-                                        .font(.system(size: 18, weight: .medium))
+                                        .font(.system(size: 20, weight: .medium))
+                                        .foregroundColor(.black)
+                                    
                                     Text("Continue with Email")
-                                        .font(.system(size: 16, weight: .semibold))
+                                        .font(Design.Typography.headline(.semibold))
+                                        .foregroundColor(.black)
                                 }
-                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(Design.Colors.buttonPrimary)
-                                .cornerRadius(12)
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                        .fill(.white)
+                                )
+                                .cornerRadius(Design.Radius.lg)
+                                .shadow(
+                                    color: Design.Colors.textPrimary.opacity(0.1),
+                                    radius: 8,
+                                    x: 0,
+                                    y: 4
+                                )
                             }
                         }
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, Design.Spacing.xl)
+                        .opacity(buttonAnimation ? 1.0 : 0.0)
+                        .offset(y: buttonAnimation ? 0 : 30)
+                        .animation(Design.Animation.spring.delay(0.8), value: buttonAnimation)
                         
-                        // Loading state
+                    }
+                    
+                    Spacer(minLength: geometry.size.height * 0.08)
+                    
+                    // Modern loading and error states
+                    VStack(spacing: Design.Spacing.lg) {
                         if authManager.isLoading {
                             ProgressView()
-                                .scaleEffect(1.2)
-                                .padding()
+                                .scaleEffect(1.5)
+                                .frame(height: 40)
                         }
                         
-                        // Error message
                         if let errorMessage = authManager.errorMessage {
                             Text(errorMessage)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 32)
+                                .font(Design.Typography.callout(.medium))
+                                .foregroundColor(Design.Colors.danger)
+                                .padding(.horizontal, Design.Spacing.xl)
+                                .padding(.vertical, Design.Spacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                        .fill(Design.Colors.danger.opacity(0.1))
+                                )
                                 .multilineTextAlignment(.center)
                         }
-                        
-                        // Sign up link
-                        VStack(spacing: 16) {
-                            HStack {
-                                Rectangle()
-                                    .fill(Design.Colors.border)
-                                    .frame(height: 1)
-                                
-                                Text("or")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(Design.Colors.textSecondary)
-                                
-                                Rectangle()
-                                    .fill(Design.Colors.border)
-                                    .frame(height: 1)
-                            }
-                            .padding(.horizontal, 32)
-                            
-                            Button(action: {
-                                showingSignUp = true
-                            }) {
-                                HStack {
-                                    Text("Don't have an account?")
-                                        .foregroundColor(Design.Colors.textSecondary)
-                                    Text("Sign up")
-                                        .foregroundColor(Design.Colors.primary)
-                                        .fontWeight(.semibold)
-                                }
-                                .font(.system(size: 16))
-                            }
-                        }
-                        
-                        Spacer(minLength: 32)
-                        
-                        // Terms and Privacy
-                        Text("By continuing, you agree to our Terms of Service and Privacy Policy")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(Design.Colors.textTertiary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                            .padding(.bottom, 32)
                     }
+                    .padding(.horizontal, Design.Spacing.xl)
+                    
+                    Spacer(minLength: geometry.size.height * 0.05)
+                    
+                    // Modern sign up section
+                    VStack(spacing: Design.Spacing.lg) {
+                        // Elegant divider
+                        HStack(spacing: Design.Spacing.md) {
+                            Rectangle()
+                                .fill(Design.Colors.border.opacity(0.5))
+                                .frame(height: 1)
+                            
+                            Text("New to Kansyl?")
+                                .font(Design.Typography.caption(.medium))
+                                .foregroundColor(Design.Colors.textSecondary)
+                                .padding(.horizontal, Design.Spacing.sm)
+                            
+                            Rectangle()
+                                .fill(Design.Colors.border.opacity(0.5))
+                                .frame(height: 1)
+                        }
+                        .padding(.horizontal, Design.Spacing.xl)
+                        
+                        // Sign up button
+                        Button(action: {
+                            showingSignUp = true
+                        }) {
+                            Text("Create Account")
+                                .font(Design.Typography.headline(.semibold))
+                                .foregroundColor(Design.Colors.primary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                        .stroke(Design.Colors.primary.opacity(0.3), lineWidth: 1.5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                                .fill(Design.Colors.primary.opacity(0.05))
+                                        )
+                                )
+                        }
+                        .padding(.horizontal, Design.Spacing.xl)
+                        
+                        // Terms and Privacy - Modern styling
+                        Text("By continuing, you agree to our Terms of Service and Privacy Policy")
+                            .font(Design.Typography.caption(.regular))
+                            .foregroundColor(Design.Colors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Design.Spacing.xl)
+                    }
+                    .opacity(buttonAnimation ? 1.0 : 0.0)
+                    .animation(Design.Animation.spring.delay(1.2), value: buttonAnimation)
+                    
+                    Spacer(minLength: Design.Spacing.xl)
                 }
             }
         }
-        .navigationBarHidden(true)
+        .onAppear {
+            startAnimationSequence()
+        }
         .sheet(isPresented: $showingEmailLogin) {
             EmailLoginView()
                 .environmentObject(authManager)
@@ -175,6 +247,25 @@ struct LoginView: View {
                 .environmentObject(authManager)
         }
         .disabled(authManager.isLoading)
+    }
+    
+    private func startAnimationSequence() {
+        // Stagger animations for smooth entrance
+        withAnimation {
+            logoAnimation = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation {
+                contentAnimation = true
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation {
+                buttonAnimation = true
+            }
+        }
     }
     
     // MARK: - Helper Methods
@@ -214,112 +305,193 @@ struct LoginView: View {
 struct EmailLoginView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.colorScheme) private var colorScheme
     @State private var email = ""
     @State private var password = ""
     @State private var showingPassword = false
+    @State private var formAnimation = false
+    @State private var buttonAnimation = false
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 8) {
-                    Text("Sign In")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(Design.Colors.textPrimary)
-                    
-                    Text("Enter your email and password")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Design.Colors.textSecondary)
-                }
-                .padding(.top, 32)
-                
-                // Form
-                VStack(spacing: 16) {
-                    // Email field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Design.Colors.textPrimary)
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Modern header
+                    VStack(spacing: Design.Spacing.lg) {
+                        // Close indicator
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Design.Colors.border)
+                            .frame(width: 40, height: 6)
+                            .padding(.top, Design.Spacing.sm)
                         
-                        TextField("Enter your email", text: $email)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .textContentType(.emailAddress)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
+                        VStack(spacing: Design.Spacing.sm) {
+                            Text("Sign In")
+                                .font(Design.Typography.title2(.bold))
+                                .foregroundColor(Design.Colors.textPrimary)
+                            
+                            Text("Enter your credentials to access your account")
+                                .font(Design.Typography.callout(.medium))
+                                .foregroundColor(Design.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .opacity(formAnimation ? 1.0 : 0.0)
+                        .offset(y: formAnimation ? 0 : 20)
+                        .animation(Design.Animation.spring.delay(0.2), value: formAnimation)
                     }
+                    .padding(.horizontal, Design.Spacing.xl)
+                    .padding(.top, Design.Spacing.md)
+                
+                    Spacer(minLength: geometry.size.height * 0.05)
                     
-                    // Password field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Design.Colors.textPrimary)
+                    // Modern form
+                    VStack(spacing: Design.Spacing.xl) {
+                        // Email field - Modern styling
+                        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                            Text("Email")
+                                .font(Design.Typography.callout(.semibold))
+                                .foregroundColor(Design.Colors.textPrimary)
+                            
+                            TextField("Enter your email", text: $email)
+                                .font(Design.Typography.body(.medium))
+                                .padding(.horizontal, Design.Spacing.lg)
+                                .padding(.vertical, Design.Spacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                        .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                                .stroke(Design.Colors.border.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .textContentType(.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                        }
                         
-                        HStack {
-                            if showingPassword {
-                                TextField("Enter your password", text: $password)
-                            } else {
-                                SecureField("Enter your password", text: $password)
+                        // Password field - Modern styling
+                        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                            Text("Password")
+                                .font(Design.Typography.callout(.semibold))
+                                .foregroundColor(Design.Colors.textPrimary)
+                            
+                            HStack(spacing: Design.Spacing.md) {
+                                Group {
+                                    if showingPassword {
+                                        TextField("Enter your password", text: $password)
+                                    } else {
+                                        SecureField("Enter your password", text: $password)
+                                    }
+                                }
+                                .font(Design.Typography.body(.medium))
+                                
+                                Button(action: {
+                                    showingPassword.toggle()
+                                }) {
+                                    Image(systemName: showingPassword ? "eye.slash.fill" : "eye.fill")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(Design.Colors.textSecondary)
+                                }
+                            }
+                            .padding(.horizontal, Design.Spacing.lg)
+                            .padding(.vertical, Design.Spacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                    .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                            .stroke(Design.Colors.border.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                            .textContentType(.password)
+                        }
+                    }
+                    .padding(.horizontal, Design.Spacing.xl)
+                    .opacity(formAnimation ? 1.0 : 0.0)
+                    .offset(y: formAnimation ? 0 : 30)
+                    .animation(Design.Animation.spring.delay(0.4), value: formAnimation)
+                
+                    Spacer(minLength: geometry.size.height * 0.05)
+                    
+                    // Modern sign in button
+                    Button(action: {
+                        Task {
+                            do {
+                                try await authManager.signIn(email: email, password: password)
+                                presentationMode.wrappedValue.dismiss()
+                            } catch {
+                                // Error is handled by the auth manager's errorMessage property
+                            }
+                        }
+                    }) {
+                        HStack(spacing: Design.Spacing.sm) {
+                            if authManager.isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.9)
+                                    .tint(.white)
                             }
                             
-                            Button(action: {
-                                showingPassword.toggle()
-                            }) {
-                                Image(systemName: showingPassword ? "eye.slash" : "eye")
-                                    .foregroundColor(Design.Colors.textSecondary)
-                            }
+                            Text(authManager.isLoading ? "Signing In..." : "Sign In")
+                                .font(Design.Typography.headline(.semibold))
+                                .foregroundColor(.white)
                         }
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .textContentType(.password)
-                    }
-                }
-                .padding(.horizontal, 32)
-                
-                // Sign in button
-                Button(action: {
-                    Task {
-                        do {
-                            try await authManager.signIn(email: email, password: password)
-                            presentationMode.wrappedValue.dismiss()
-                        } catch {
-                            // Error is handled by the auth manager's errorMessage property
-                        }
-                    }
-                }) {
-                    Text("Sign In")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Design.Colors.buttonPrimary)
-                        .cornerRadius(12)
-                }
-                .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
-                .padding(.horizontal, 32)
+                        .frame(height: 56)
+                        .background(
+                            LinearGradient(
+                                colors: [Design.Colors.buttonPrimary, Design.Colors.buttonPrimary.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(Design.Radius.lg)
+                        .shadow(
+                            color: Design.Colors.buttonPrimary.opacity(0.3),
+                            radius: 12,
+                            x: 0,
+                            y: 6
+                        )
+                        .scaleEffect(buttonAnimation ? 1.0 : 0.95)
+                        .opacity(buttonAnimation ? 1.0 : 0.0)
+                        .animation(Design.Animation.spring.delay(0.6), value: buttonAnimation)
+                    }
+                    .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
+                    .padding(.horizontal, Design.Spacing.xl)
                 
-                // Loading
-                if authManager.isLoading {
-                    ProgressView()
-                        .scaleEffect(1.2)
+                    
+                    // Modern error message
+                    if let errorMessage = authManager.errorMessage {
+                        Text(errorMessage)
+                            .font(Design.Typography.callout(.medium))
+                            .foregroundColor(Design.Colors.danger)
+                            .padding(.horizontal, Design.Spacing.lg)
+                            .padding(.vertical, Design.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .fill(Design.Colors.danger.opacity(0.1))
+                            )
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, Design.Spacing.xl)
+                    }
+                    
+                    Spacer()
                 }
-                
-                // Error message
-                if let errorMessage = authManager.errorMessage {
-                    Text(errorMessage)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.red)
-                        .padding(.horizontal, 32)
-                        .multilineTextAlignment(.center)
-                }
-                
-                Spacer()
             }
             .background(Design.Colors.background)
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    presentationMode.wrappedValue.dismiss()
+            .navigationBarHidden(true)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation {
+                        formAnimation = true
+                    }
                 }
-            )
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation {
+                        buttonAnimation = true
+                    }
+                }
+            }
         }
     }
 }
