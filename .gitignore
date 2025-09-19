@@ -108,3 +108,9 @@ SUPABASE_*.md
 BUILD_ERRORS*.md
 *_summary.md
 *_SUMMARY.md
+error-fixed-history.md
+
+# Backup files
+*.backup
+*.bak
+*~
