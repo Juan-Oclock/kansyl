@@ -12,14 +12,15 @@ struct HistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
-    // Note: Using dynamic fetch request would be better for user filtering,
-    // but for now we'll rely on subscriptionStore's filtered data
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: false)],
-        predicate: NSPredicate(format: "status != %@", SubscriptionStatus.active.rawValue),
-        animation: .default
-    )
-    private var pastSubscriptions: FetchedResults<Subscription>
+    
+    // Get user-filtered past subscriptions from SubscriptionStore
+    private var pastSubscriptions: [Subscription] {
+        subscriptionStore.allSubscriptions.filter { subscription in
+            subscription.status != SubscriptionStatus.active.rawValue
+        }.sorted { subscription1, subscription2 in
+            (subscription1.endDate ?? Date.distantPast) > (subscription2.endDate ?? Date.distantPast)
+        }
+    }
     
     @State private var searchText = ""
     @State private var selectedFilter: HistoryFilter = .all
@@ -73,7 +74,7 @@ struct HistoryView: View {
     }
     
     private var filteredSubscriptions: [Subscription] {
-        var subscriptions = Array(pastSubscriptions)
+        var subscriptions = pastSubscriptions
         
         // Apply status filter
         if selectedFilter != .all {
