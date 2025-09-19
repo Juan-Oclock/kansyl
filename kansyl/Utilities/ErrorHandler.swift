@@ -257,7 +257,7 @@ extension Result {
         !isSuccess
     }
     
-    var error: Failure? {
+    var errorValue: Failure? {
         if case .failure(let error) = self {
             return error
         }

@@ -91,18 +91,14 @@ class ShortcutsManager: NSObject, ObservableObject {
     
     // MARK: - Delete Shortcuts
     func deleteAllDonatedShortcuts() {
-        INInteraction.deleteAll { error in
-            if let error = error {
-                // Debug: print("Failed to delete shortcuts: \(error)")
-            }
+        INInteraction.deleteAll { _ in
+            // Handle deletion result if needed
         }
     }
     
     func deleteDonatedShortcuts(with identifiers: [String]) {
-        INInteraction.delete(with: identifiers) { error in
-            if let error = error {
-                // Debug: print("Failed to delete shortcuts: \(error)")
-            }
+        INInteraction.delete(with: identifiers) { _ in
+            // Handle deletion result if needed
         }
     }
 }

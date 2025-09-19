@@ -251,10 +251,8 @@ struct NotificationSettingsView: View {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
         let request = UNNotificationRequest(identifier: "test-notification", content: content, trigger: trigger)
         
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                // Debug: print("Error sending test notification: \(error)")
-            }
+        UNUserNotificationCenter.current().add(request) { _ in
+            // Test notification sent
         }
         
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)

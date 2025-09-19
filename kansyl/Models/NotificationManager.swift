@@ -43,7 +43,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
                 self.notificationsEnabled = granted
             }
             
-            if let error = error {
+            if error != nil {
                 // Failed to request notification permission
             }
         }
@@ -198,10 +198,8 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                // Failed to schedule notification
-            }
+        UNUserNotificationCenter.current().add(request) { _ in
+            // Notification scheduled
         }
     }
     

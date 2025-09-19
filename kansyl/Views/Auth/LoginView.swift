@@ -197,8 +197,8 @@ struct LoginView: View {
                     // Error is handled by the auth manager
                 }
             }
-        case .failure(let error):
-            // Debug: print("Apple Sign In failed: \(error.localizedDescription)")
+        case .failure(_):
+            // Apple Sign In failed
         }
     }
     
