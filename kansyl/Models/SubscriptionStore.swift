@@ -35,10 +35,23 @@ enum SubscriptionStatus: String, CaseIterable {
 }
 
 class SubscriptionStore: ObservableObject {
-    static let shared = SubscriptionStore(context: PersistenceController.shared.container.viewContext)
+    static let shared = SubscriptionStore()
     
-    let viewContext: NSManagedObjectContext
-    let costEngine: CostCalculationEngine
+    private var _viewContext: NSManagedObjectContext?
+    var viewContext: NSManagedObjectContext {
+        if _viewContext == nil {
+            _viewContext = PersistenceController.shared.container.viewContext
+        }
+        return _viewContext!
+    }
+    
+    private var _costEngine: CostCalculationEngine?
+    var costEngine: CostCalculationEngine {
+        if _costEngine == nil {
+            _costEngine = CostCalculationEngine(context: viewContext)
+        }
+        return _costEngine!
+    }
     
     @Published var activeSubscriptions: [Subscription] = []
     @Published var endingSoonSubscriptions: [Subscription] = []
@@ -48,15 +61,18 @@ class SubscriptionStore: ObservableObject {
     // Current user ID for data isolation
     @Published var currentUserID: String? {
         didSet {
-            fetchSubscriptions()
+            // Only fetch if we have a context ready
+            if _viewContext != nil {
+                fetchSubscriptions()
+            }
         }
     }
     
-    init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext, userID: String? = nil) {
-        self.viewContext = context
-        self.costEngine = CostCalculationEngine(context: context)
+    init(context: NSManagedObjectContext? = nil, userID: String? = nil) {
+        print("📚 [SubscriptionStore] Initializing with lazy loading...")
+        self._viewContext = context
         self.currentUserID = userID
-        fetchSubscriptions()
+        // Don't fetch subscriptions on init - wait until context is accessed
     }
     
     // MARK: - Fetch Operations

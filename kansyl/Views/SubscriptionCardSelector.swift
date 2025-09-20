@@ -457,10 +457,11 @@ class MockSubscriptionStore: SubscriptionStore {
     @Published var mockSubscriptions: [Subscription] = []
     private let mockContext: NSManagedObjectContext
     
-    override init(context: NSManagedObjectContext = PersistenceController.shared.container.viewContext, userID: String? = nil) {
+    override init(context: NSManagedObjectContext? = nil, userID: String? = nil) {
         // Use a child context so we don't persist preview data
+        let actualContext = context ?? PersistenceController.shared.container.viewContext
         let child = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
-        child.parent = context
+        child.parent = actualContext
         self.mockContext = child
         super.init(context: child, userID: userID)
         seed()
