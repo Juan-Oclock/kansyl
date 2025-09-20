@@ -22,6 +22,8 @@ struct SettingsView: View {
     @State private var showingUserProfile = false
     @State private var showingSignOutAlert = false
     @State private var showingResetOnboardingAlert = false
+    @State private var showingSignOutError = false
+    @State private var signOutErrorMessage = ""
     @FocusState private var isTrialLengthFocused: Bool
     
     var body: some View {
@@ -419,6 +421,11 @@ struct SettingsView: View {
             } message: {
                 Text("This will show the onboarding screen again next time you open the app.")
             }
+            .alert("Sign Out Error", isPresented: $showingSignOutError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(signOutErrorMessage)
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -518,10 +525,24 @@ struct SettingsView: View {
     @MainActor
     private func signOut() async {
         do {
+            print("🔑 [SettingsView] Starting sign out process...")
             try await authManager.signOut()
+            print("✅ [SettingsView] Sign out completed successfully")
+            
+            // Add haptic feedback for successful sign out
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
         } catch {
-            // Handle error - could show an error alert
-            // Debug: // Debug: print("Sign out error: \(error)")
+            print("❌ [SettingsView] Sign out failed: \(error.localizedDescription)")
+            
+            // Show error to user
+            signOutErrorMessage = "Failed to sign out: \(error.localizedDescription)"
+            showingSignOutError = true
+            
+            // Add error haptic feedback
+            let errorFeedback = UINotificationFeedbackGenerator()
+            errorFeedback.notificationOccurred(.error)
         }
     }
     

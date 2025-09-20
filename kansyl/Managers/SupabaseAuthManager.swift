@@ -364,7 +364,21 @@ class SupabaseAuthManager: ObservableObject {
         
         do {
             try await supabase.auth.signOut()
-            // Auth state listener will handle cleanup
+            
+            // Manually clean up state since we don't have auth state listener
+            await MainActor.run {
+                self.currentUser = nil
+                self.userProfile = nil
+                self.isAuthenticated = false
+                self.errorMessage = nil
+            }
+            
+            // Clear user-specific data from stores
+            SubscriptionStore.shared.updateCurrentUser(userID: nil)
+            UserSpecificPreferences.shared.setCurrentUser(nil)
+            
+            print("✅ [SupabaseAuthManager] User signed out successfully")
+            
         } catch {
             errorMessage = "Sign out failed: \(error.localizedDescription)"
             throw SupabaseAuthError.signOutFailed(error.localizedDescription)
