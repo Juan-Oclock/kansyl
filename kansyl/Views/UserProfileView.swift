@@ -202,6 +202,9 @@ struct EditProfileView: View {
     @State private var firstName: String = ""
     @State private var lastName: String = ""
     @State private var email: String = ""
+    @State private var isSaving = false
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -221,8 +224,16 @@ struct EditProfileView: View {
                     }
                 }
                 
-                Section(footer: Text("Changes will be saved automatically.")) {
-                    EmptyView()
+                if isSaving {
+                    Section {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Saving changes...")
+                                .foregroundColor(Design.Colors.textSecondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
                 }
             }
             .navigationTitle("Edit Profile")
@@ -234,10 +245,16 @@ struct EditProfileView: View {
                 trailing: Button("Save") {
                     saveChanges()
                 }
+                .disabled(isSaving)
             )
         }
         .onAppear {
             loadCurrentUserData()
+        }
+        .alert("Error Saving Profile", isPresented: $showingErrorAlert) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
         }
     }
     
@@ -253,9 +270,21 @@ struct EditProfileView: View {
     private func saveChanges() {
         guard let currentProfile = authManager.userProfile else { return }
         
+        // Validate input
+        let trimmedFirstName = firstName.trimmingCharacters(in: .whitespaces)
+        let trimmedLastName = lastName.trimmingCharacters(in: .whitespaces)
+        
+        if trimmedFirstName.isEmpty && trimmedLastName.isEmpty {
+            errorMessage = "Please enter at least a first name or last name."
+            showingErrorAlert = true
+            return
+        }
+        
+        isSaving = true
+        
         Task {
             do {
-                let fullName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+                let fullName = "\(trimmedFirstName) \(trimmedLastName)".trimmingCharacters(in: .whitespaces)
                 let updatedProfile = SupabaseAuthManager.UserProfile(
                     id: currentProfile.id,
                     email: currentProfile.email,
@@ -268,11 +297,18 @@ struct EditProfileView: View {
                 )
                 
                 try await authManager.updateUserProfile(updatedProfile)
+                
                 await MainActor.run {
+                    isSaving = false
                     presentationMode.wrappedValue.dismiss()
                 }
+                
             } catch {
-                // Debug: print("Failed to save profile changes: \(error.localizedDescription)")
+                await MainActor.run {
+                    isSaving = false
+                    errorMessage = "Failed to save profile changes: \(error.localizedDescription)"
+                    showingErrorAlert = true
+                }
             }
         }
     }

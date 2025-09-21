@@ -11,6 +11,7 @@ struct EnhancedSubscriptionCard: View {
     let subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
+    var onQuickAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
     
     @State private var showActions = false
     @State private var decisionMade: Decision? = nil
@@ -97,36 +98,42 @@ struct EnhancedSubscriptionCard: View {
                         HStack(spacing: 8) {
                             // Cancel button
                             Button(action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                HapticManager.shared.playSelection()
+                                if let onQuickAction = onQuickAction {
+                                    onQuickAction(.cancel, subscription)
+                                } else {
                                     cancelSubscription()
                                 }
                             }) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(hex: "EF4444").opacity(0.1))
+                                        .fill(Design.Colors.success.opacity(0.1))
                                         .frame(width: 36, height: 36)
                                     
                                     Image(systemName: "xmark")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color(hex: "EF4444"))
+                                        .foregroundColor(Design.Colors.success)
                                 }
                             }
                             .buttonStyle(SpringButtonStyle())
                             
                             // Keep button
                             Button(action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                HapticManager.shared.playSelection()
+                                if let onQuickAction = onQuickAction {
+                                    onQuickAction(.keep, subscription)
+                                } else {
                                     keepSubscription()
                                 }
                             }) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(hex: "22C55E").opacity(0.1))
+                                        .fill(Design.Colors.kept.opacity(0.1))
                                         .frame(width: 36, height: 36)
                                     
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color(hex: "22C55E"))
+                                        .foregroundColor(Design.Colors.kept)
                                 }
                             }
                             .buttonStyle(SpringButtonStyle())
@@ -263,7 +270,7 @@ struct EnhancedSubscriptionCard: View {
         .padding(.vertical, 8)
         .background(
             LinearGradient(
-                colors: [Color(hex: "EF4444"), Color(hex: "DC2626")],
+                colors: [Design.Colors.danger, Design.Colors.danger.opacity(0.8)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
@@ -276,11 +283,11 @@ struct EnhancedSubscriptionCard: View {
     private func statusColor(for decision: Decision) -> Color {
         switch decision {
         case .keep:
-            return Color(hex: "22C55E")
+            return Design.Colors.kept
         case .cancel:
-            return Color(hex: "EF4444")
+            return Design.Colors.success
         case .pending:
-            return Color(hex: "F59E0B")
+            return Design.Colors.warning
         }
     }
     
@@ -296,7 +303,6 @@ struct EnhancedSubscriptionCard: View {
     }
     
     private func keepSubscription() {
-        HapticManager.shared.playSuccess()
         decisionMade = .keep
         subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
         
@@ -305,12 +311,11 @@ struct EnhancedSubscriptionCard: View {
     }
     
     private func cancelSubscription() {
-        HapticManager.shared.playSuccess()
         decisionMade = .cancel
         subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
         
         // Show confirmation toast with undo
-        showToast("Great! You saved \(AppPreferences.shared.formatPrice(subscription.monthlyPrice))/month", showUndo: true)
+        showToast("Great! You saved \(SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice))/month", showUndo: true)
     }
     
     private func showToast(_ message: String, showUndo: Bool = false) {

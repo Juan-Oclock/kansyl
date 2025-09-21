@@ -31,6 +31,14 @@ struct ModernSubscriptionsView: View {
     @State private var searchText = ""
     @State private var showEndingSoonSection = true
     @State private var showActiveSection = true
+    @State private var showingActionModal = false
+    @State private var pendingAction: SubscriptionActionModal.SubscriptionAction?
+    @State private var actionSubscription: Subscription?
+    @State private var triggerConfetti = false
+    @State private var triggerEmojiConfetti = false
+    @State private var showSuccessToast = false
+    @State private var successToastMessage = ""
+    @State private var successToastAmount: String? = nil
     @FocusState private var isSearchFocused: Bool
     
     // Computed property to get the display name from auth manager
@@ -128,6 +136,90 @@ struct ModernSubscriptionsView: View {
                 subscriptionStore.fetchSubscriptions()
             }
         }
+        .overlay(
+            Group {
+                if showingActionModal, let subscription = actionSubscription, let action = pendingAction {
+                    SubscriptionActionModal(
+                        subscription: subscription,
+                        action: action,
+                        onConfirm: {
+                            withAnimation(Design.Animation.spring) {
+                                switch action {
+                                case .keep:
+                                    subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
+                                    AnalyticsManager.shared.track(.subscriptionKept, properties: AnalyticsProperties(
+                                        subscriptionId: subscription.id?.uuidString ?? "",
+                                        subscriptionName: subscription.name ?? ""
+                                    ))
+                                case .cancel:
+                                    subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
+                                    AnalyticsManager.shared.track(.subscriptionCanceled, properties: AnalyticsProperties(
+                                        subscriptionId: subscription.id?.uuidString ?? "",
+                                        subscriptionName: subscription.name ?? ""
+                                    ))
+                                    
+                                    // Trigger confetti celebration for saving money!
+                                    triggerConfetti = true
+                                    triggerEmojiConfetti = true
+                                    
+                                    // Haptic celebration
+                                    HapticManager.shared.playSuccess()
+                                    
+                                    // Show success toast after a delay
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        successToastMessage = "Subscription canceled successfully!"
+                                        successToastAmount = SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice)
+                                        showSuccessToast = true
+                                    }
+                                }
+                                
+                                // Reset state
+                                showingActionModal = false
+                                pendingAction = nil
+                                actionSubscription = nil
+                            }
+                        },
+                        onCancel: {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                showingActionModal = false
+                                pendingAction = nil
+                                actionSubscription = nil
+                            }
+                        }
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .zIndex(999)
+                }
+            }
+        )
+        .overlay(
+            // Confetti effects layer
+            ZStack {
+                // Regular confetti
+                ConfettiView(trigger: $triggerConfetti, config: .savings)
+                    .allowsHitTesting(false)
+                    .zIndex(1000)
+                
+                // Emoji confetti for extra celebration
+                EmojiConfettiView(trigger: $triggerEmojiConfetti)
+                    .allowsHitTesting(false)
+                    .zIndex(1001)
+            }
+        )
+        .overlay(
+            // Success toast at the top
+            VStack {
+                SuccessToastView(
+                    message: successToastMessage,
+                    savedAmount: successToastAmount,
+                    isShowing: $showSuccessToast
+                )
+                .padding(.top, 50) // Account for status bar
+                
+                Spacer()
+            }
+            .zIndex(1002)
+        )
     }
     
     // MARK: - Helper Methods
@@ -266,6 +358,11 @@ struct ModernSubscriptionsView: View {
                         isCompactMode: isCompact,
                         action: {
                             selectedSubscription = subscription
+                        },
+                        onSwipeAction: { action, sub in
+                            actionSubscription = sub
+                            pendingAction = action
+                            showingActionModal = true
                         }
                     )
                 }
@@ -389,6 +486,7 @@ struct SubscriptionRowCard: View {
     let subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
+    var onSwipeAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
     @State private var isPressed = false
     @State private var showingDeleteAlert = false
     @State private var offset: CGSize = .zero
@@ -425,7 +523,10 @@ struct SubscriptionRowCard: View {
                 HStack(spacing: 0) {
                     // Keep Button
                     Button(action: {
-                        withAnimation(Design.Animation.spring) {
+                        HapticManager.shared.playSelection()
+                        if let onSwipeAction = onSwipeAction {
+                            onSwipeAction(.keep, subscription)
+                        } else {
                             keepSubscription()
                         }
                     }) {
@@ -451,7 +552,10 @@ struct SubscriptionRowCard: View {
                     
                     // Cancel Button  
                     Button(action: {
-                        withAnimation(Design.Animation.spring) {
+                        HapticManager.shared.playSelection()
+                        if let onSwipeAction = onSwipeAction {
+                            onSwipeAction(.cancel, subscription)
+                        } else {
                             cancelSubscription()
                         }
                     }) {
@@ -721,43 +825,25 @@ struct SubscriptionRowCard: View {
     
     // MARK: - Actions
     private func cancelSubscription() {
-        // Immediate haptic feedback
-        HapticManager.shared.playSuccess()
+        // Update status to canceled
+        subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
         
-        withAnimation(Design.Animation.spring) {
-            // Update status to canceled
-            subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
-            
-            // Reset swipe position with smooth animation
-            offset = .zero
-            swipeState = .none
-            
-            // Analytics
-            AnalyticsManager.shared.track(.subscriptionCanceled, properties: AnalyticsProperties(
-                subscriptionId: subscription.id?.uuidString ?? "",
-                subscriptionName: subscription.name ?? ""
-            ))
-        }
+        // Analytics
+        AnalyticsManager.shared.track(.subscriptionCanceled, properties: AnalyticsProperties(
+            subscriptionId: subscription.id?.uuidString ?? "",
+            subscriptionName: subscription.name ?? ""
+        ))
     }
     
     private func keepSubscription() {
-        // Immediate haptic feedback
-        HapticManager.shared.playSuccess()
+        // Update status to kept
+        subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
         
-        withAnimation(Design.Animation.spring) {
-            // Update status to kept
-            subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
-            
-            // Reset swipe position with smooth animation
-            offset = .zero
-            swipeState = .none
-            
-            // Analytics
-            AnalyticsManager.shared.track(.subscriptionKept, properties: AnalyticsProperties(
-                subscriptionId: subscription.id?.uuidString ?? "",
-                subscriptionName: subscription.name ?? ""
-            ))
-        }
+        // Analytics
+        AnalyticsManager.shared.track(.subscriptionKept, properties: AnalyticsProperties(
+            subscriptionId: subscription.id?.uuidString ?? "",
+            subscriptionName: subscription.name ?? ""
+        ))
     }
 }
 

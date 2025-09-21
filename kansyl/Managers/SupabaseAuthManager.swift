@@ -96,22 +96,8 @@ class SupabaseAuthManager: ObservableObject {
         print("🚀 [SupabaseAuthManager] Initializing...")
         
         // Initialize with real Supabase configuration for authentication to work
-        do {
-            // Use real configuration from SupabaseConfig
-            guard let supabaseURL = URL(string: SupabaseConfig.shared.url) else {
-                print("⚠️ [SupabaseAuthManager] Invalid Supabase URL, using demo mode")
-                self.supabase = SupabaseClient(
-                    supabaseURL: URL(string: "https://demo.supabase.co")!,
-                    supabaseKey: "demo-key"
-                )
-                self.isAuthenticated = false
-                self.currentUser = nil
-                self.userProfile = nil
-                self.isLoading = false
-                self.errorMessage = nil
-                return
-            }
-            
+        // Use real configuration from SupabaseConfig
+        if let supabaseURL = URL(string: SupabaseConfig.shared.url) {
             // Create real Supabase client
             self.supabase = SupabaseClient(
                 supabaseURL: supabaseURL,
@@ -120,9 +106,8 @@ class SupabaseAuthManager: ObservableObject {
             
             print("✅ [SupabaseAuthManager] Initialized with real Supabase connection")
             print("📍 [SupabaseAuthManager] URL: \(supabaseURL)")
-            
-        } catch {
-            print("⚠️ [SupabaseAuthManager] Failed to initialize, using demo mode")
+        } else {
+            print("⚠️ [SupabaseAuthManager] Invalid Supabase URL, using demo mode")
             // Fallback to demo mode if configuration fails
             self.supabase = SupabaseClient(
                 supabaseURL: URL(string: "https://demo.supabase.co")!,
@@ -181,10 +166,15 @@ class SupabaseAuthManager: ObservableObject {
                 self.currentUser = self.convertAuthUser(user)
                 self.isAuthenticated = true
             }
+            
+            // Load user profile after setting authentication state
+            await loadUserProfile()
+            
         } catch {
             await MainActor.run {
                 self.isAuthenticated = false
                 self.currentUser = nil
+                self.userProfile = nil
                 self.errorMessage = nil
             }
         }

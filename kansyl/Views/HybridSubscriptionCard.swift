@@ -11,6 +11,7 @@ struct HybridSubscriptionCard: View {
     let subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
+    var onSwipeConfirm: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
     
     @State private var offset: CGFloat = 0
     @State private var swipeState: SwipeState = .idle
@@ -57,10 +58,10 @@ struct HybridSubscriptionCard: View {
                     VStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color(hex: "22C55E"))
+                            .foregroundColor(Design.Colors.kept)
                         Text("Keep")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "22C55E"))
+                            .foregroundColor(Design.Colors.kept)
                     }
                     .opacity(offset < -30 ? Double(abs(offset) - 30) / 50 : 0)
                     
@@ -68,10 +69,10 @@ struct HybridSubscriptionCard: View {
                     VStack(spacing: 4) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Design.Colors.success)
                         Text("Cancel")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(hex: "EF4444"))
+                            .foregroundColor(Design.Colors.success)
                     }
                     .opacity(offset < -80 ? Double(abs(offset) - 80) / 50 : 0)
                 }
@@ -242,7 +243,7 @@ struct HybridSubscriptionCard: View {
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(decision == .keep ? Color(hex: "22C55E") : Color(hex: "EF4444"))
+                .fill(decision == .keep ? Design.Colors.kept : Design.Colors.success)
         )
     }
     
@@ -276,7 +277,7 @@ struct HybridSubscriptionCard: View {
     
     private var borderColor: Color {
         guard let decision = decisionMade else { return Color.clear }
-        return decision == .keep ? Color(hex: "22C55E") : Color(hex: "EF4444")
+        return decision == .keep ? Design.Colors.kept : Design.Colors.success
     }
     
     // MARK: - Logo View
@@ -335,61 +336,43 @@ struct HybridSubscriptionCard: View {
     
     // MARK: - Actions
     private func confirmAction() {
-        // Show action sheet to confirm
-        showActionConfirmation()
-    }
-    
-    private func showActionConfirmation() {
-        HapticManager.shared.playWarning()
-        
-        // Create an action sheet or alert
-        let alert = UIAlertController(
-            title: subscription.name,
-            message: "What would you like to do with this subscription?",
-            preferredStyle: .actionSheet
-        )
-        
-        alert.addAction(UIAlertAction(title: "Cancel Subscription", style: .destructive) { _ in
-            cancelSubscription()
-        })
-        
-        alert.addAction(UIAlertAction(title: "Keep Subscription", style: .default) { _ in
-            keepSubscription()
-        })
-        
-        alert.addAction(UIAlertAction(title: "Dismiss", style: .cancel) { _ in
-            withAnimation {
-                offset = 0
-                swipeState = .idle
+        // Determine which action based on swipe position
+        HapticManager.shared.playSelection()
+        if let onSwipeConfirm = onSwipeConfirm {
+            if offset < -120 {
+                // User swiped far enough - show cancel confirmation
+                onSwipeConfirm(.cancel, subscription)
+            } else {
+                // Default to cancel
+                onSwipeConfirm(.cancel, subscription)
             }
-        })
-        
-        // Get the root view controller in a compatible way
-        if let windowScene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-            if let rootViewController = windowScene.keyWindow?.rootViewController {
-                rootViewController.present(alert, animated: true)
+        } else {
+            // Fallback to direct action
+            if offset < -120 {
+                cancelSubscription()
             }
+        }
+        
+        // Reset swipe position
+        withAnimation(.spring()) {
+            offset = 0
+            swipeState = .idle
         }
     }
     
     private func cancelSubscription() {
         withAnimation(.spring()) {
             decisionMade = .cancel
-            offset = 0
             swipeState = .confirmed
         }
-        HapticManager.shared.playSuccess()
         subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
     }
     
     private func keepSubscription() {
         withAnimation(.spring()) {
             decisionMade = .keep
-            offset = 0
             swipeState = .confirmed
         }
-        HapticManager.shared.playSuccess()
         subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
     }
 }

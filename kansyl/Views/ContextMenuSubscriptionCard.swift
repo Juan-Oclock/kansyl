@@ -11,6 +11,7 @@ struct ContextMenuSubscriptionCard: View {
     let subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
+    var onContextAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
     
     @State private var decisionMade: Decision? = nil
     @State private var showingHint = false
@@ -49,7 +50,7 @@ struct ContextMenuSubscriptionCard: View {
                         if let decision = decisionMade {
                             Image(systemName: decision == .keep ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .font(.system(size: 14))
-                                .foregroundColor(decision == .keep ? Color(hex: "22C55E") : Color(hex: "EF4444"))
+                            .foregroundColor(decision == .keep ? Design.Colors.kept : Design.Colors.success)
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
@@ -106,7 +107,7 @@ struct ContextMenuSubscriptionCard: View {
     
     private var borderColor: Color {
         guard let decision = decisionMade else { return Color.clear }
-        return decision == .keep ? Color(hex: "22C55E") : Color(hex: "EF4444")
+        return decision == .keep ? Design.Colors.kept : Design.Colors.success
     }
     
     // MARK: - Logo View
@@ -167,14 +168,24 @@ struct ContextMenuSubscriptionCard: View {
     private var quickActionMenu: some View {
         // Cancel option
         Button(action: {
-            cancelSubscription()
+            HapticManager.shared.playSelection()
+            if let onContextAction = onContextAction {
+                onContextAction(.cancel, subscription)
+            } else {
+                cancelSubscription()
+            }
         }) {
-            Label("Cancel & Save \(AppPreferences.shared.formatPrice(subscription.monthlyPrice))", systemImage: "xmark.circle.fill")
+            Label("Cancel & Save \(SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice))", systemImage: "xmark.circle.fill")
         }
         
         // Keep option
         Button(action: {
-            keepSubscription()
+            HapticManager.shared.playSelection()
+            if let onContextAction = onContextAction {
+                onContextAction(.keep, subscription)
+            } else {
+                keepSubscription()
+            }
         }) {
             Label("Keep Subscription", systemImage: "checkmark.circle.fill")
         }
@@ -211,7 +222,6 @@ struct ContextMenuSubscriptionCard: View {
         withAnimation(.spring()) {
             decisionMade = .cancel
         }
-        HapticManager.shared.playSuccess()
         subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
     }
     
@@ -219,7 +229,6 @@ struct ContextMenuSubscriptionCard: View {
         withAnimation(.spring()) {
             decisionMade = .keep
         }
-        HapticManager.shared.playSuccess()
         subscriptionStore.updateSubscriptionStatus(subscription, status: .kept)
     }
     

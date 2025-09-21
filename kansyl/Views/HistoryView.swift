@@ -12,6 +12,7 @@ struct HistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
+    @State private var refreshID = UUID() // Force refresh trigger
     
     // Get user-filtered past subscriptions from SubscriptionStore
     private var pastSubscriptions: [Subscription] {
@@ -160,11 +161,18 @@ struct HistoryView: View {
                                     
                                     // Subscriptions for this month
                                     ForEach(subscriptions) { subscription in
-                                        HistorySubscriptionRow(subscription: subscription)
-                                            .onTapGesture {
-                                                selectedSubscription = subscription
-                                                showingSubscriptionDetail = true
+                                        HistorySubscriptionRow(
+                                            subscription: subscription,
+                                            onDeleted: {
+                                                // Force UI refresh when item is deleted
+                                                refreshID = UUID()
                                             }
+                                        )
+                                        .environmentObject(subscriptionStore)
+                                        .onTapGesture {
+                                            selectedSubscription = subscription
+                                            showingSubscriptionDetail = true
+                                        }
                                     }
                                 }
                             }
@@ -173,6 +181,7 @@ struct HistoryView: View {
                             Color.clear.frame(height: 100)
                         }
                         .padding(.vertical)
+                        .id(refreshID) // Force refresh when ID changes
                     }
                 }
             }
@@ -288,10 +297,8 @@ struct HistoryView: View {
 struct HistorySubscriptionRow: View {
     let subscription: Subscription
     @Environment(\.managedObjectContext) private var viewContext
-    
-    private var subscriptionStore: SubscriptionStore {
-        SubscriptionStore(context: viewContext)
-    }
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
+    var onDeleted: (() -> Void)? = nil // Callback for parent refresh
     @State private var showingDeleteAlert = false
     @State private var offset: CGSize = .zero
     @State private var swipeState: SwipeState = .none
@@ -598,6 +605,12 @@ struct HistorySubscriptionRow: View {
                 withAnimation {
                     subscriptionStore.deleteSubscription(subscription)
                     HapticManager.shared.playSuccess()
+                    
+                    // Trigger UI refresh
+                    DispatchQueue.main.async {
+                        subscriptionStore.fetchSubscriptions()
+                        onDeleted?() // Notify parent
+                    }
                 }
             }
         } message: {

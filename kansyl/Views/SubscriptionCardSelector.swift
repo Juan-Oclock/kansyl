@@ -13,15 +13,21 @@ struct SubscriptionCardSelector: View {
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
     let isCompactMode: Bool
+    var onSwipeAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
     
     @AppStorage("preferredCardStyle") private var preferredStyle = CardStyle.smart
     @State private var animateIn = false
     
-    init(subscription: Subscription, subscriptionStore: SubscriptionStore, isCompactMode: Bool = false, action: @escaping () -> Void) {
+    init(subscription: Subscription, 
+         subscriptionStore: SubscriptionStore, 
+         isCompactMode: Bool = false, 
+         action: @escaping () -> Void,
+         onSwipeAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil) {
         self.subscription = subscription
         self.subscriptionStore = subscriptionStore
         self.isCompactMode = isCompactMode
         self.action = action
+        self.onSwipeAction = onSwipeAction
     }
     
     enum CardStyle: String, CaseIterable {
@@ -61,7 +67,8 @@ struct SubscriptionCardSelector: View {
                 SubscriptionRowCard(
                     subscription: subscription,
                     subscriptionStore: subscriptionStore,
-                    action: action
+                    action: action,
+                    onSwipeAction: onSwipeAction
                 )
             } else {
                 switch preferredStyle {
@@ -71,7 +78,8 @@ struct SubscriptionCardSelector: View {
                     EnhancedSubscriptionCard(
                         subscription: subscription,
                         subscriptionStore: subscriptionStore,
-                        action: action
+                        action: action,
+                        onQuickAction: onSwipeAction
                     )
                 case .swipe:
                     // Use your existing swipe card or the hybrid one
@@ -79,21 +87,24 @@ struct SubscriptionCardSelector: View {
                         HybridSubscriptionCard(
                             subscription: subscription,
                             subscriptionStore: subscriptionStore,
-                            action: action
+                            action: action,
+                            onSwipeConfirm: onSwipeAction
                         )
                     } else {
                         // Fallback to existing implementation for iOS 15
                         SubscriptionRowCard(
                             subscription: subscription,
                             subscriptionStore: subscriptionStore,
-                            action: action
+                            action: action,
+                            onSwipeAction: onSwipeAction
                         )
                     }
                 case .contextMenu:
                     ContextMenuSubscriptionCard(
                         subscription: subscription,
                         subscriptionStore: subscriptionStore,
-                        action: action
+                        action: action,
+                        onContextAction: onSwipeAction
                     )
                 }
             }
@@ -114,28 +125,32 @@ struct SubscriptionCardSelector: View {
             SubscriptionRowCard(
                 subscription: subscription,
                 subscriptionStore: subscriptionStore,
-                action: action
+                action: action,
+                onSwipeAction: onSwipeAction
             )
         } else if daysRemaining <= 3 {
             // Most urgent - use inline buttons for immediate action
             EnhancedSubscriptionCard(
                 subscription: subscription,
                 subscriptionStore: subscriptionStore,
-                action: action
+                action: action,
+                onQuickAction: onSwipeAction
             )
         } else if daysRemaining <= 7 {
             // Moderately urgent - use context menu for cleaner look with options
             ContextMenuSubscriptionCard(
                 subscription: subscription,
                 subscriptionStore: subscriptionStore,
-                action: action
+                action: action,
+                onContextAction: onSwipeAction
             )
         } else {
             // Not urgent - use existing simple card
             SubscriptionRowCard(
                 subscription: subscription,
                 subscriptionStore: subscriptionStore,
-                action: action
+                action: action,
+                onSwipeAction: onSwipeAction
             )
         }
     }
