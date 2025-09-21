@@ -35,7 +35,6 @@ struct ModernSubscriptionsView: View {
     @State private var pendingAction: SubscriptionActionModal.SubscriptionAction?
     @State private var actionSubscription: Subscription?
     @State private var triggerConfetti = false
-    @State private var triggerEmojiConfetti = false
     @State private var showSuccessToast = false
     @State private var successToastMessage = ""
     @State private var successToastAmount: String? = nil
@@ -160,7 +159,6 @@ struct ModernSubscriptionsView: View {
                                     
                                     // Trigger confetti celebration for saving money!
                                     triggerConfetti = true
-                                    triggerEmojiConfetti = true
                                     
                                     // Haptic celebration
                                     HapticManager.shared.playSuccess()
@@ -194,17 +192,9 @@ struct ModernSubscriptionsView: View {
         )
         .overlay(
             // Confetti effects layer
-            ZStack {
-                // Regular confetti
-                ConfettiView(trigger: $triggerConfetti, config: .savings)
-                    .allowsHitTesting(false)
-                    .zIndex(1000)
-                
-                // Emoji confetti for extra celebration
-                EmojiConfettiView(trigger: $triggerEmojiConfetti)
-                    .allowsHitTesting(false)
-                    .zIndex(1001)
-            }
+            ConfettiView(trigger: $triggerConfetti, config: .savings)
+                .allowsHitTesting(false)
+                .zIndex(1000)
         )
         .overlay(
             // Success toast at the top
