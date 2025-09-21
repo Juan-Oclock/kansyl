@@ -12,7 +12,7 @@ struct EditSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var subscriptionStore: SubscriptionStore
-    @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     
     let subscription: Subscription
     
@@ -305,7 +305,7 @@ struct EditSubscriptionView: View {
                     Spacer()
                     
                     HStack(spacing: 4) {
-                        Text(appPreferences.currencySymbol)
+                        Text(userPreferences.currencySymbol)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Design.Colors.textSecondary)
                         

@@ -140,13 +140,13 @@ class CurrencyManager: ObservableObject {
         var regionalCurrencies: [String] = []
         
         if asianCountries.contains(countryCode) {
-            regionalCurrencies = ["PHP", "SGD", "JPY", "KRW", "CNY", "INR", "THB", "MYR", "IDR", "HKD", "VND", "TWD", "USD", "EUR"]
+            regionalCurrencies = ["USD", "PHP", "SGD", "JPY", "KRW", "CNY", "INR", "THB", "MYR", "IDR", "HKD", "VND", "TWD", "EUR"]
         } else if europeanCountries.contains(countryCode) {
-            regionalCurrencies = ["EUR", "GBP", "CHF", "NOK", "SEK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "RUB", "TRY", "USD"]
+            regionalCurrencies = ["USD", "EUR", "GBP", "CHF", "NOK", "SEK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN", "RUB", "TRY"]
         } else if americanCountries.contains(countryCode) {
             regionalCurrencies = ["USD", "CAD", "MXN", "BRL", "ARS", "CLP", "COP", "PEN", "EUR", "GBP"]
         } else if middleEastAfricaCountries.contains(countryCode) {
-            regionalCurrencies = ["SAR", "AED", "ILS", "ZAR", "EGP", "USD", "EUR", "GBP"]
+            regionalCurrencies = ["USD", "SAR", "AED", "ILS", "ZAR", "EGP", "EUR", "GBP"]
         } else {
             regionalCurrencies = ["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "PHP", "SGD"]
         }

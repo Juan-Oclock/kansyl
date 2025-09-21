@@ -16,6 +16,7 @@ struct EnhancedSubscriptionCard: View {
     @State private var decisionMade: Decision? = nil
     @State private var isPressed = false
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var appPreferences = AppPreferences.shared
     
     enum Decision {
@@ -82,7 +83,7 @@ struct EnhancedSubscriptionCard: View {
                             Text("•")
                                 .foregroundColor(Design.Colors.textSecondary)
                             
-                            Text("\(AppPreferences.shared.formatPrice(subscription.monthlyPrice))/mo")
+                            Text("\(SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice))/mo")
                                 .font(.system(size: 14))
                                 .foregroundColor(Design.Colors.textSecondary)
                         }

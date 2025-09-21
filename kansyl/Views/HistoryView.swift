@@ -210,7 +210,7 @@ struct HistoryView: View {
         
         var summary: [String] = []
         if saved > 0 {
-            summary.append("Saved \(AppPreferences.shared.formatPrice(saved))")
+            summary.append("Saved \(SharedCurrencyFormatter.formatPrice(saved))")
         }
         if kept > 0 {
             summary.append("\(kept) kept")
@@ -501,7 +501,7 @@ struct HistorySubscriptionRow: View {
                         Text("•")
                             .foregroundColor(.secondary)
                         
-                        Text("\(AppPreferences.shared.formatPrice(subscription.monthlyPrice))/mo")
+                        Text("\(SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice))/mo")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -716,7 +716,7 @@ struct SubscriptionDetailView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text("\(AppPreferences.shared.formatPrice(subscription.monthlyPrice))/month")
+                            Text("\(SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice))/month")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                         }

@@ -10,7 +10,7 @@ import CoreData
 
 struct SavingsSpotlightCard: View {
     @ObservedObject var subscriptionStore: SubscriptionStore
-    @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var navigationCoordinator = NavigationCoordinator.shared
     @State private var isExpanded = false
     
@@ -99,7 +99,7 @@ struct SavingsSpotlightCard: View {
             
             // Compact Main Amount
             VStack(spacing: 2) {
-                Text(appPreferences.formatPrice(totalSaved))
+                Text(SharedCurrencyFormatter.formatPrice(totalSaved))
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .minimumScaleFactor(0.8)
@@ -160,7 +160,7 @@ struct SavingsSpotlightCard: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(Color.white.opacity(0.6))
                         
-                        Text(appPreferences.formatPrice(projectedAnnualSavings))
+                        Text(SharedCurrencyFormatter.formatPrice(projectedAnnualSavings))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(Color(hex: "4ADE80"))
                         

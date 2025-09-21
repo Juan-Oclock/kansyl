@@ -15,6 +15,7 @@ struct AddSubscriptionView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var subscriptionStore: SubscriptionStore
     @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var premiumManager = PremiumManager.shared
     
     // Optional prefilled service name from Siri Shortcuts
@@ -370,7 +371,7 @@ struct AddSubscriptionView: View {
                             Text("•")
                                 .foregroundColor(Design.Colors.textTertiary)
                             
-                            Text("\(AppPreferences.shared.formatPrice(customPrice))/mo")
+                            Text("\(CurrencyManager.shared.formatPrice(customPrice, currencyCode: userPreferences.currencyCode))/mo")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(Design.Colors.success)
                         }
@@ -536,7 +537,7 @@ struct AddSubscriptionView: View {
                     
                     // Monthly Price - Full width of column
                     HStack {
-                        Text(appPreferences.currencySymbol)
+                        Text(userPreferences.currencySymbol)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Design.Colors.textSecondary)
                             .padding(.leading, 4)
@@ -875,7 +876,7 @@ struct SubscriptionDetailsForm: View {
     @Binding var customPrice: Double
     @Binding var notes: String
     
-    @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @State private var showingDaysPicker = false
     
     init(startDate: Binding<Date>, subscriptionLength: Binding<Int>, customPrice: Binding<Double>, notes: Binding<String>) {
@@ -942,7 +943,7 @@ struct SubscriptionDetailsForm: View {
                 
                 // Monthly Price
                 HStack {
-                    Text(appPreferences.currencySymbol)
+                    Text(userPreferences.currencySymbol)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Design.Colors.textSecondary)
                         .padding(.leading, 4)

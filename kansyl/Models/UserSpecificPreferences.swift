@@ -36,6 +36,15 @@ class UserSpecificPreferences: ObservableObject {
         }
     }
     
+    // Ensure we have a user context (for testing/fallback)
+    func ensureUserContext() {
+        if currentUserID == nil {
+            // Use a default identifier if no user is set
+            currentUserID = "default_user"
+            print("⚠️ [UserPrefs] No user ID was set, using default_user")
+        }
+    }
+    
     // MARK: - Helper to get user-specific key
     private func userKey(_ key: String) -> String {
         guard let userID = currentUserID else {
@@ -64,10 +73,13 @@ class UserSpecificPreferences: ObservableObject {
     // Currency Settings
     @Published var currencyCode: String = "USD" {
         didSet {
+            print("🔧 [UserPrefs] currencyCode didSet: '\(currencyCode)' (was: '\(oldValue)')")
+            print("🔧 [UserPrefs] currentUserID: \(currentUserID ?? "nil")")
             savePreference(currencyCode, for: "currencyCode")
             // Update symbol when code changes
             if let currencyInfo = CurrencyManager.shared.getCurrencyInfo(for: currencyCode) {
                 currencySymbol = currencyInfo.symbol
+                print("🔧 [UserPrefs] Updated symbol to: \(currencySymbol)")
             }
         }
     }
@@ -135,17 +147,47 @@ class UserSpecificPreferences: ObservableObject {
     // MARK: - Persistence Methods
     
     private func savePreference<T>(_ value: T, for key: String) {
-        guard currentUserID != nil else { 
-            return 
+        // If no user ID, save to a default/global key so settings still work
+        let fullKey: String
+        if currentUserID != nil {
+            fullKey = userKey(key)
+        } else {
+            // Fallback to global key when no user is set
+            fullKey = "global_\(key)"
+            print("⚠️ [UserPrefs] No currentUserID, using global key: \(fullKey)")
         }
-        let fullKey = userKey(key)
+        
+        print("🔧 [UserPrefs] savePreference: \(fullKey) = \(value)")
         defaults.set(value, forKey: fullKey)
         defaults.synchronize()
+        print("🔧 [UserPrefs] savePreference: Successfully saved and synced")
     }
     
     private func loadPreference<T>(for key: String, defaultValue: T) -> T {
-        guard currentUserID != nil else { return defaultValue }
-        return defaults.object(forKey: userKey(key)) as? T ?? defaultValue
+        // Try to load user-specific preference first, then global, then default
+        if let userID = currentUserID {
+            let userSpecificKey = "user_\(userID)_\(key)"
+            if let value = defaults.object(forKey: userSpecificKey) as? T {
+                return value
+            }
+        }
+        
+        // Fallback to global key
+        let globalKey = "global_\(key)"
+        return defaults.object(forKey: globalKey) as? T ?? defaultValue
+    }
+    
+    // MARK: - Currency Setup for New Users
+    func setupCurrencyForNewUser() {
+        // Default to USD for easier international use
+        // Users can change this in Settings > Trial Settings > Currency
+        currencyCode = "USD"
+        currencySymbol = "$"
+        
+        // Uncomment below to auto-detect based on location:
+        // let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
+        // currencyCode = detectedCurrency?.code ?? "USD"
+        // currencySymbol = detectedCurrency?.symbol ?? "$"
     }
     
     // MARK: - Load User Preferences
@@ -160,10 +202,9 @@ class UserSpecificPreferences: ObservableObject {
         defaultTrialLength = loadPreference(for: "defaultTrialLength", defaultValue: 30)
         defaultTrialLengthUnit = TrialLengthUnit(rawValue: loadPreference(for: "defaultTrialLengthUnit", defaultValue: TrialLengthUnit.days.rawValue)) ?? .days
         
-        // Currency - detect from location if not set
-        let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
-        currencyCode = loadPreference(for: "currencyCode", defaultValue: detectedCurrency?.code ?? "USD")
-        currencySymbol = loadPreference(for: "currencySymbol", defaultValue: detectedCurrency?.symbol ?? "$")
+        // Currency - default to USD for all users
+        currencyCode = loadPreference(for: "currencyCode", defaultValue: "USD")
+        currencySymbol = loadPreference(for: "currencySymbol", defaultValue: "$")
         
         // Display preferences
         showTrialLogos = loadPreference(for: "showTrialLogos", defaultValue: true)
@@ -200,9 +241,8 @@ class UserSpecificPreferences: ObservableObject {
     func resetToDefaults() {
         defaultTrialLength = 30
         defaultTrialLengthUnit = .days
-        let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
-        currencyCode = detectedCurrency?.code ?? "USD"
-        currencySymbol = detectedCurrency?.symbol ?? "$"
+        currencyCode = "USD"
+        currencySymbol = "$"
         showTrialLogos = true
         compactMode = false
         groupByEndDate = true
@@ -217,13 +257,11 @@ class UserSpecificPreferences: ObservableObject {
     
     private func resetToDefaultsWithoutSaving() {
         // Reset to defaults without triggering saves (for logout)
-        let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
-        
         _appTheme = Published(initialValue: .system)
         _defaultTrialLength = Published(initialValue: 30)
         _defaultTrialLengthUnit = Published(initialValue: .days)
-        _currencyCode = Published(initialValue: detectedCurrency?.code ?? "USD")
-        _currencySymbol = Published(initialValue: detectedCurrency?.symbol ?? "$")
+        _currencyCode = Published(initialValue: "USD")
+        _currencySymbol = Published(initialValue: "$")
         _showTrialLogos = Published(initialValue: true)
         _compactMode = Published(initialValue: false)
         _groupByEndDate = Published(initialValue: true)

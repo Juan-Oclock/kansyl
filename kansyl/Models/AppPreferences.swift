@@ -21,7 +21,7 @@ class AppPreferences: ObservableObject {
     }
     
     // MARK: - Currency Settings
-    @AppStorage("currencyCode") var currencyCode: String = CurrencyManager.shared.detectCurrencyFromLocation()?.code ?? "USD" {
+    @AppStorage("currencyCode") var currencyCode: String = "USD" {
         didSet {
             // Automatically update currency symbol when currency code changes
             if let currencyInfo = CurrencyManager.shared.getCurrencyInfo(for: currencyCode) {
@@ -31,7 +31,7 @@ class AppPreferences: ObservableObject {
             UserDefaults.standard.set(currencyCode, forKey: "currencyCode")
         }
     }
-    @AppStorage("currencySymbol") var currencySymbol: String = CurrencyManager.shared.detectCurrencyFromLocation()?.symbol ?? "$" {
+    @AppStorage("currencySymbol") var currencySymbol: String = "$" {
         didSet {
             // Sync to standard UserDefaults for widget access
             UserDefaults.standard.set(currencySymbol, forKey: "currencySymbol")
@@ -98,9 +98,9 @@ class AppPreferences: ObservableObject {
     func resetToDefaults() {
         defaultTrialLength = 30
         defaultTrialLengthUnit = .days
-        let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
-        currencyCode = detectedCurrency?.code ?? "USD"
-        currencySymbol = detectedCurrency?.symbol ?? "$"
+        // Default to USD for easier international use
+        currencyCode = "USD"
+        currencySymbol = "$"
         showTrialLogos = true
         compactMode = false
         groupByEndDate = true

@@ -21,6 +21,7 @@ struct ModernSubscriptionsView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var premiumManager = PremiumManager.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var appPreferences = AppPreferences.shared
     @State private var showingAddSubscription = false
     @State private var showingPremiumRequired = false
@@ -611,18 +612,18 @@ struct SubscriptionRowCard: View {
         let amount = subscription.billingAmount > 0 ? subscription.billingAmount : subscription.monthlyPrice
         let cycle = subscription.billingCycle ?? "monthly"
         
-        // Format price with appropriate period suffix
+        // Format price with appropriate period suffix using SharedCurrencyFormatter
         switch cycle.lowercased() {
         case "yearly", "annual":
-            return "\(AppPreferences.shared.formatPrice(amount))/yr"
+            return "\(SharedCurrencyFormatter.formatPrice(amount))/yr"
         case "quarterly":
-            return "\(AppPreferences.shared.formatPrice(amount))/qtr"
+            return "\(SharedCurrencyFormatter.formatPrice(amount))/qtr"
         case "weekly":
-            return "\(AppPreferences.shared.formatPrice(amount))/wk"
+            return "\(SharedCurrencyFormatter.formatPrice(amount))/wk"
         case "semi-annual", "biannual":
-            return "\(AppPreferences.shared.formatPrice(amount))/6mo"
+            return "\(SharedCurrencyFormatter.formatPrice(amount))/6mo"
         default:
-            return "\(AppPreferences.shared.formatPrice(amount))/mo"
+            return "\(SharedCurrencyFormatter.formatPrice(amount))/mo"
         }
     }
     

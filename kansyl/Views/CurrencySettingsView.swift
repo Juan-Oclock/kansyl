@@ -8,28 +8,48 @@
 import SwiftUI
 
 struct CurrencySettingsView: View {
-    @ObservedObject private var appPreferences = AppPreferences.shared
+    @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @Environment(\.dismiss) private var dismiss
     
     @State private var searchText = ""
     @State private var showingLocationDetection = false
     
     private var filteredCurrencies: [CurrencyInfo] {
-        let allCurrencies = CurrencyManager.shared.getRegionalCurrencies()
+        let allCurrencies = CurrencyManager.supportedCurrencies  // Use all supported currencies directly
         
         if searchText.isEmpty {
-            return allCurrencies
+            return CurrencyManager.shared.getRegionalCurrencies()  // Return regional order when not searching
         } else {
-            return allCurrencies.filter { currency in
+            var filtered = allCurrencies.filter { currency in
                 currency.name.localizedCaseInsensitiveContains(searchText) ||
                 currency.code.localizedCaseInsensitiveContains(searchText) ||
                 currency.symbol.localizedCaseInsensitiveContains(searchText)
             }
+            
+            // Put USD first if it matches the search
+            if let usdIndex = filtered.firstIndex(where: { $0.code == "USD" }), usdIndex != 0 {
+                let usd = filtered.remove(at: usdIndex)
+                filtered.insert(usd, at: 0)
+            }
+            
+            return filtered
         }
     }
     
     private var regionalCurrencies: [CurrencyInfo] {
-        Array(CurrencyManager.shared.getRegionalCurrencies().prefix(8))
+        var currencies = Array(CurrencyManager.shared.getRegionalCurrencies().prefix(8))
+        
+        // Ensure USD is always first if it's in the list
+        if let usdIndex = currencies.firstIndex(where: { $0.code == "USD" }), usdIndex != 0 {
+            let usd = currencies.remove(at: usdIndex)
+            currencies.insert(usd, at: 0)
+        }
+        
+        print("🔧 [CurrencySettings] Regional currencies in order:")
+        for (index, currency) in currencies.enumerated() {
+            print("  \(index): \(currency.code) - \(currency.name)")
+        }
+        return currencies
     }
     
     var body: some View {
@@ -76,7 +96,7 @@ struct CurrencySettingsView: View {
                         ForEach(regionalCurrencies, id: \.code) { currency in
                             CurrencyRow(
                                 currency: currency,
-                                isSelected: currency.code == appPreferences.currencyCode,
+                                isSelected: currency.code == userPreferences.currencyCode,
                                 onSelect: {
                                     selectCurrency(currency)
                                 }
@@ -90,18 +110,20 @@ struct CurrencySettingsView: View {
                 // All currencies or search results
                 Section {
                     ForEach(searchText.isEmpty ? 
-                           Array(filteredCurrencies.dropFirst(regionalCurrencies.count)) : 
+                           filteredCurrencies.filter { currency in 
+                               !regionalCurrencies.contains(where: { $0.code == currency.code })
+                           } : 
                            filteredCurrencies, id: \.code) { currency in
                         CurrencyRow(
                             currency: currency,
-                            isSelected: currency.code == appPreferences.currencyCode,
+                            isSelected: currency.code == userPreferences.currencyCode,
                             onSelect: {
                                 selectCurrency(currency)
                             }
                         )
                     }
                 } header: {
-                    Text(searchText.isEmpty ? "All Currencies" : "Search Results")
+                    Text(searchText.isEmpty ? "Other Currencies" : "Search Results")
                 }
             }
             .searchable(text: $searchText, prompt: "Search currencies...")
@@ -114,17 +136,29 @@ struct CurrencySettingsView: View {
                     }
                 }
             }
+            .onAppear {
+                // Ensure we have a user context for saving preferences
+                userPreferences.ensureUserContext()
+                print("🔧 [CurrencySettings] View appeared, ensuring user context")
+            }
         }
     }
     
     private func selectCurrency(_ currency: CurrencyInfo) {
+        print("🔧 [CurrencySettings] selectCurrency called with: \(currency.code) (\(currency.name))")
+        print("🔧 [CurrencySettings] Current currency before change: \(userPreferences.currencyCode)")
+        
         withAnimation(.easeInOut(duration: 0.2)) {
-            appPreferences.currencyCode = currency.code
+            userPreferences.currencyCode = currency.code
+            print("🔧 [CurrencySettings] Currency set to: \(userPreferences.currencyCode)")
             HapticManager.shared.selection()
         }
         
+        print("🔧 [CurrencySettings] Currency after animation: \(userPreferences.currencyCode)")
+        
         // Auto-dismiss after selection
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            print("🔧 [CurrencySettings] About to dismiss, final currency: \(userPreferences.currencyCode)")
             dismiss()
         }
     }
@@ -142,7 +176,11 @@ struct CurrencyRow: View {
     let onSelect: () -> Void
     
     var body: some View {
-        Button(action: onSelect) {
+        Button(action: {
+            print("🔧 [CurrencyRow] Tapped row: \(currency.code) - \(currency.name)")
+            HapticManager.shared.selection()
+            onSelect()
+        }) {
             HStack(spacing: 12) {
                 // Currency symbol
                 Text(currency.symbol)
@@ -169,6 +207,7 @@ struct CurrencyRow: View {
                 }
             }
             .padding(.vertical, 4)
+            .contentShape(Rectangle())  // Make entire row tappable
         }
         .buttonStyle(PlainButtonStyle())
     }
