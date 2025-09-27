@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import Combine
 
 struct StatsView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
@@ -61,6 +62,11 @@ struct StatsView: View {
                 withAnimation(Design.Animation.spring.delay(0.3)) {
                     animateCards = true
                 }
+            }
+            .onReceive(subscriptionStore.$allSubscriptions) { _ in
+                // Refresh metrics whenever subscriptions change
+                subscriptionStore.costEngine.refreshMetrics()
+                updateAchievementProgress()
             }
         }
     }
@@ -603,44 +609,53 @@ struct StatsView: View {
             let monthStart = calendar.dateInterval(of: .month, for: monthDate)?.start ?? monthDate
             let monthEnd = calendar.dateInterval(of: .month, for: monthDate)?.end ?? monthDate
             
+            // For current month, use today as the end date
+            let effectiveEndDate = monthOffset == 0 ? today : monthEnd
+            
             // Calculate savings and waste for this month
             var monthlySavings: Double = 0
             var monthlyWaste: Double = 0
+            var monthlySpending: Double = 0
             
-            // Get subscriptions that were canceled in this month
-            let canceledInMonth = subscriptionStore.allSubscriptions.filter { subscription in
-                guard let endDate = subscription.endDate else { return false }
-                return subscription.status == SubscriptionStatus.canceled.rawValue &&
-                       endDate >= monthStart && endDate < monthEnd
-            }
-            
-            // Calculate savings from canceled subscriptions
-            for subscription in canceledInMonth {
-                let monthlyCost = subscription.monthlyPrice ?? 0
-                // Calculate months saved (from cancellation to what would have been renewal)
-                if let startDate = subscription.startDate,
-                   let endDate = subscription.endDate {
-                    let daysBetween = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 30
-                    let monthsSaved = max(1, daysBetween / 30)
-                    monthlySavings += monthlyCost * Double(monthsSaved)
-                }
-            }
-            
-            // Calculate waste from active subscriptions that haven't been used
-            let activeInMonth = subscriptionStore.allSubscriptions.filter { subscription in
-                guard let startDate = subscription.startDate else { return false }
-                let isActive = subscription.status == SubscriptionStatus.active.rawValue
-                return isActive && startDate <= monthEnd
-            }
-            
-            // Simple waste calculation: estimate based on subscription age and lack of notes
-            for subscription in activeInMonth {
-                // Consider waste if subscription is older than 14 days with no notes (likely unused)
+            // Track all subscriptions that existed during this month
+            for subscription in subscriptionStore.allSubscriptions {
+                let monthlyPrice = subscription.monthlyPrice ?? 0
+                
+                // Check if subscription was active during this month
                 if let startDate = subscription.startDate {
-                    let daysActive = calendar.dateComponents([.day], from: startDate, to: monthEnd).day ?? 0
-                    if daysActive > 14 && (subscription.notes?.isEmpty ?? true) {
-                        let monthlyPrice = subscription.monthlyPrice ?? 0
-                        monthlyWaste += monthlyPrice * 0.5 // Estimate 50% waste for potentially unused subscriptions
+                    // Subscription must have started before month end and ended after month start (or still active)
+                    let startedBeforeMonthEnd = startDate < effectiveEndDate
+                    let endedAfterMonthStart = subscription.endDate == nil || subscription.endDate! > monthStart
+                    
+                    if startedBeforeMonthEnd && endedAfterMonthStart {
+                        // Calculate the portion of the month this subscription was active
+                        let effectiveStart = max(startDate, monthStart)
+                        let effectiveEnd = min(subscription.endDate ?? effectiveEndDate, effectiveEndDate)
+                        
+                        let daysInMonth = calendar.dateComponents([.day], from: monthStart, to: effectiveEndDate).day ?? 30
+                        let daysActive = calendar.dateComponents([.day], from: effectiveStart, to: effectiveEnd).day ?? 0
+                        let monthPortion = Double(daysActive) / Double(max(1, daysInMonth))
+                        
+                        // Apply the appropriate calculation based on status
+                        switch subscription.status {
+                        case SubscriptionStatus.canceled.rawValue:
+                            // For canceled subscriptions, count as savings
+                            monthlySavings += monthlyPrice * monthPortion
+                        case SubscriptionStatus.kept.rawValue:
+                            // For kept subscriptions, count as spending
+                            monthlySpending += monthlyPrice * monthPortion
+                        case SubscriptionStatus.active.rawValue:
+                            // For active subscriptions, estimate potential waste
+                            if subscription.notes?.isEmpty ?? true {
+                                // No notes suggests unused - count as potential waste
+                                monthlyWaste += monthlyPrice * monthPortion * 0.3 // 30% waste factor
+                            } else {
+                                // Has notes, likely being used
+                                monthlySpending += monthlyPrice * monthPortion
+                            }
+                        default:
+                            break
+                        }
                     }
                 }
             }
