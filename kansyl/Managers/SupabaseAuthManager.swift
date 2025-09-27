@@ -3,6 +3,7 @@ import Supabase
 import Auth
 import Combine
 import SwiftUI
+import AuthenticationServices
 
 /// Comprehensive authentication manager using Supabase
 /// Provides authentication + user database management with real-time sync
@@ -264,7 +265,8 @@ class SupabaseAuthManager: ObservableObject {
         }
     }
     
-    /// Sign in with Google using OAuth flow
+    /// Sign in with Google using OAuth flow with in-app browser
+    @MainActor
     func signInWithGoogle() async throws {
         isLoading = true
         errorMessage = nil
@@ -273,17 +275,66 @@ class SupabaseAuthManager: ObservableObject {
         
         do {
             // Get Google OAuth URL from Supabase
-            let url = try supabase.auth.getOAuthSignInURL(
+            let authURL = try supabase.auth.getOAuthSignInURL(
                 provider: .google,
                 redirectTo: URL(string: "kansyl://auth-callback")
             )
             
-            // Open the OAuth URL in Safari
-            await UIApplication.shared.open(url)
+            // Use a continuation to handle the async callback
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                // Create and configure the authentication session
+                let session = ASWebAuthenticationSession(
+                    url: authURL,
+                    callbackURLScheme: "kansyl"
+                ) { [weak self] callbackURL, error in
+                    if let error = error {
+                        // Check if the user cancelled
+                        if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                            continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Authentication cancelled by user"))
+                        } else {
+                            continuation.resume(throwing: SupabaseAuthError.googleSignInFailed(error.localizedDescription))
+                        }
+                        return
+                    }
+                    
+                    guard let callbackURL = callbackURL else {
+                        continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("No callback URL received"))
+                        return
+                    }
+                    
+                    // Handle the OAuth callback
+                    Task { @MainActor [weak self] in
+                        do {
+                            try await self?.handleOAuthCallback(url: callbackURL)
+                            continuation.resume()
+                        } catch {
+                            continuation.resume(throwing: error)
+                        }
+                    }
+                }
+                
+                // Configure presentation for iOS 13+
+                session.prefersEphemeralWebBrowserSession = false
+                
+                // Get the presentation context provider
+                guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let rootViewController = windowScene.windows.first?.rootViewController else {
+                    continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Unable to find presentation context"))
+                    return
+                }
+                
+                let contextProvider = AuthPresentationContextProvider(rootViewController: rootViewController)
+                session.presentationContextProvider = contextProvider
+                
+                // Start the authentication session
+                if !session.start() {
+                    continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Failed to start authentication session"))
+                }
+            }
             
         } catch {
             errorMessage = "Google Sign In failed: \(error.localizedDescription)"
-            throw SupabaseAuthError.googleSignInFailed(error.localizedDescription)
+            throw error
         }
     }
     

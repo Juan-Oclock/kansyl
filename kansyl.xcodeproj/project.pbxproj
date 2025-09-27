@@ -14,6 +14,7 @@
 		5E9CB0272E7C300F00C8DC85 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9CB0262E7C300F00C8DC85 /* Storage */; };
 		5E9CB0292E7C300F00C8DC85 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 5E9CB0282E7C300F00C8DC85 /* Supabase */; };
 		5E9CB03B2E7C5DC600C8DC85 /* Config.private.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */; };
+		5EEF86C22E861396009988A4 /* KansylShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5EEF86B82E861396009988A4 /* KansylShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,7 +32,28 @@
 			remoteGlobalIDString = 5E6853C82E74254400FACCC1;
 			remoteInfo = kansyl;
 		};
+		5EEF86C02E861396009988A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E6853C12E74254400FACCC1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5EEF86B72E861395009988A4;
+			remoteInfo = KansylShareExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5EEF86C32E861396009988A4 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5EEF86C22E861396009988A4 /* KansylShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5E62667F2E7D1AF900872A33 /* kansyl.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = kansyl.entitlements; sourceTree = "<group>"; };
@@ -39,6 +61,7 @@
 		5E6853D62E74254500FACCC1 /* kansylTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kansylTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E6853E02E74254500FACCC1 /* kansylUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kansylUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.private.xcconfig; sourceTree = "<group>"; };
+		5EEF86B82E861396009988A4 /* KansylShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KansylShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -48,6 +71,13 @@
 				Info.plist,
 			);
 			target = 5E6853C82E74254400FACCC1 /* kansyl */;
+		};
+		5EEF86C72E861396009988A4 /* Exceptions for "KansylShareExtension" folder in "KansylShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5EEF86B72E861395009988A4 /* KansylShareExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -68,6 +98,14 @@
 		5E6853E32E74254500FACCC1 /* kansylUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = kansylUITests;
+			sourceTree = "<group>";
+		};
+		5EEF86B92E861396009988A4 /* KansylShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5EEF86C72E861396009988A4 /* Exceptions for "KansylShareExtension" folder in "KansylShareExtension" target */,
+			);
+			path = KansylShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -100,6 +138,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5EEF86B52E861395009988A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -109,6 +154,7 @@
 				5E6853CB2E74254400FACCC1 /* kansyl */,
 				5E6853D92E74254500FACCC1 /* kansylTests */,
 				5E6853E32E74254500FACCC1 /* kansylUITests */,
+				5EEF86B92E861396009988A4 /* KansylShareExtension */,
 				5E6853CA2E74254400FACCC1 /* Products */,
 				5E9CB03A2E7C5DC600C8DC85 /* Config.private.xcconfig */,
 				5E62667F2E7D1AF900872A33 /* kansyl.entitlements */,
@@ -121,6 +167,7 @@
 				5E6853C92E74254400FACCC1 /* kansyl.app */,
 				5E6853D62E74254500FACCC1 /* kansylTests.xctest */,
 				5E6853E02E74254500FACCC1 /* kansylUITests.xctest */,
+				5EEF86B82E861396009988A4 /* KansylShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -135,10 +182,12 @@
 				5E6853C52E74254400FACCC1 /* Sources */,
 				5E6853C62E74254400FACCC1 /* Frameworks */,
 				5E6853C72E74254400FACCC1 /* Resources */,
+				5EEF86C32E861396009988A4 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5EEF86C12E861396009988A4 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5E6853CB2E74254400FACCC1 /* kansyl */,
@@ -202,6 +251,28 @@
 			productReference = 5E6853E02E74254500FACCC1 /* kansylUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		5EEF86B72E861395009988A4 /* KansylShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5EEF86C62E861396009988A4 /* Build configuration list for PBXNativeTarget "KansylShareExtension" */;
+			buildPhases = (
+				5EEF86B42E861395009988A4 /* Sources */,
+				5EEF86B52E861395009988A4 /* Frameworks */,
+				5EEF86B62E861395009988A4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5EEF86B92E861396009988A4 /* KansylShareExtension */,
+			);
+			name = KansylShareExtension;
+			packageProductDependencies = (
+			);
+			productName = KansylShareExtension;
+			productReference = 5EEF86B82E861396009988A4 /* KansylShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -222,6 +293,9 @@
 					5E6853DF2E74254500FACCC1 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 5E6853C82E74254400FACCC1;
+					};
+					5EEF86B72E861395009988A4 = {
+						CreatedOnToolsVersion = 16.4;
 					};
 				};
 			};
@@ -245,6 +319,7 @@
 				5E6853C82E74254400FACCC1 /* kansyl */,
 				5E6853D52E74254500FACCC1 /* kansylTests */,
 				5E6853DF2E74254500FACCC1 /* kansylUITests */,
+				5EEF86B72E861395009988A4 /* KansylShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -266,6 +341,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5E6853DE2E74254500FACCC1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5EEF86B62E861395009988A4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -296,6 +378,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5EEF86B42E861395009988A4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -308,6 +397,11 @@
 			isa = PBXTargetDependency;
 			target = 5E6853C82E74254400FACCC1 /* kansyl */;
 			targetProxy = 5E6853E12E74254500FACCC1 /* PBXContainerItemProxy */;
+		};
+		5EEF86C12E861396009988A4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5EEF86B72E861395009988A4 /* KansylShareExtension */;
+			targetProxy = 5EEF86C02E861396009988A4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -440,7 +534,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = kansyl/kansyl.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YXXWV4ZNFS;
 				ENABLE_PREVIEWS = YES;
@@ -460,7 +555,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansyl";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansyl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -475,7 +570,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = kansyl/kansyl.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YXXWV4ZNFS;
 				ENABLE_PREVIEWS = YES;
@@ -495,7 +591,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansyl";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansyl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -513,7 +609,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansylTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansylTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -532,7 +628,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansylTests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansylTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -549,7 +645,7 @@
 				DEVELOPMENT_TEAM = YXXWV4ZNFS;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansylUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansylUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -566,12 +662,64 @@
 				DEVELOPMENT_TEAM = YXXWV4ZNFS;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.juan-oclock.kansyl.kansylUITests";
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = kansyl;
+			};
+			name = Release;
+		};
+		5EEF86C42E861396009988A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YXXWV4ZNFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KansylShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KansylShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansyl.KansylShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5EEF86C52E861396009988A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YXXWV4ZNFS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KansylShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KansylShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.juan-oclock.kansyl.kansyl.KansylShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -610,6 +758,15 @@
 			buildConfigurations = (
 				5E6853F12E74254500FACCC1 /* Debug */,
 				5E6853F22E74254500FACCC1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5EEF86C62E861396009988A4 /* Build configuration list for PBXNativeTarget "KansylShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5EEF86C42E861396009988A4 /* Debug */,
+				5EEF86C52E861396009988A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

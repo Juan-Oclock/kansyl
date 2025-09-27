@@ -12,6 +12,7 @@ struct EnhancedSettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var appPreferences = AppPreferences.shared
+    @StateObject private var cloudKitManager = CloudKitManager.shared
     @Environment(\.managedObjectContext) private var viewContext
     
     @State private var showingNotificationSettings = false
@@ -290,12 +291,58 @@ struct EnhancedSettingsView: View {
                 Label("Export Data", systemImage: "square.and.arrow.up")
             }
             
-            HStack {
-                Label("iCloud Sync", systemImage: "icloud")
-                Spacer()
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("iCloud Sync", systemImage: "icloud")
+                    Spacer()
+                    
+                    if cloudKitManager.isSyncing {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Toggle("", isOn: Binding(
+                            get: { cloudKitManager.isSyncEnabled },
+                            set: { enabled in
+                                Task {
+                                    do {
+                                        if enabled {
+                                            try await cloudKitManager.enableSync()
+                                        } else {
+                                            await cloudKitManager.disableSync()
+                                        }
+                                    } catch {
+                                        // Handle error silently or show toast
+                                    }
+                                }
+                            }
+                        ))
+                        .disabled(!cloudKitManager.canSync && !cloudKitManager.isSyncEnabled)
+                    }
+                }
+                
+                HStack {
+                    Text(cloudKitManager.syncStatusMessage)
+                        .font(.caption)
+                        .foregroundColor(cloudKitManager.syncStatusColor)
+                    
+                    Spacer()
+                    
+                    if cloudKitManager.canSync && cloudKitManager.isSyncEnabled {
+                        Button("Sync Now") {
+                            Task {
+                                try? await cloudKitManager.performManualSync()
+                            }
+                        }
+                        .font(.caption)
+                        .disabled(cloudKitManager.isSyncing)
+                    }
+                }
+                
+                if let lastSync = cloudKitManager.lastSyncDate {
+                    Text("Last sync: \(formatSyncDate(lastSync))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Button(action: { showingClearDataAlert = true }) {
@@ -398,6 +445,26 @@ struct EnhancedSettingsView: View {
             return String(firstChar)
         }
         return "U"
+    }
+    
+    private func formatSyncDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(date)
+        
+        if timeInterval < 60 {
+            return "Just now"
+        } else if timeInterval < 3600 {
+            let minutes = Int(timeInterval / 60)
+            return "\(minutes) minute\(minutes == 1 ? "" : "s") ago"
+        } else if timeInterval < 86400 {
+            let hours = Int(timeInterval / 3600)
+            return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+        } else {
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
     }
     
     @MainActor

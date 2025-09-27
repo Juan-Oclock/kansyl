@@ -72,6 +72,8 @@ class SubscriptionStore: ObservableObject {
         print("📚 [SubscriptionStore] Initializing with lazy loading...")
         self._viewContext = context
         self.currentUserID = userID
+        // Set up remote change notifications for CloudKit
+        setupRemoteChangeNotifications()
         // Don't fetch subscriptions on init - wait until context is accessed
     }
     
@@ -201,7 +203,30 @@ class SubscriptionStore: ObservableObject {
         viewContext.delete(subscription)
         saveContext()
         fetchSubscriptions()
-        costEngine.refreshMetrics()
+        
+        // Notify CloudKit manager of new data
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SubscriptionDataChanged"),
+            object: nil
+        )
+    }
+    
+    // MARK: - CloudKit Support
+    
+    private func setupRemoteChangeNotifications() {
+        // Listen for CloudKit remote changes
+        NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: PersistenceController.shared.container.persistentStoreCoordinator,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleRemoteChange()
+        }
+    }
+    
+    private func handleRemoteChange() {
+        // Refresh data when CloudKit sync occurs
+        fetchSubscriptions()
     }
     
     // MARK: - User Management

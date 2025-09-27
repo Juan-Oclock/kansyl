@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import CloudKit
 
 class PersistenceController {
     static let shared = PersistenceController()
@@ -35,15 +36,17 @@ class PersistenceController {
         return result
     }()
     
-    let container: NSPersistentContainer
+    let container: NSPersistentCloudKitContainer
     private(set) var isLoaded = false
     private(set) var loadError: Error?
     
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "Kansyl")
+        container = NSPersistentCloudKitContainer(name: "Kansyl")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            setupCloudKitStores()
         }
         
         // Enable automatic lightweight migration
@@ -68,6 +71,17 @@ class PersistenceController {
                 // Configure context on success
                 self?.container.viewContext.automaticallyMergesChangesFromParent = true
                 self?.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+                
+                // Set up CloudKit remote change notifications (only if available)
+                DispatchQueue.main.async {
+                    // Check if CloudKit features are enabled before setting up notifications
+                    #if DEBUG
+                    // Skip CloudKit setup in debug mode for personal development teams
+                    print("🔧 [PersistenceController] Skipping CloudKit notifications in DEBUG mode")
+                    #else
+                    CloudKitManager.shared.setupRemoteChangeNotifications()
+                    #endif
+                }
             }
         }
     }
@@ -91,5 +105,40 @@ class PersistenceController {
                 self?.container.viewContext.automaticallyMergesChangesFromParent = true
             }
         }
+    }
+    
+    private func setupCloudKitStores() {
+        #if DEBUG
+        // For development with personal team, use only local store to avoid CloudKit issues
+        let localStoreDescription = NSPersistentStoreDescription(
+            url: NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("LocalStore.sqlite")
+        )
+        localStoreDescription.configuration = "LocalConfiguration"
+        localStoreDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+        
+        container.persistentStoreDescriptions = [localStoreDescription]
+        #else
+        // CloudKit store for user data that syncs (production)
+        let cloudKitStoreDescription = NSPersistentStoreDescription(
+            url: NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("CloudKitStore.sqlite")
+        )
+        cloudKitStoreDescription.configuration = "CloudKitConfiguration"
+        cloudKitStoreDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+        cloudKitStoreDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        
+        // Set CloudKit container identifier
+        let cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+            containerIdentifier: "iCloud.com.juan-oclock.kansyl.kansyl"
+        )
+        cloudKitStoreDescription.cloudKitContainerOptions = cloudKitContainerOptions
+        
+        // Local store for data that doesn't need to sync (templates, etc.)
+        let localStoreDescription = NSPersistentStoreDescription(
+            url: NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("LocalStore.sqlite")
+        )
+        localStoreDescription.configuration = "LocalConfiguration"
+        
+        container.persistentStoreDescriptions = [cloudKitStoreDescription, localStoreDescription]
+        #endif
     }
 }

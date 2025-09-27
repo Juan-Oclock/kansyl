@@ -24,4 +24,10 @@
         <attribute name="monthlyPrice" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
     </entity>
+    <configuration name="CloudKitConfiguration">
+        <memberEntity name="Subscription"/>
+    </configuration>
+    <configuration name="LocalConfiguration">
+        <memberEntity name="ServiceTemplate"/>
+    </configuration>
 </model>

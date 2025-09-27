@@ -9,9 +9,12 @@ import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
+    @StateObject private var cloudKitManager = CloudKitManager.shared
     @State private var showingDeleteAccount = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
+    @State private var showingCloudKitError = false
+    @State private var cloudKitErrorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -90,13 +93,38 @@ struct UserProfileView: View {
                     }
                     .foregroundColor(Design.Colors.textPrimary)
                     
-                    Button(action: {
-                        // Handle backup to iCloud
-                        backupToiCloud()
-                    }) {
-                        Label("Backup to iCloud", systemImage: "icloud.and.arrow.up")
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Label("iCloud Sync", systemImage: "icloud.and.arrow.up")
+                            Spacer()
+                            
+                            if cloudKitManager.isSyncing {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Button(action: {
+                                    Task {
+                                        await handleiCloudSync()
+                                    }
+                                }) {
+                                    Text(cloudKitManager.isSyncEnabled ? "Disable" : "Enable")
+                                        .foregroundColor(cloudKitManager.canSync ? .blue : .gray)
+                                }
+                                .disabled(!cloudKitManager.canSync && !cloudKitManager.isSyncEnabled)
+                            }
+                        }
+                        
+                        Text(cloudKitManager.syncStatusMessage)
+                            .font(.caption)
+                            .foregroundColor(cloudKitManager.syncStatusColor)
+                        
+                        if let lastSync = cloudKitManager.lastSyncDate {
+                            Text("Last sync: \(formatSyncDate(lastSync))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
-                    .foregroundColor(Design.Colors.textPrimary)
+                    .padding(.vertical, 4)
                 }
                 
                 // Danger zone
@@ -145,6 +173,11 @@ struct UserProfileView: View {
         } message: {
             Text("This action cannot be undone. All your subscription data will be permanently deleted.")
         }
+        .alert("iCloud Sync Error", isPresented: $showingCloudKitError) {
+            Button("OK") { }
+        } message: {
+            Text(cloudKitErrorMessage)
+        }
     }
     
     private func getInitials(from name: String) -> String {
@@ -173,8 +206,39 @@ struct UserProfileView: View {
         // and present a share sheet
     }
     
-    private func backupToiCloud() {
-        // TODO: Implement iCloud backup functionality
+    private func handleiCloudSync() async {
+        do {
+            if cloudKitManager.isSyncEnabled {
+                await cloudKitManager.disableSync()
+            } else {
+                try await cloudKitManager.enableSync()
+            }
+        } catch {
+            await MainActor.run {
+                cloudKitErrorMessage = error.localizedDescription
+                showingCloudKitError = true
+            }
+        }
+    }
+    
+    private func formatSyncDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let now = Date()
+        let timeInterval = now.timeIntervalSince(date)
+        
+        if timeInterval < 60 {
+            return "Just now"
+        } else if timeInterval < 3600 {
+            let minutes = Int(timeInterval / 60)
+            return "\(minutes) minute\(minutes == 1 ? "" : "s") ago"
+        } else if timeInterval < 86400 {
+            let hours = Int(timeInterval / 3600)
+            return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+        } else {
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
     }
     
     private func deleteAccount() {
