@@ -18,6 +18,10 @@ struct ModernSubscriptionDetailView: View {
     @State private var showingEditSheet = false
     @State private var animateContent = false
     @State private var refreshTrigger = false
+    @State private var triggerConfetti = false
+    @State private var showSuccessToast = false
+    @State private var successToastMessage = ""
+    @State private var successToastAmount = ""
     
     var body: some View {
         NavigationView {
@@ -249,6 +253,26 @@ struct ModernSubscriptionDetailView: View {
         }
         // Full height modal presentation
         .fullHeightDetent()
+        .overlay(
+            // Confetti effects layer
+            ConfettiView(trigger: $triggerConfetti, config: .savings)
+                .allowsHitTesting(false)
+                .zIndex(1000)
+        )
+        .overlay(
+            // Success toast at the top
+            VStack {
+                SuccessToastView(
+                    message: successToastMessage,
+                    savedAmount: successToastAmount,
+                    isShowing: $showSuccessToast
+                )
+                .padding(.top, 50) // Account for status bar
+                
+                Spacer()
+            }
+            .zIndex(1002)
+        )
     }
     
     // MARK: - Modern Header Card
@@ -399,11 +423,26 @@ struct ModernSubscriptionDetailView: View {
     
     // MARK: - Actions
     private func cancelSubscription() {
-        HapticManager.shared.playSuccess()
-        
         withAnimation {
             subscriptionStore.updateSubscriptionStatus(subscription, status: .canceled)
-            dismiss()
+            
+            // Trigger confetti celebration for saving money!
+            triggerConfetti = true
+            
+            // Haptic celebration
+            HapticManager.shared.playSuccess()
+            
+            // Show success toast after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                successToastMessage = "Subscription canceled successfully!"
+                successToastAmount = SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice)
+                showSuccessToast = true
+            }
+            
+            // Dismiss after confetti starts
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                dismiss()
+            }
             
             AnalyticsManager.shared.track(.subscriptionCanceled, properties: AnalyticsProperties(
                 subscriptionId: subscription.id?.uuidString ?? "",

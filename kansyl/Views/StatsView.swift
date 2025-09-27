@@ -600,8 +600,6 @@ struct StatsView: View {
         let today = Date()
         var monthlyData: [MonthData] = []
         
-        print("📊 [StatsView] Generating monthly data...")
-        print("📊 [StatsView] Total subscriptions: \(subscriptionStore.allSubscriptions.count)")
         
         // Generate data for the last 6 months
         for monthOffset in (0..<6).reversed() {
@@ -621,11 +619,10 @@ struct StatsView: View {
             var monthlyWaste: Double = 0
             var monthlySpending: Double = 0
             
-            // Debug month info
+            // Format month name
             let formatter = DateFormatter()
             formatter.dateFormat = "MMM"
             let monthName = formatter.string(from: monthDate)
-            print("📊 [StatsView] Processing month: \(monthName)")
             
             // Track all subscriptions that existed during this month
             for subscription in subscriptionStore.allSubscriptions {
@@ -652,7 +649,6 @@ struct StatsView: View {
                                                  subscription.endDate != nil &&
                                                  calendar.isDate(subscription.endDate!, inSameDayAs: today)
                         
-                        print("📊 [StatsView]   - \(subscription.name ?? "Unknown"): status=\(subscription.status ?? "none"), price=\(monthlyPrice), days=\(daysActive)/\(daysInMonth)")
                         
                         // Apply the appropriate calculation based on status
                         switch subscription.status {
@@ -661,31 +657,25 @@ struct StatsView: View {
                             if isCurrentMonth {
                                 // For current month, count full month savings
                                 monthlySavings += monthlyPrice
-                                print("📊 [StatsView]     → Added \(monthlyPrice) to current month savings")
                             } else {
                                 // For past months, prorate based on days
                                 let savings = monthlyPrice * (Double(daysActive) / Double(max(1, daysInMonth)))
                                 monthlySavings += savings
-                                print("📊 [StatsView]     → Added \(savings) to past month savings")
                             }
                         case SubscriptionStatus.kept.rawValue:
                             // For kept subscriptions, count as spending
                             monthlySpending += monthlyPrice
-                            print("📊 [StatsView]     → Added \(monthlyPrice) to spending (kept)")
                         case SubscriptionStatus.active.rawValue:
                             // For active subscriptions, estimate potential waste
                             if subscription.notes?.isEmpty ?? true {
                                 // No notes suggests unused - count as potential waste
                                 let waste = monthlyPrice * 0.3
                                 monthlyWaste += waste
-                                print("📊 [StatsView]     → Added \(waste) to waste (no notes)")
                             } else {
                                 // Has notes, likely being used
                                 monthlySpending += monthlyPrice
-                                print("📊 [StatsView]     → Added \(monthlyPrice) to spending (has notes)")
                             }
                         default:
-                            print("📊 [StatsView]     → Unknown status: \(subscription.status ?? "nil")")
                             break
                         }
                     }
@@ -695,7 +685,6 @@ struct StatsView: View {
             // Format month name (already done above for debug)
             
             // Add to monthly data
-            print("📊 [StatsView] Month \(monthName): savings=\(monthlySavings), waste=\(monthlyWaste), spending=\(monthlySpending)")
             monthlyData.append(MonthData(
                 month: monthName,
                 savings: max(0, monthlySavings),
@@ -703,16 +692,10 @@ struct StatsView: View {
             ))
         }
         
-        // Debug final data
-        print("📊 [StatsView] Final monthly data:")
-        for data in monthlyData {
-            print("📊 [StatsView]   \(data.month): savings=\(data.savings), waste=\(data.waste)")
-        }
         
         // If no real data exists yet, return flat line (all zeros)
         let hasData = monthlyData.contains { $0.savings > 0 || $0.waste > 0 }
         if !hasData {
-            print("📊 [StatsView] No data found, returning flat line")
             // Return actual month names with zero values for a flat line
             let calendar = Calendar.current
             let formatter = DateFormatter()
@@ -728,7 +711,6 @@ struct StatsView: View {
             return emptyData.isEmpty ? monthlyData : emptyData
         }
         
-        print("📊 [StatsView] Returning data with values")
         return monthlyData
     }
     
