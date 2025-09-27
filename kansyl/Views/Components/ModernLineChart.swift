@@ -287,7 +287,14 @@ struct ModernLineChart: View {
     // MARK: - Helper Methods
     
     private func normalizedHeight(for value: Double, maxHeight: CGFloat) -> CGFloat {
-        guard valueRange > 0 else { return maxHeight / 2 }
+        // If all values are zero, place line at bottom with small offset
+        guard maxValue > 0 else { 
+            return maxHeight - 10 // Small offset from bottom for visibility
+        }
+        
+        guard valueRange > 0 else { 
+            return maxHeight - 10 // Flat line near bottom if no range
+        }
         
         // Add some padding to avoid points being at the very top/bottom
         let paddedValue = (value - minValue) / valueRange

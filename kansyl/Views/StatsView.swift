@@ -311,12 +311,37 @@ struct StatsView: View {
             }
             .padding(.horizontal, 20)
             
-            // Modern Line Chart
-            ModernLineChart(monthlyData: generateMonthlyData())
-                .padding(.horizontal, 20)
-                .scaleEffect(animateCards ? 1.0 : 0.95)
-                .opacity(animateCards ? 1.0 : 0)
-                .animation(Design.Animation.spring.delay(0.5), value: animateCards)
+            let monthlyData = generateMonthlyData()
+            let hasData = monthlyData.contains { $0.savings > 0 || $0.waste > 0 }
+            
+            ZStack {
+                // Modern Line Chart
+                ModernLineChart(monthlyData: monthlyData)
+                    .padding(.horizontal, 20)
+                    .scaleEffect(animateCards ? 1.0 : 0.95)
+                    .opacity(animateCards ? 1.0 : 0)
+                    .animation(Design.Animation.spring.delay(0.5), value: animateCards)
+                
+                // Empty state overlay
+                if !hasData {
+                    VStack(spacing: 12) {
+                        Image(systemName: "chart.line.flattrend.xyaxis")
+                            .font(.system(size: 32, weight: .medium))
+                            .foregroundColor(Design.Colors.textTertiary)
+                        Text("No data yet")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Design.Colors.textSecondary)
+                        Text("Start tracking subscriptions to see trends")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(Design.Colors.textTertiary)
+                    }
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
+                    .opacity(animateCards ? 1.0 : 0)
+                    .animation(Design.Animation.spring.delay(0.6), value: animateCards)
+                }
+            }
         }
     }
     
@@ -564,22 +589,121 @@ struct StatsView: View {
     
     // MARK: - Helper Methods
     private func generateMonthlyData() -> [MonthData] {
-        // This would normally fetch from Core Data
-        // For now, generating sample data
-        let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-        return months.map { month in
-            MonthData(
-                month: month,
-                savings: Double.random(in: 20...150),
-                waste: Double.random(in: 0...50)
-            )
+        // Get the last 6 months of data from actual subscriptions
+        let calendar = Calendar.current
+        let today = Date()
+        var monthlyData: [MonthData] = []
+        
+        // Generate data for the last 6 months
+        for monthOffset in (0..<6).reversed() {
+            guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: today) else {
+                continue
+            }
+            
+            let monthStart = calendar.dateInterval(of: .month, for: monthDate)?.start ?? monthDate
+            let monthEnd = calendar.dateInterval(of: .month, for: monthDate)?.end ?? monthDate
+            
+            // Calculate savings and waste for this month
+            var monthlySavings: Double = 0
+            var monthlyWaste: Double = 0
+            
+            // Get subscriptions that were canceled in this month
+            let canceledInMonth = subscriptionStore.allSubscriptions.filter { subscription in
+                guard let endDate = subscription.endDate else { return false }
+                return subscription.status == SubscriptionStatus.canceled.rawValue &&
+                       endDate >= monthStart && endDate < monthEnd
+            }
+            
+            // Calculate savings from canceled subscriptions
+            for subscription in canceledInMonth {
+                let monthlyCost = subscription.monthlyPrice ?? 0
+                // Calculate months saved (from cancellation to what would have been renewal)
+                if let startDate = subscription.startDate,
+                   let endDate = subscription.endDate {
+                    let daysBetween = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 30
+                    let monthsSaved = max(1, daysBetween / 30)
+                    monthlySavings += monthlyCost * Double(monthsSaved)
+                }
+            }
+            
+            // Calculate waste from active subscriptions that haven't been used
+            let activeInMonth = subscriptionStore.allSubscriptions.filter { subscription in
+                guard let startDate = subscription.startDate else { return false }
+                let isActive = subscription.status == SubscriptionStatus.active.rawValue
+                return isActive && startDate <= monthEnd
+            }
+            
+            // Simple waste calculation: estimate based on subscription age and lack of notes
+            for subscription in activeInMonth {
+                // Consider waste if subscription is older than 14 days with no notes (likely unused)
+                if let startDate = subscription.startDate {
+                    let daysActive = calendar.dateComponents([.day], from: startDate, to: monthEnd).day ?? 0
+                    if daysActive > 14 && (subscription.notes?.isEmpty ?? true) {
+                        let monthlyPrice = subscription.monthlyPrice ?? 0
+                        monthlyWaste += monthlyPrice * 0.5 // Estimate 50% waste for potentially unused subscriptions
+                    }
+                }
+            }
+            
+            // Format month name
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM"
+            let monthName = formatter.string(from: monthDate)
+            
+            // Add to monthly data
+            monthlyData.append(MonthData(
+                month: monthName,
+                savings: max(0, monthlySavings),
+                waste: max(0, monthlyWaste)
+            ))
         }
+        
+        // If no real data exists yet, return flat line (all zeros)
+        if monthlyData.isEmpty || monthlyData.allSatisfy({ $0.savings == 0 && $0.waste == 0 }) {
+            // Return actual month names with zero values for a flat line
+            let calendar = Calendar.current
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM"
+            
+            var emptyData: [MonthData] = []
+            for monthOffset in (0..<6).reversed() {
+                if let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: today) {
+                    let monthName = formatter.string(from: monthDate)
+                    emptyData.append(MonthData(month: monthName, savings: 0, waste: 0))
+                }
+            }
+            return emptyData.isEmpty ? monthlyData : emptyData
+        }
+        
+        return monthlyData
     }
     
     private func calculatePreviousPeriodSavings() -> Double? {
-        // This would calculate from historical data
-        // For now, returning sample data
-        return subscriptionStore.costEngine.metrics.actualSavings * 0.7
+        // Calculate savings from the previous 6-month period
+        let calendar = Calendar.current
+        let today = Date()
+        
+        // Get date 6 months ago
+        guard let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: today),
+              let twelveMonthsAgo = calendar.date(byAdding: .month, value: -12, to: today) else {
+            return nil
+        }
+        
+        // Calculate savings from subscriptions canceled in the previous period
+        let previousPeriodCanceled = subscriptionStore.allSubscriptions.filter { subscription in
+            guard let endDate = subscription.endDate else { return false }
+            return subscription.status == SubscriptionStatus.canceled.rawValue &&
+                   endDate >= twelveMonthsAgo && endDate < sixMonthsAgo
+        }
+        
+        var previousSavings: Double = 0
+        for subscription in previousPeriodCanceled {
+            let monthlyPrice = subscription.monthlyPrice ?? 0
+            previousSavings += monthlyPrice * 6 // Rough estimate for 6 months
+        }
+        
+        // Return nil if no historical data exists
+        return previousSavings > 0 ? previousSavings : nil
     }
     
     private func updateAchievementProgress() {
@@ -587,15 +711,91 @@ struct StatsView: View {
         let totalSavings = subscriptionStore.costEngine.metrics.actualSavings
         let wastePercent = Int((1 - subscriptionStore.costEngine.metrics.wasteRiskScore) * 100)
         
+        // Calculate actual streak (days since last missed trial end)
+        let currentStreak = calculateCurrentStreak()
+        
+        // Calculate early bird cancellations (canceled within 7 days)
+        let earlyBirdCount = calculateEarlyCancellations()
+        
+        // Check if last month was perfect (all trials canceled on time)
+        let hadPerfectMonth = checkPerfectMonth()
+        
         achievementSystem.updateProgress(
             trialsCanceled: canceledCount,
             totalSavings: totalSavings,
-            currentStreak: 5, // Would track actual streak
+            currentStreak: currentStreak,
             trialsManaged: subscriptionStore.allSubscriptions.count,
             wastePreventedPercent: wastePercent,
-            earlyBirdCount: 2, // Would calculate actual early cancellations
-            hadPerfectMonth: false // Would check actual month data
+            earlyBirdCount: earlyBirdCount,
+            hadPerfectMonth: hadPerfectMonth
         )
+    }
+    
+    private func calculateCurrentStreak() -> Int {
+        // Calculate consecutive days of managing trials without missing any
+        let calendar = Calendar.current
+        let today = Date()
+        var streakDays = 0
+        
+        // Get all subscriptions sorted by end date
+        let sortedSubs = subscriptionStore.allSubscriptions
+            .filter { $0.endDate != nil }
+            .sorted { ($0.endDate ?? Date()) > ($1.endDate ?? Date()) }
+        
+        // Check for any missed cancellations in recent history
+        for subscription in sortedSubs {
+            guard let endDate = subscription.endDate else { continue }
+            
+            // If a trial expired without being canceled, streak is broken
+            if endDate < today && subscription.status != SubscriptionStatus.canceled.rawValue {
+                break
+            }
+            
+            // Count days since the oldest properly managed trial
+            let days = calendar.dateComponents([.day], from: endDate, to: today).day ?? 0
+            streakDays = max(streakDays, days)
+        }
+        
+        return min(streakDays, 30) // Cap at 30 for achievement purposes
+    }
+    
+    private func calculateEarlyCancellations() -> Int {
+        // Count subscriptions canceled within 7 days of starting
+        let calendar = Calendar.current
+        
+        return subscriptionStore.allSubscriptions.filter { subscription in
+            guard let startDate = subscription.startDate,
+                  let endDate = subscription.endDate,
+                  subscription.status == SubscriptionStatus.canceled.rawValue else {
+                return false
+            }
+            
+            let daysBetween = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+            return daysBetween <= 7
+        }.count
+    }
+    
+    private func checkPerfectMonth() -> Bool {
+        // Check if all trials in the last month were canceled before expiration
+        let calendar = Calendar.current
+        let today = Date()
+        guard let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: today) else {
+            return false
+        }
+        
+        // Get all subscriptions that ended in the last month
+        let lastMonthSubs = subscriptionStore.allSubscriptions.filter { subscription in
+            guard let endDate = subscription.endDate else { return false }
+            return endDate >= oneMonthAgo && endDate <= today
+        }
+        
+        // If no subscriptions in last month, not a perfect month
+        if lastMonthSubs.isEmpty {
+            return false
+        }
+        
+        // Check if all were canceled (not expired)
+        return lastMonthSubs.allSatisfy { $0.status == SubscriptionStatus.canceled.rawValue }
     }
     
     private func getRankText(points: Int) -> String {
