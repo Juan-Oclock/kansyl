@@ -15,76 +15,127 @@ struct Design {
     struct Colors {
         // Light Mode Colors
         struct Light {
-            // Primary Brand Colors
-            static let primary = Color(hex: "1E1E1E")  // Main text, active states
-            static let primaryLight = Color(hex: "4CAF50") // For compatibility
-            static let secondary = Color(hex: "4CAF50") // Accent, CTA actions
-            static let buttonPrimary = Color(hex: "16A34A") // Green CTA buttons
+            // Primary Brand Colors - Matching landing page
+            static let primary = Color(hex: "6B41C7")  // Purple brand color
+            static let primaryLight = Color(hex: "A8DE28") // Lime green accent
+            static let secondary = Color(hex: "A8DE28") // Lime green for CTAs
+            static let buttonPrimary = Color(hex: "6B41C7") // Purple for primary buttons
             
-            // Background Colors
-            static let background = Color(hex: "F8FAFC") // App background
-            static let surface = Color(hex: "FFFFFF")    // Card background
-            static let highlightBackground = Color(hex: "0F172A") // Dark savings card background
-            static let surfaceSecondary = Color(hex: "F5F5FB")
+            // Background Colors - Clean and minimal
+            static let background = Color(hex: "FAFAFA") // Light gray background
+            static let surface = Color(hex: "FFFFFF")    // Pure white cards
+            static let highlightBackground = Color(hex: "6B41C7") // Purple highlight background
+            static let surfaceSecondary = Color(hex: "F8F9FA")
             
-            // Text Colors
-            static let textPrimary = Color(hex: "0F172A")
-            static let textSecondary = Color(hex: "64748B")
+            // Text Colors - High contrast
+            static let textPrimary = Color(hex: "0A0A0A")
+            static let textSecondary = Color(hex: "6B7280")
             static let textTertiary = Color(hex: "9CA3AF")
             
-            // Semantic Colors
-            static let success = Color(hex: "22C55E") // Positive status, savings
-            static let warning = Color(hex: "FACC15") // Mild alerts, reminders
-            static let danger = Color(hex: "EF4444")  // Expiring soon, critical alerts
-            static let neutral = Color(hex: "CBD5E1") // Borders, inactive elements
+            // Semantic Colors - Modern palette
+            static let success = Color(hex: "22C55E") // Green for success
+            static let warning = Color(hex: "F59E0B") // Amber for warnings
+            static let danger = Color(hex: "EF4444")  // Red for danger
+            static let neutral = Color(hex: "E5E7EB") // Neutral gray
             
             // Additional
-            static let info = Color(hex: "00B8FF")
+            static let info = Color(hex: "3B82F6")  // Blue for info
             static let border = Color(hex: "E5E7EB")
             static let borderLight = Color(hex: "F3F4F6")
             
-            // Status Colors for Trials
-            static let active = Color(hex: "5B67FF")
-            static let saved = Color(hex: "00C896")
-            static let kept = Color(hex: "00B8FF")
-            static let expired = Color(hex: "FF3B5C")
+            // Status Colors for Trials - Vibrant
+            static let active = Color(hex: "6B41C7")  // Purple for active
+            static let saved = Color(hex: "22C55E")  // Green for saved
+            static let kept = Color(hex: "3B82F6")   // Blue for kept
+            static let expired = Color(hex: "EF4444") // Red for expired
         }
         
-        // Dark Mode Colors
+        // Dark Mode Colors - Modern dark theme
         struct Dark {
             // Primary Brand Colors
-            static let primary = Color(hex: "FFFFFF")  // Main text, active states
-            static let primaryLight = Color(hex: "66BB6A") // For compatibility
-            static let secondary = Color(hex: "66BB6A") // Accent, CTA actions
-            static let buttonPrimary = Color(hex: "22C55E") // Green CTA buttons
+            static let primary = Color(hex: "A8DE28")  // Lime green in dark mode
+            static let primaryLight = Color(hex: "6B41C7") // Purple accent
+            static let secondary = Color(hex: "A8DE28") // Lime green accent
+            static let buttonPrimary = Color(hex: "A8DE28") // Lime green buttons
             
-            // Background Colors
-            static let background = Color(hex: "0F0F0F") // App background
-            static let surface = Color(hex: "1A1A1A")    // Card background
-            static let highlightBackground = Color(hex: "2A2A2A") // Dark savings card background
-            static let surfaceSecondary = Color(hex: "252525")
+            // Background Colors - True dark
+            static let background = Color(hex: "0A0A0A") // Near black background
+            static let surface = Color(hex: "141414")    // Slightly lighter surface
+            static let highlightBackground = Color(hex: "6B41C7").opacity(0.15) // Purple tinted highlight
+            static let surfaceSecondary = Color(hex: "1A1A1A")
             
             // Text Colors
-            static let textPrimary = Color(hex: "F5F5F5")
-            static let textSecondary = Color(hex: "A8A8A8")
-            static let textTertiary = Color(hex: "6B6B6B")
+            static let textPrimary = Color(hex: "FAFAFA")
+            static let textSecondary = Color(hex: "A1A1AA")
+            static let textTertiary = Color(hex: "71717A")
             
-            // Semantic Colors
-            static let success = Color(hex: "34D399") // Positive status, savings
-            static let warning = Color(hex: "FCD34D") // Mild alerts, reminders
-            static let danger = Color(hex: "F87171")  // Expiring soon, critical alerts
-            static let neutral = Color(hex: "4B5563") // Borders, inactive elements
+            // Semantic Colors - Vibrant for dark mode
+            static let success = Color(hex: "22C55E")
+            static let warning = Color(hex: "F59E0B")
+            static let danger = Color(hex: "EF4444")
+            static let neutral = Color(hex: "3F3F46")
             
             // Additional
-            static let info = Color(hex: "60A5FA")
-            static let border = Color(hex: "374151")
-            static let borderLight = Color(hex: "1F2937")
+            static let info = Color(hex: "3B82F6")
+            static let border = Color(hex: "27272A")
+            static let borderLight = Color(hex: "18181B")
             
             // Status Colors for Trials
-            static let active = Color(hex: "818CF8")
-            static let saved = Color(hex: "34D399")
-            static let kept = Color(hex: "60A5FA")
-            static let expired = Color(hex: "FB7185")
+            static let active = Color(hex: "A8DE28")  // Lime green for active
+            static let saved = Color(hex: "22C55E")  // Green for saved
+            static let kept = Color(hex: "3B82F6")   // Blue for kept
+            static let expired = Color(hex: "EF4444") // Red for expired
+        }
+        
+        // MARK: - Gradients
+        struct Gradients {
+            // Brand gradient - Purple to Lime
+            static let brand = LinearGradient(
+                colors: [Color(hex: "6B41C7"), Color(hex: "A8DE28")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            // Shiny text gradient for branding
+            static let shinyText = LinearGradient(
+                colors: [
+                    Color(hex: "6B41C7"),
+                    Color(hex: "A8DE28"),
+                    Color(hex: "6B41C7")
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            
+            // Button gradients
+            static let purpleGradient = LinearGradient(
+                colors: [Color(hex: "6B41C7"), Color(hex: "8B5CF6")],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            
+            static let limeGradient = LinearGradient(
+                colors: [Color(hex: "A8DE28"), Color(hex: "84CC16")],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            
+            // Success gradient
+            static let success = LinearGradient(
+                colors: [Color(hex: "22C55E"), Color(hex: "16A34A")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            // Glass morphism overlay
+            static let glassMorphism = LinearGradient(
+                colors: [
+                    Color.white.opacity(0.1),
+                    Color.white.opacity(0.05)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
     
@@ -175,12 +226,13 @@ struct Design {
     
     // MARK: - Shadows
     struct Shadow {
-        static let sm = (color: Color.black.opacity(0.05), radius: CGFloat(4), x: CGFloat(0), y: CGFloat(2))
-        static let md = (color: Color.black.opacity(0.08), radius: CGFloat(8), x: CGFloat(0), y: CGFloat(4))
-        static let lg = (color: Color.black.opacity(0.12), radius: CGFloat(16), x: CGFloat(0), y: CGFloat(8))
-        static let xl = (color: Color.black.opacity(0.16), radius: CGFloat(24), x: CGFloat(0), y: CGFloat(12))
+        static let sm = (color: Color.black.opacity(0.04), radius: CGFloat(4), x: CGFloat(0), y: CGFloat(2))
+        static let md = (color: Color.black.opacity(0.06), radius: CGFloat(8), x: CGFloat(0), y: CGFloat(4))
+        static let lg = (color: Color.black.opacity(0.1), radius: CGFloat(16), x: CGFloat(0), y: CGFloat(8))
+        static let xl = (color: Color.black.opacity(0.15), radius: CGFloat(24), x: CGFloat(0), y: CGFloat(12))
         
-        static let colored = (color: Design.Colors.primary.opacity(0.2), radius: CGFloat(12), x: CGFloat(0), y: CGFloat(6))
+        static let colored = (color: Design.Colors.primary.opacity(0.15), radius: CGFloat(12), x: CGFloat(0), y: CGFloat(6))
+        static let glow = (color: Design.Colors.primaryLight.opacity(0.3), radius: CGFloat(20), x: CGFloat(0), y: CGFloat(0))
     }
     
     // MARK: - Animation
@@ -224,21 +276,44 @@ extension Color {
 struct ModernCard<Content: View>: View {
     let content: Content
     var padding: CGFloat = Design.Spacing.md
+    var useGlassMorphism: Bool = false
     
-    init(@ViewBuilder content: () -> Content) {
+    init(padding: CGFloat = Design.Spacing.md, useGlassMorphism: Bool = false, @ViewBuilder content: () -> Content) {
+        self.padding = padding
+        self.useGlassMorphism = useGlassMorphism
         self.content = content()
     }
     
     var body: some View {
         content
             .padding(padding)
-            .background(Design.Colors.surface)
-            .cornerRadius(Design.Radius.lg)
+            .background(
+                Group {
+                    if useGlassMorphism {
+                        RoundedRectangle(cornerRadius: Design.Radius.lg)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Design.Radius.lg)
+                                    .fill(Design.Colors.Gradients.glassMorphism)
+                            )
+                    } else {
+                        RoundedRectangle(cornerRadius: Design.Radius.lg)
+                            .fill(Design.Colors.surface)
+                    }
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.lg)
+                    .strokeBorder(
+                        Design.Colors.border.opacity(0.1),
+                        lineWidth: 1
+                    )
+            )
             .shadow(
-                color: Design.Shadow.sm.color,
-                radius: Design.Shadow.sm.radius,
-                x: Design.Shadow.sm.x,
-                y: Design.Shadow.sm.y
+                color: Design.Colors.primary.opacity(0.05),
+                radius: 10,
+                x: 0,
+                y: 4
             )
     }
 }
@@ -247,29 +322,43 @@ struct ModernCard<Content: View>: View {
 struct GradientCard<Content: View>: View {
     let gradient: LinearGradient
     let content: Content
+    var addGlossEffect: Bool = true
     
     init(
-        gradient: LinearGradient = LinearGradient(
-            colors: [Design.Colors.primary, Design.Colors.primaryLight],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        ),
+        gradient: LinearGradient = Design.Colors.Gradients.brand,
+        addGlossEffect: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.gradient = gradient
+        self.addGlossEffect = addGlossEffect
         self.content = content()
     }
     
     var body: some View {
         content
             .padding(Design.Spacing.lg)
-            .background(gradient)
+            .foregroundColor(.white)
+            .background(
+                ZStack {
+                    gradient
+                    if addGlossEffect {
+                        Design.Colors.Gradients.glassMorphism
+                    }
+                }
+            )
             .cornerRadius(Design.Radius.xl)
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.xl)
+                    .strokeBorder(
+                        Color.white.opacity(0.2),
+                        lineWidth: 1
+                    )
+            )
             .shadow(
-                color: Design.Shadow.colored.color,
-                radius: Design.Shadow.colored.radius,
-                x: Design.Shadow.colored.x,
-                y: Design.Shadow.colored.y
+                color: Design.Colors.primary.opacity(0.2),
+                radius: 15,
+                x: 0,
+                y: 8
             )
     }
 }
@@ -277,42 +366,168 @@ struct GradientCard<Content: View>: View {
 // MARK: - Modern Button Styles
 struct PrimaryButtonStyle: ButtonStyle {
     @State private var isPressed = false
+    var useLimeGradient: Bool = false
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Design.Typography.headline())
+            .font(Design.Typography.headline(.semibold))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Design.Spacing.md)
             .background(
-                LinearGradient(
-                    colors: [Design.Colors.primary, Design.Colors.primaryLight],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+                Group {
+                    if useLimeGradient {
+                        Design.Colors.Gradients.limeGradient
+                    } else {
+                        Design.Colors.Gradients.purpleGradient
+                    }
+                }
             )
             .cornerRadius(Design.Radius.md)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.Gradients.glassMorphism)
+                    .opacity(configuration.isPressed ? 0 : 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .shadow(
-                color: Design.Colors.primary.opacity(configuration.isPressed ? 0.2 : 0.3),
-                radius: configuration.isPressed ? 4 : 8,
+                color: (useLimeGradient ? Design.Colors.primaryLight : Design.Colors.primary)
+                    .opacity(configuration.isPressed ? 0.15 : 0.25),
+                radius: configuration.isPressed ? 6 : 12,
                 x: 0,
                 y: configuration.isPressed ? 2 : 4
             )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
     }
 }
 
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Design.Typography.headline())
+            .font(Design.Typography.headline(.medium))
             .foregroundColor(Design.Colors.primary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, Design.Spacing.md)
-            .background(Design.Colors.primary.opacity(0.1))
-            .cornerRadius(Design.Radius.md)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .strokeBorder(
+                                Design.Colors.primary.opacity(0.3),
+                                lineWidth: 1.5
+                            )
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Glass Button Style
+struct GlassButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Design.Typography.headline(.medium))
+            .foregroundColor(Design.Colors.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Design.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .strokeBorder(
+                                Design.Colors.border.opacity(0.5),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Shiny Text Component
+struct ShinyText: View {
+    let text: String
+    var font: Font = Design.Typography.title(.bold)
+    @State private var shimmerOffset: CGFloat = -1.0
+    
+    var body: some View {
+        Text(text)
+            .font(font)
+            .foregroundStyle(
+                Design.Colors.Gradients.shinyText
+            )
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            Color.white.opacity(0.5),
+                            Color.clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 0.5)
+                    .offset(x: geometry.size.width * shimmerOffset)
+                    .animation(
+                        Animation.linear(duration: 2.5)
+                            .repeatForever(autoreverses: false),
+                        value: shimmerOffset
+                    )
+                    .onAppear {
+                        shimmerOffset = 1.5
+                    }
+                }
+                .mask(Text(text).font(font))
+            )
+    }
+}
+
+// MARK: - Accent Badge
+struct AccentBadge: View {
+    let text: String
+    var color: Color = Design.Colors.primaryLight
+    
+    var body: some View {
+        Text(text)
+            .font(Design.Typography.caption(.semibold))
+            .foregroundColor(.white)
+            .padding(.horizontal, Design.Spacing.xs)
+            .padding(.vertical, Design.Spacing.xxs)
+            .background(
+                Capsule()
+                    .fill(color)
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.2), lineWidth: 0.5)
+            )
+    }
+}
+
+// MARK: - Floating Action Button Style
+struct FloatingActionButtonStyle: ButtonStyle {
+    var backgroundColor: Color = Design.Colors.primary
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.white)
+            .frame(width: 56, height: 56)
+            .background(
+                Circle()
+                    .fill(backgroundColor)
+                    .shadow(
+                        color: backgroundColor.opacity(0.3),
+                        radius: configuration.isPressed ? 8 : 12,
+                        x: 0,
+                        y: configuration.isPressed ? 4 : 8
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
