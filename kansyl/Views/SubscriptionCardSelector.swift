@@ -208,7 +208,7 @@ struct CardStyleSettingsView: View {
                 )
             }
             .sheet(isPresented: $showingPreview) {
-                CardStylePreview(selectedStyle: preferredStyle)
+                CardStylePreview(selectedStyle: CardInteractionStyle(rawValue: preferredStyle.rawValue) ?? .smart)
             }
         }
         .padding(20)
@@ -279,8 +279,8 @@ struct CardStyleOption: View {
     }
 }
 
-// MARK: - Preview Sheet
-struct CardStylePreview: View {
+// MARK: - Preview Sheet (Old - Deprecated)
+struct OldCardStylePreview: View {
     let selectedStyle: SubscriptionCardSelector.CardStyle
     @Environment(\.dismiss) private var dismiss
     @StateObject private var mockStore = MockSubscriptionStore()

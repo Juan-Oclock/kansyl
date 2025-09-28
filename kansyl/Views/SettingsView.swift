@@ -178,9 +178,14 @@ struct SettingsView: View {
                 
                 // 4. Quick Actions Section
                 Section {
-                    CardStyleSettingsView()
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
+                    NavigationLink(destination: CardStyleSettingsDetailView()) {
+                        HStack {
+                            Label("Card Interaction Style", systemImage: "hand.tap.fill")
+                            Spacer()
+                            Text(userPreferences.preferredCardStyle.rawValue)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 } header: {
                     Text("Quick Actions")
                 } footer: {

@@ -9,6 +9,32 @@ import Foundation
 import SwiftUI
 import Supabase
 
+// MARK: - Card Interaction Style
+enum CardInteractionStyle: String, CaseIterable {
+    case smart = "Smart"
+    case inline = "Inline"
+    case swipe = "Swipe"
+    case menu = "Menu"
+    
+    var description: String {
+        switch self {
+        case .smart: return "Adaptive based on urgency"
+        case .inline: return "Always show quick actions"
+        case .swipe: return "Swipe for actions"
+        case .menu: return "Long press for menu"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .smart: return "wand.and.rays"
+        case .inline: return "bolt.circle"
+        case .swipe: return "hand.point.left"
+        case .menu: return "ellipsis.circle"
+        }
+    }
+}
+
 class UserSpecificPreferences: ObservableObject {
     static let shared = UserSpecificPreferences()
     
@@ -144,6 +170,11 @@ class UserSpecificPreferences: ObservableObject {
         }
     }
     
+    // Card Interaction Style
+    @Published var preferredCardStyle: CardInteractionStyle = .smart {
+        didSet { savePreference(preferredCardStyle.rawValue, for: "preferredCardStyle") }
+    }
+    
     // MARK: - Persistence Methods
     
     private func savePreference<T>(_ value: T, for key: String) {
@@ -225,6 +256,9 @@ class UserSpecificPreferences: ObservableObject {
         analyticsEnabled = loadPreference(for: "analyticsEnabled", defaultValue: true)
         crashReportingEnabled = loadPreference(for: "crashReportingEnabled", defaultValue: true)
         
+        // Card Interaction Style
+        preferredCardStyle = CardInteractionStyle(rawValue: loadPreference(for: "preferredCardStyle", defaultValue: CardInteractionStyle.smart.rawValue)) ?? .smart
+        
         // Onboarding - set this last and trigger UI update if needed
         if wasCompleted != hasCompletedOnboarding {
             hasCompletedOnboarding = wasCompleted
@@ -252,6 +286,7 @@ class UserSpecificPreferences: ObservableObject {
         quietHoursEnd = 8
         analyticsEnabled = true
         crashReportingEnabled = true
+        preferredCardStyle = .smart
         // Note: Don't reset hasCompletedOnboarding or premium status
     }
     
@@ -273,6 +308,7 @@ class UserSpecificPreferences: ObservableObject {
         _isPremiumUser = Published(initialValue: false)
         _premiumExpirationDate = Published(initialValue: nil)
         _hasCompletedOnboarding = Published(initialValue: false)
+        _preferredCardStyle = Published(initialValue: .smart)
     }
     
     // MARK: - Clear User Data
