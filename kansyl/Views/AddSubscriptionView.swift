@@ -302,7 +302,8 @@ struct AddSubscriptionView: View {
                     MinimalServiceCard(service: service) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             selectedService = service
-                            subscriptionLength = Int(service.defaultSubscriptionLength)
+                            // Don't override user's default trial length
+                            // subscriptionLength stays at 0 to use user preference
                             customPrice = service.monthlyPrice
                             selectedLogo = service.logoName
                             HapticManager.shared.selection()
@@ -373,7 +374,7 @@ struct AddSubscriptionView: View {
                             .foregroundColor(Design.Colors.textPrimary)
                         
                         HStack(spacing: 4) {
-                            Text("\(service.defaultSubscriptionLength) days")
+                            Text("\(effectiveSubscriptionLength) days")
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(Design.Colors.textSecondary)
                             
@@ -734,7 +735,7 @@ struct AddSubscriptionView: View {
             $0.name.lowercased() == serviceName.lowercased() 
         }) {
             selectedService = matchingService
-            subscriptionLength = Int(matchingService.defaultSubscriptionLength)
+            // Don't override user's default trial length
             customPrice = matchingService.monthlyPrice
             selectedLogo = matchingService.logoName
         } else {
@@ -1160,7 +1161,7 @@ struct AllServicesSheet: View {
                         ForEach(filteredServices, id: \.name) { service in
                             MinimalServiceCard(service: service) {
                                 selectedService = service
-                                subscriptionLength = Int(service.defaultSubscriptionLength)
+                                // Don't override user's default trial length
                                 customPrice = service.monthlyPrice
                                 selectedLogo = service.logoName
                                 showingAllServices = false
