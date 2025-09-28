@@ -24,7 +24,6 @@ struct SettingsView: View {
     @State private var showingResetOnboardingAlert = false
     @State private var showingSignOutError = false
     @State private var signOutErrorMessage = ""
-    @FocusState private var isTrialLengthFocused: Bool
     
     var body: some View {
         NavigationView {
@@ -101,22 +100,12 @@ struct SettingsView: View {
                 
                 // 2. Trial Settings Section
                 Section {
-                    HStack {
-                        Label("Default Trial Length", systemImage: "calendar")
-                        Spacer()
-                        HStack(spacing: 4) {
-                            TextField("Length", value: $userPreferences.defaultTrialLength, formatter: NumberFormatter())
-                                .frame(width: 50)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.numberPad)
-                                .focused($isTrialLengthFocused)
-                            
-                            Picker("Unit", selection: $userPreferences.defaultTrialLengthUnit) {
-                                ForEach(TrialLengthUnit.allCases, id: \.self) { unit in
-                                    Text(unit.displayName).tag(unit)
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
+                    NavigationLink(destination: TrialLengthSettingsView()) {
+                        HStack {
+                            Label("Default Trial Length", systemImage: "calendar")
+                            Spacer()
+                            Text("\(userPreferences.defaultTrialLength) \(userPreferences.defaultTrialLengthUnit.displayName)")
+                                .foregroundColor(.secondary)
                         }
                     }
                     
@@ -430,16 +419,6 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(signOutErrorMessage)
-            }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    isTrialLengthFocused = false
-                }
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(Design.Colors.primary)
             }
         }
     }
