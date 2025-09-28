@@ -31,7 +31,7 @@ struct AddSubscriptionView: View {
     @State private var selectedService: ServiceTemplateData?
     @State private var customServiceName = ""
     @State private var startDate = Date()
-    @State private var subscriptionLength: Int = 30  // Default to 30 days
+    @State private var subscriptionLength: Int = 0  // 0 means use user's default
     @State private var customPrice: Double = 0.0
     @State private var notes = ""
     @State private var selectedLogo = "questionmark.circle"
@@ -76,9 +76,11 @@ struct AddSubscriptionView: View {
     
     var endDate: Date {
         if subscriptionLength > 0 {
+            // Use the custom length set in the form
             return Calendar.current.date(byAdding: .day, value: subscriptionLength, to: startDate) ?? startDate
         } else {
-            return appPreferences.getDefaultTrialEndDate(from: startDate)
+            // Use user's default from preferences (UserSpecificPreferences)
+            return userPreferences.getDefaultTrialEndDate(from: startDate)
         }
     }
     
@@ -86,9 +88,9 @@ struct AddSubscriptionView: View {
         if subscriptionLength > 0 {
             return subscriptionLength
         } else {
-            // Convert default subscription length to days for display
-            let endDate = appPreferences.getDefaultTrialEndDate(from: startDate)
-            let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? 30
+            // Convert user's default subscription length to days for display
+            let endDate = userPreferences.getDefaultTrialEndDate(from: startDate)
+            let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? userPreferences.defaultTrialLength
             return days
         }
     }
@@ -149,7 +151,7 @@ struct AddSubscriptionView: View {
         }
         .sheet(isPresented: $showingDaysPicker) {
             DaysPickerSheet(selectedDays: Binding(
-                get: { subscriptionLength > 0 ? subscriptionLength : 30 },
+                get: { effectiveSubscriptionLength },
                 set: { subscriptionLength = $0 }
             ), isPresented: $showingDaysPicker)
         }
@@ -525,7 +527,7 @@ struct AddSubscriptionView: View {
                             
                             Spacer()
                             
-                            Text("\(subscriptionLength > 0 ? subscriptionLength : 30)")
+                            Text("\(effectiveSubscriptionLength)")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Design.Colors.textPrimary)
                             
@@ -886,6 +888,17 @@ struct SubscriptionDetailsForm: View {
     @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @State private var showingDaysPicker = false
     
+    private var effectiveSubscriptionLength: Int {
+        if subscriptionLength > 0 {
+            return subscriptionLength
+        } else {
+            // Convert user's default subscription length to days for display
+            let endDate = userPreferences.getDefaultTrialEndDate(from: startDate)
+            let days = Calendar.current.dateComponents([.day], from: startDate, to: endDate).day ?? userPreferences.defaultTrialLength
+            return days
+        }
+    }
+    
     init(startDate: Binding<Date>, subscriptionLength: Binding<Int>, customPrice: Binding<Double>, notes: Binding<String>) {
         self._startDate = startDate
         self._subscriptionLength = subscriptionLength
@@ -931,7 +944,7 @@ struct SubscriptionDetailsForm: View {
                         
                         Spacer()
                         
-                        Text("\(subscriptionLength > 0 ? subscriptionLength : 30)")
+                        Text("\(effectiveSubscriptionLength)")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Design.Colors.textPrimary)
                         
@@ -994,7 +1007,7 @@ struct SubscriptionDetailsForm: View {
         }
         .sheet(isPresented: $showingDaysPicker) {
             DaysPickerSheet(selectedDays: Binding(
-                get: { subscriptionLength > 0 ? subscriptionLength : 30 },
+                get: { effectiveSubscriptionLength },
                 set: { subscriptionLength = $0 }
             ), isPresented: $showingDaysPicker)
         }
