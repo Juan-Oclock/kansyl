@@ -596,13 +596,13 @@ struct AddSubscriptionView: View {
     private var AddSubscriptionButton: some View {
         Button(action: saveSubscription) {
             HStack(spacing: 12) {
-                if !premiumManager.canAddMoreTrials(currentCount: subscriptionStore.activeSubscriptions.count) {
+                if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
                     Image(systemName: "crown.fill")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
                 }
                 
-                Text(!premiumManager.canAddMoreTrials(currentCount: subscriptionStore.activeSubscriptions.count)
+                Text(!premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count)
                      ? "Upgrade to Add More"
                      : "Add Subscription")
                     .font(.system(size: 17, weight: .semibold))
@@ -654,8 +654,8 @@ struct AddSubscriptionView: View {
             return
         }
 
-        // Check premium limits
-        if !premiumManager.canAddMoreTrials(currentCount: subscriptionStore.activeSubscriptions.count) {
+        // Check premium limits - count all subscriptions (not just active)
+        if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
             showingPremiumRequired = true
             return
         }

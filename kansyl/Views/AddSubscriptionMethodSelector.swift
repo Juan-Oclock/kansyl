@@ -21,6 +21,7 @@ struct AddSubscriptionMethodSelector: View {
     @State private var showingSiriShortcuts = false
     @State private var showingPremiumRequired = false
     @State private var animateCards = false
+    @State private var showingLimitReached = false
     
     // Callback when subscription is added
     var onSubscriptionAdded: ((Subscription?) -> Void)? = nil
@@ -49,6 +50,26 @@ struct AddSubscriptionMethodSelector: View {
                                     .font(.system(size: 15, weight: .regular))
                                     .foregroundColor(Design.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
+                                
+                                // Subscription limit indicator
+                                if !premiumManager.isPremium {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "info.circle.fill")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(premiumManager.getRemainingSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) <= 1 ? Color.orange : Color.blue.opacity(0.8))
+                                        
+                                        Text(premiumManager.getSubscriptionLimitMessage(currentCount: subscriptionStore.allSubscriptions.count))
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(Design.Colors.textSecondary)
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(premiumManager.getRemainingSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) <= 1 ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                                    )
+                                    .padding(.top, 8)
+                                }
                             }
                             .padding(.top, 12)
                             .scaleEffect(animateCards ? 1.0 : 0.9)
@@ -66,7 +87,11 @@ struct AddSubscriptionMethodSelector: View {
                                     badgeColor: Color(hex: "22C55E"),
                                     delay: 0.1
                                 ) {
-                                    showingTemplateMethod = true
+                                    if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
+                                        showingLimitReached = true
+                                    } else {
+                                        showingTemplateMethod = true
+                                    }
                                 }
                                 
                                 // Manual Input Method
@@ -77,7 +102,11 @@ struct AddSubscriptionMethodSelector: View {
                                     description: "Add custom details manually",
                                     delay: 0.2
                                 ) {
-                                    showingManualMethod = true
+                                    if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
+                                        showingLimitReached = true
+                                    } else {
+                                        showingManualMethod = true
+                                    }
                                 }
                                 
                                 // Receipt Scan with AI
@@ -86,14 +115,14 @@ struct AddSubscriptionMethodSelector: View {
                                     iconColor: Color(hex: "F59E0B"),
                                     title: "Scan with AI",
                                     description: "Extract info from screenshots",
-                                    badge: premiumManager.isPremium ? nil : "PRO",
+                                    badge: nil,  // AI scanning now available for all users
                                     badgeColor: Color(hex: "FFD700"),
                                     delay: 0.3
                                 ) {
-                                    if premiumManager.isPremium {
-                                        showingReceiptScan = true
+                                    if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
+                                        showingLimitReached = true
                                     } else {
-                                        showingPremiumRequired = true
+                                        showingReceiptScan = true  // Allow all users to use AI scanning
                                     }
                                 }
                                 
@@ -107,7 +136,11 @@ struct AddSubscriptionMethodSelector: View {
                                     badgeColor: Color(hex: "06B6D4"),
                                     delay: 0.4
                                 ) {
-                                    showingEmailParser = true
+                                    if !premiumManager.canAddMoreSubscriptions(currentCount: subscriptionStore.allSubscriptions.count) {
+                                        showingLimitReached = true
+                                    } else {
+                                        showingEmailParser = true
+                                    }
                                 }
                                 
                                 // Siri Shortcuts
@@ -168,6 +201,9 @@ struct AddSubscriptionMethodSelector: View {
             }
             .sheet(isPresented: $showingPremiumRequired) {
                 PremiumFeatureView()
+            }
+            .sheet(isPresented: $showingLimitReached) {
+                PremiumFeatureView(isForSubscriptionLimit: true, currentCount: subscriptionStore.allSubscriptions.count)
             }
             .onAppear {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
