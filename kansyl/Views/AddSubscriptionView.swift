@@ -21,6 +21,9 @@ struct AddSubscriptionView: View {
     // Optional prefilled service name from Siri Shortcuts
     var prefilledServiceName: String? = nil
     
+    // Start directly with custom service input
+    var startWithCustom: Bool = false
+    
     // Completion handler
     var onSave: ((Subscription?) -> Void)? = nil
     
@@ -175,7 +178,11 @@ struct AddSubscriptionView: View {
             }
         }
         .onAppear {
-            handlePrefilledService()
+            if startWithCustom {
+                showingCustomService = true
+            } else {
+                handlePrefilledService()
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {

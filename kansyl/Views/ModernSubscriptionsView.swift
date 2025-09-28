@@ -109,7 +109,7 @@ struct ModernSubscriptionsView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showingAddSubscription) {
-                AddSubscriptionView(subscriptionStore: subscriptionStore) { _ in
+                AddSubscriptionMethodSelector(subscriptionStore: subscriptionStore) { _ in
                     // Callback when subscription is saved
                     subscriptionStore.fetchSubscriptions()
                     // Mark that a subscription was added

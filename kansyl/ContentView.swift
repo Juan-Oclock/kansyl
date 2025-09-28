@@ -95,7 +95,7 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $navigationCoordinator.showingAddSubscription) {
-            AddSubscriptionView(subscriptionStore: subscriptionStore) { savedSubscription in
+            AddSubscriptionMethodSelector(subscriptionStore: subscriptionStore) { savedSubscription in
                 // After saving, navigate back to Subscriptions tab
                 navigationCoordinator.selectedTab = 0
                 
