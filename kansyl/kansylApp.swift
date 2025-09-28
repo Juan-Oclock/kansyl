@@ -366,35 +366,62 @@ class AppState: ObservableObject {
 
 // MARK: - Loading View
 struct LoadingView: View {
-    @State private var isAnimating = false
+    @State private var rotate = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "app.badge")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-                .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                .animation(
-                    .linear(duration: 2)
-                    .repeatForever(autoreverses: false),
-                    value: isAnimating
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Design.Colors.background,
+                    Design.Colors.background.opacity(0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                BrandSpinner(size: 88)
+                
+                Text("Kansyl")
+                    .font(Design.Typography.title(.bold))
+                    .foregroundStyle(Design.Colors.Gradients.shinyText)
+                
+                Text("Preparing your experience")
+                    .font(Design.Typography.subheadline())
+                    .foregroundColor(Design.Colors.textSecondary)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Brand Spinner
+struct BrandSpinner: View {
+    var size: CGFloat = 88
+    @State private var spin = false
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Design.Colors.border.opacity(0.4), lineWidth: 8)
+            
+            Circle()
+                .trim(from: 0.15, to: 1.0)
+                .stroke(
+                    Design.Colors.Gradients.brand,
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
+                .rotationEffect(.degrees(spin ? 360 : 0))
+                .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: spin)
             
-            Text("Kansyl")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Loading...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            ProgressView()
-                .scaleEffect(1.5)
-                .padding(.top)
+            Circle()
+                .fill(Design.Colors.primary.opacity(0.08))
+                .frame(width: size - 36, height: size - 36)
+                .blur(radius: 10)
         }
-        .onAppear {
-            isAnimating = true
-        }
+        .frame(width: size, height: size)
+        .onAppear { spin = true }
     }
 }
 
