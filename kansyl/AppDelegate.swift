@@ -16,6 +16,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Set up notification delegate
         UNUserNotificationCenter.current().delegate = NotificationManager.shared
         
+        // Perform subscription type migration if needed
+        SubscriptionMigration.performMigrationOnLaunch()
+        
         // Register for notification actions when subscriptions are updated
         NotificationCenter.default.addObserver(
             self,

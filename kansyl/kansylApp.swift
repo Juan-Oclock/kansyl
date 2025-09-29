@@ -325,6 +325,19 @@ class AppState: ObservableObject {
         print("📦 [AppState] Initializing Core Data...")
         // Core Data initialization is already lazy in PersistenceController
         _ = persistenceController.container
+        
+        // Verify Core Data integrity
+        let integrity = CoreDataReset.shared.verifyDataIntegrity()
+        if !integrity.isValid {
+            print("⚠️ [AppState] Core Data integrity issues detected:")
+            for issue in integrity.issues {
+                print("  - \(issue)")
+            }
+        }
+        
+        // Debug: Print all existing subscriptions on launch
+        CoreDataReset.shared.debugPrintAllSubscriptions()
+        
         print("✅ [AppState] Core Data initialized")
     }
     
@@ -345,7 +358,9 @@ class AppState: ObservableObject {
         _ = themeManager
         
         // Initialize subscription store with current user
-        subscriptionStore.updateCurrentUser(userID: authManager.currentUser?.id.uuidString)
+        let userID = authManager.currentUser?.id.uuidString
+        print("[AppState] Setting subscription store userID to: \(userID ?? "nil")")
+        subscriptionStore.updateCurrentUser(userID: userID)
         
         // Defer heavy operations
         Task.detached {

@@ -38,6 +38,7 @@ struct AuthenticationWrapperView: View {
         .onAppear {
             // Set the current user ID in the shared SubscriptionStore and preferences
             let userID = authManager.currentUser?.id.uuidString
+            print("[AuthWrapper] onAppear - Setting userID: \(userID ?? "nil")")
             SubscriptionStore.shared.updateCurrentUser(userID: userID)
             userPreferences.setCurrentUser(userID)
             
@@ -46,6 +47,7 @@ struct AuthenticationWrapperView: View {
         }
         .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
             // Update the shared SubscriptionStore and preferences when user changes
+            print("[AuthWrapper] onChange - User changed, new userID: \(newUserID ?? "nil")")
             SubscriptionStore.shared.updateCurrentUser(userID: newUserID)
             userPreferences.setCurrentUser(newUserID)
             

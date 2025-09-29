@@ -3,18 +3,22 @@
     <entity name="Subscription" representedClassName="Subscription" syncable="YES" codeGenerationType="class">
         <attribute name="billingAmount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="billingCycle" optional="YES" attributeType="String" defaultValueString="monthly"/>
+        <attribute name="convertedToPaid" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="endDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="exchangeRate" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isTrial" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="lastRateUpdate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="monthlyPrice" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
-        <attribute name="originalCurrency" optional="YES" attributeType="String"/>
         <attribute name="originalAmount" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="originalCurrency" optional="YES" attributeType="String"/>
         <attribute name="serviceLogo" optional="YES" attributeType="String"/>
         <attribute name="startDate" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="status" attributeType="String" defaultValueString="active"/>
+        <attribute name="subscriptionType" optional="YES" attributeType="String" defaultValueString="trial"/>
+        <attribute name="trialEndDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="userID" optional="YES" attributeType="String"/>
     </entity>
     <entity name="ServiceTemplate" representedClassName="ServiceTemplate" syncable="YES" codeGenerationType="class">

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HybridSubscriptionCard: View {
-    let subscription: Subscription
+    @ObservedObject var subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
     var onSwipeConfirm: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
@@ -97,6 +97,9 @@ struct HybridSubscriptionCard: View {
                             Text(subscription.name ?? "Unknown")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Design.Colors.textPrimary)
+                            
+                            // Subscription type badge
+                            InlineSubscriptionTypeBadge(subscription: subscription)
                             
                             // Status indicator
                             if let decision = decisionMade {

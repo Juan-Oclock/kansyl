@@ -94,6 +94,100 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         // Remove existing notifications for this subscription
         removeNotifications(for: subscription)
         
+        // Determine subscription type
+        let subscriptionType = SubscriptionType(rawValue: subscription.subscriptionType ?? "trial") ?? .trial
+        
+        // Use type-specific notification scheduling
+        switch subscriptionType {
+        case .trial:
+            scheduleTrialNotifications(for: subscription, id: subscriptionId, name: subscriptionName, endDate: endDate)
+        case .paid:
+            schedulePaidNotifications(for: subscription, id: subscriptionId, name: subscriptionName, endDate: endDate)
+        case .promotional:
+            schedulePromoNotifications(for: subscription, id: subscriptionId, name: subscriptionName, endDate: endDate)
+        }
+    }
+    
+    // MARK: - Type-Specific Notification Scheduling
+    
+    private func scheduleTrialNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
+        let subscriptionType = SubscriptionType.trial
+        let intervals = subscriptionType.notificationIntervals
+        let calendar = Calendar.current
+        
+        for days in intervals {
+            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
+            let adjustedDate = setNotificationTime(for: notificationDate)
+            
+            if adjustedDate > Date() {
+                let urgency: NotificationUrgency = days <= 1 ? .critical : (days <= 3 ? .urgent : .normal)
+                
+                scheduleNotification(
+                    id: "\(id)-\(days)day",
+                    title: subscriptionType.notificationTitle(daysRemaining: days),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    date: adjustedDate,
+                    subscription: subscription,
+                    urgency: urgency
+                )
+            }
+        }
+    }
+    
+    private func schedulePaidNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
+        let subscriptionType = SubscriptionType.paid
+        let intervals = subscriptionType.notificationIntervals
+        let calendar = Calendar.current
+        
+        for days in intervals {
+            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
+            let adjustedDate = setNotificationTime(for: notificationDate)
+            
+            if adjustedDate > Date() {
+                scheduleNotification(
+                    id: "\(id)-\(days)day",
+                    title: subscriptionType.notificationTitle(daysRemaining: days),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    date: adjustedDate,
+                    subscription: subscription,
+                    urgency: .normal
+                )
+            }
+        }
+    }
+    
+    private func schedulePromoNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
+        let subscriptionType = SubscriptionType.promotional
+        let intervals = subscriptionType.notificationIntervals
+        let calendar = Calendar.current
+        
+        for days in intervals {
+            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
+            let adjustedDate = setNotificationTime(for: notificationDate)
+            
+            if adjustedDate > Date() {
+                let urgency: NotificationUrgency = days == 0 ? .urgent : .normal
+                
+                scheduleNotification(
+                    id: "\(id)-\(days)day",
+                    title: subscriptionType.notificationTitle(daysRemaining: days),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    date: adjustedDate,
+                    subscription: subscription,
+                    urgency: urgency
+                )
+            }
+        }
+    }
+    
+    // Legacy method for backward compatibility
+    private func scheduleLegacyNotifications(for subscription: Subscription) {
+        guard let subscriptionId = subscription.id?.uuidString,
+              let subscriptionName = subscription.name,
+              let endDate = subscription.endDate else {
+            return
+        }
+        
         let calendar = Calendar.current
         
         // Schedule 3-day reminder
@@ -167,7 +261,9 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
             content.userInfo = [
                 "subscriptionId": subscriptionId,
                 "subscriptionName": subscription.name ?? "Unknown",
-                "monthlyPrice": subscription.monthlyPrice
+                "monthlyPrice": subscription.monthlyPrice,
+                "subscriptionType": subscription.subscriptionType ?? "trial",
+                "isTrial": subscription.isTrial
             ]
             
             // Add subtitle with price info

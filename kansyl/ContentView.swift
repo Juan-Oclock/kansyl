@@ -33,7 +33,9 @@ struct ContentView: View {
         mainAppView
             .onAppear {
                 // Update subscription store with current user ID
-                subscriptionStore.updateCurrentUser(userID: authManager.currentUser?.id.uuidString)
+                let userID = authManager.currentUser?.id.uuidString
+                print("[ContentView] onAppear - Setting userID: \(userID ?? "nil")")
+                subscriptionStore.updateCurrentUser(userID: userID)
                 
                 // Connect theme manager to user preferences
                 themeManager.setUserPreferences(userPreferences)
@@ -43,6 +45,7 @@ struct ContentView: View {
             }
             .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
                 // Update subscription store when user changes
+                print("[ContentView] onChange - User changed, new userID: \(newUserID ?? "nil")")
                 subscriptionStore.updateCurrentUser(userID: newUserID)
             }
             .onChange(of: userPreferences.appTheme) { _ in

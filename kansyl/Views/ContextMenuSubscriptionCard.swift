@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContextMenuSubscriptionCard: View {
-    let subscription: Subscription
+    @ObservedObject var subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
     var onContextAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
@@ -45,6 +45,9 @@ struct ContextMenuSubscriptionCard: View {
                         Text(subscription.name ?? "Unknown")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Design.Colors.textPrimary)
+                        
+                        // Subscription type badge
+                        InlineSubscriptionTypeBadge(subscription: subscription)
                         
                         // Decision indicator
                         if let decision = decisionMade {

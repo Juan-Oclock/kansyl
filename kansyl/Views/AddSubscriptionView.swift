@@ -37,6 +37,7 @@ struct AddSubscriptionView: View {
     @State private var selectedLogo = "questionmark.circle"
     @State private var selectedImage: UIImage?
     @State private var showingImagePicker = false
+    @State private var subscriptionType: SubscriptionType = .trial
     
     // UI state
     @State private var showingCustomService = false
@@ -418,7 +419,8 @@ struct AddSubscriptionView: View {
                     startDate: $startDate,
                     subscriptionLength: $subscriptionLength,
                     customPrice: $customPrice,
-                    notes: $notes
+                    notes: $notes,
+                    subscriptionType: $subscriptionType
                 )
             }
         }
@@ -509,6 +511,38 @@ struct AddSubscriptionView: View {
                         .datePickerStyle(.compact)
                         .labelsHidden()
                         .accentColor(Design.Colors.success)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
+                .cornerRadius(12)
+                .padding(.horizontal, 20)
+                
+                // Subscription Type Picker
+                HStack(spacing: 12) {
+                    Image(systemName: "tag")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Design.Colors.textSecondary)
+                        .frame(width: 24)
+                    
+                    Text("Type")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Design.Colors.textSecondary)
+                    
+                    Spacer()
+                    
+                    Picker("", selection: $subscriptionType) {
+                        ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
+                            HStack {
+                                Image(systemName: type.icon)
+                                    .foregroundColor(type.badgeColor)
+                                Text(type.displayName)
+                            }
+                            .tag(type)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accentColor(subscriptionType.badgeColor)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
@@ -685,7 +719,8 @@ struct AddSubscriptionView: View {
             monthlyPrice: customPrice,
             serviceLogo: logo,
             notes: notes.isEmpty ? nil : notes,
-            addToCalendar: shouldAddToCalendar
+            addToCalendar: shouldAddToCalendar,
+            subscriptionType: subscriptionType
         )
         
         self.savedSubscription = newSubscription
@@ -885,8 +920,10 @@ struct SubscriptionDetailsForm: View {
     @Binding var subscriptionLength: Int
     @Binding var customPrice: Double
     @Binding var notes: String
+    @Binding var subscriptionType: SubscriptionType
     
     @ObservedObject private var userPreferences = UserSpecificPreferences.shared
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingDaysPicker = false
     
     private var effectiveSubscriptionLength: Int {
@@ -900,11 +937,12 @@ struct SubscriptionDetailsForm: View {
         }
     }
     
-    init(startDate: Binding<Date>, subscriptionLength: Binding<Int>, customPrice: Binding<Double>, notes: Binding<String>) {
+    init(startDate: Binding<Date>, subscriptionLength: Binding<Int>, customPrice: Binding<Double>, notes: Binding<String>, subscriptionType: Binding<SubscriptionType>) {
         self._startDate = startDate
         self._subscriptionLength = subscriptionLength
         self._customPrice = customPrice
         self._notes = notes
+        self._subscriptionType = subscriptionType
     }
     
     var body: some View {
@@ -930,6 +968,38 @@ struct SubscriptionDetailsForm: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(Design.Colors.surfaceSecondary)
+            .cornerRadius(12)
+            .padding(.horizontal, 20)
+            
+            // Subscription Type Picker
+            HStack(spacing: 12) {
+                Image(systemName: "tag")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(Design.Colors.textSecondary)
+                    .frame(width: 24)
+                
+                Text("Type")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Design.Colors.textSecondary)
+                
+                Spacer()
+                
+                Picker("", selection: $subscriptionType) {
+                    ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
+                        HStack {
+                            Image(systemName: type.icon)
+                                .foregroundColor(type.badgeColor)
+                            Text(type.displayName)
+                        }
+                        .tag(type)
+                    }
+                }
+                .pickerStyle(.menu)
+                .accentColor(subscriptionType.badgeColor)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
             .cornerRadius(12)
             .padding(.horizontal, 20)
             

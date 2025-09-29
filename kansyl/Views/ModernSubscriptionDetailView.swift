@@ -16,6 +16,7 @@ struct ModernSubscriptionDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingDeleteAlert = false
     @State private var showingEditSheet = false
+    @State private var showingCancelConfirmation = false
     @State private var animateContent = false
     @State private var refreshTrigger = false
     @State private var triggerConfetti = false
@@ -91,6 +92,56 @@ struct ModernSubscriptionDetailView: View {
                                         backgroundColor: colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface
                                     )
                                 }
+                                
+                                // Subscription Type Card - Full Width
+                                let subType = SubscriptionType(rawValue: subscription.subscriptionType ?? "paid") ?? .paid
+                                HStack {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surface)
+                                            .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 2)
+                                        
+                                        HStack(spacing: 12) {
+                                            // Type Icon
+                                            ZStack {
+                                                Circle()
+                                                    .fill(subType.badgeColor.opacity(0.15))
+                                                    .frame(width: 32, height: 32)
+                                                
+                                                Image(systemName: subType.icon)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(subType.badgeColor)
+                                            }
+                                            
+                                            // Type Info
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text("Subscription Type")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(Design.Colors.textSecondary)
+                                                
+                                                Text(subType.displayName)
+                                                    .font(.system(size: 16, weight: .bold))
+                                                    .foregroundColor(Design.Colors.textPrimary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            // Type Badge
+                                            HStack(spacing: 4) {
+                                                Image(systemName: subType.icon)
+                                                    .font(.system(size: 10, weight: .semibold))
+                                                Text(subType.shortDisplayName.uppercased())
+                                                    .font(.system(size: 10, weight: .bold))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(subType.badgeColor)
+                                            .cornerRadius(8)
+                                        }
+                                        .padding(16)
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal, 20)
@@ -148,7 +199,7 @@ struct ModernSubscriptionDetailView: View {
                     }
                     
                     // Cancel Button - Green/Success with dark mode support
-                    Button(action: cancelSubscription) {
+                    Button(action: { showingCancelConfirmation = true }) {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 16, weight: .medium))
@@ -272,6 +323,26 @@ struct ModernSubscriptionDetailView: View {
                 Spacer()
             }
             .zIndex(1002)
+        )
+        .overlay(
+            // Cancel confirmation modal
+            Group {
+                if showingCancelConfirmation {
+                    SubscriptionActionModal(
+                        subscription: subscription,
+                        action: .cancel,
+                        onConfirm: {
+                            showingCancelConfirmation = false
+                            cancelSubscription()
+                        },
+                        onCancel: {
+                            showingCancelConfirmation = false
+                        }
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .zIndex(999)
+                }
+            }
         )
     }
     

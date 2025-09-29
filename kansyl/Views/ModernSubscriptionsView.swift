@@ -473,7 +473,7 @@ struct ModernSubscriptionsView: View {
 
 // MARK: - Subscription Row Card
 struct SubscriptionRowCard: View {
-    let subscription: Subscription
+    @ObservedObject var subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
     var onSwipeAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
@@ -582,9 +582,14 @@ struct SubscriptionRowCard: View {
                 
                 // Service Info
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(subscription.name ?? "Unknown")
-                        .font(Design.Typography.callout(.semibold))
-                        .foregroundColor(Design.Colors.textPrimary)
+                    HStack(spacing: 6) {
+                        Text(subscription.name ?? "Unknown")
+                            .font(Design.Typography.callout(.semibold))
+                            .foregroundColor(Design.Colors.textPrimary)
+                        
+                        // Add subscription type badge
+                        InlineSubscriptionTypeBadge(subscription: subscription)
+                    }
                     
                     Text("\(daysRemaining) days left")
                         .font(Design.Typography.footnote())

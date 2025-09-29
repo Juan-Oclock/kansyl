@@ -25,11 +25,8 @@ struct EditSubscriptionView: View {
     @State private var selectedLogo: String
     @State private var selectedImage: UIImage?
     @State private var showingImagePicker = false
-    @State private var showingSaveAlert = false
     @State private var saveError: String?
-    
-    // UI state
-    @State private var isFormValid = true
+    @State private var subscriptionType: SubscriptionType
     
     // Focus states for keyboard management
     @FocusState private var isServiceNameFocused: Bool
@@ -47,6 +44,7 @@ struct EditSubscriptionView: View {
         _monthlyPrice = State(initialValue: subscription.monthlyPrice)
         _notes = State(initialValue: subscription.notes ?? "")
         _selectedLogo = State(initialValue: subscription.serviceLogo ?? "app.badge")
+        _subscriptionType = State(initialValue: SubscriptionType(rawValue: subscription.subscriptionType ?? "paid") ?? .paid)
     }
     
     var body: some View {
@@ -109,14 +107,6 @@ struct EditSubscriptionView: View {
                 selectedImage = image
                 selectedLogo = "custom_uploaded_logo"
             }
-        }
-        .alert("Save Changes", isPresented: $showingSaveAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Save") {
-                saveChanges()
-            }
-        } message: {
-            Text("Are you sure you want to save these changes?")
         }
     }
     
@@ -326,6 +316,55 @@ struct EditSubscriptionView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(isPriceFocused ? Design.Colors.primary : Color.clear, lineWidth: isPriceFocused ? 2 : 0)
                 )
+                
+                // Subscription Type Picker
+                HStack(spacing: 12) {
+                    Image(systemName: "tag")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Design.Colors.textSecondary)
+                        .frame(width: 24)
+                    
+                    Text("Subscription Type")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Design.Colors.textSecondary)
+                    
+                    Spacer()
+                    
+                    Menu {
+                        ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
+                            Button(action: { subscriptionType = type }) {
+                                Label {
+                                    Text(type.displayName)
+                                } icon: {
+                                    Image(systemName: type.icon)
+                                        .foregroundColor(type.badgeColor)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: subscriptionType.icon)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(subscriptionType.badgeColor)
+                            
+                            Text(subscriptionType.displayName)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(Design.Colors.textPrimary)
+                            
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Design.Colors.textSecondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(subscriptionType.badgeColor.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
+                .cornerRadius(12)
             }
             .padding(.horizontal, 20)
         }
@@ -364,7 +403,14 @@ struct EditSubscriptionView: View {
     
     // MARK: - Save Button
     private var saveButton: some View {
-        Button(action: { showingSaveAlert = true }) {
+        Button(action: {
+            // Dismiss keyboard first
+            isServiceNameFocused = false
+            isPriceFocused = false
+            isNotesFocused = false
+            // Then save
+            saveChanges()
+        }) {
             HStack(spacing: 12) {
                 Image(systemName: "checkmark")
                     .font(.system(size: 16, weight: .semibold))
@@ -396,14 +442,15 @@ struct EditSubscriptionView: View {
             .cornerRadius(16)
             .shadow(color: Design.Colors.success.opacity(0.3), radius: 8, x: 0, y: 4)
         }
-        .disabled(!isFormValid)
-        .scaleEffect(isFormValid ? 1.0 : 0.98)
-        .opacity(isFormValid ? 1.0 : 0.6)
-        .animation(.easeInOut(duration: 0.2), value: isFormValid)
+        // Remove disabled state to always allow saving
     }
     
     // MARK: - Save Changes
     private func saveChanges() {
+        print("[EditSubscription] Starting save...")
+        print("[EditSubscription] Current subscription type: \(subscription.subscriptionType ?? "nil")")
+        print("[EditSubscription] New subscription type to save: \(subscriptionType.rawValue)")
+        
         // Update the subscription with new values
         subscription.name = serviceName.isEmpty ? subscription.name : serviceName
         subscription.startDate = startDate
@@ -420,30 +467,41 @@ struct EditSubscriptionView: View {
             subscription.serviceLogo = selectedLogo
         }
         
-        do {
-            try subscriptionStore.viewContext.save()
-            
-            // Update notifications
-            NotificationManager.shared.removeNotifications(for: subscription)
-            NotificationManager.shared.scheduleNotifications(for: subscription)
-            
-            // Update calendar event
-            CalendarManager.shared.addOrUpdateEvent(for: subscription)
-            
-            // Analytics - using existing event
-            AnalyticsManager.shared.track(.subscriptionAdded, properties: AnalyticsProperties(
-                source: "edit_modal",
-                subscriptionName: serviceName
-            ))
-            
-            // Haptic feedback
-            HapticManager.shared.playButtonTap()
-            
-            dismiss()
-        } catch {
-            saveError = error.localizedDescription
-            // Debug: // Debug: print("Error updating subscription: \(error)")
+        // Update subscription type
+        subscription.subscriptionType = subscriptionType.rawValue
+        subscription.isTrial = (subscriptionType == .trial)
+        if subscriptionType == .trial {
+            subscription.trialEndDate = endDate
         }
+        print("[EditSubscription] Updated subscription.subscriptionType to: \(subscription.subscriptionType ?? "nil")")
+        print("[EditSubscription] Updated subscription.isTrial to: \(subscription.isTrial)")
+        
+        // Use the subscription store's save method instead of direct Core Data save
+        subscriptionStore.saveContext()
+        print("[EditSubscription] Changes saved successfully")
+        
+        // Refresh the subscription list to reflect changes
+        subscriptionStore.fetchSubscriptions()
+        
+        // Update notifications
+        NotificationManager.shared.removeNotifications(for: subscription)
+        NotificationManager.shared.scheduleNotifications(for: subscription)
+        
+        // Update calendar event
+        CalendarManager.shared.addOrUpdateEvent(for: subscription)
+        
+        // Analytics - using existing event
+        AnalyticsManager.shared.track(.subscriptionAdded, properties: AnalyticsProperties(
+            source: "edit_modal",
+            subscriptionName: serviceName
+        ))
+        
+        // Haptic feedback
+        HapticManager.shared.playButtonTap()
+        
+        print("[EditSubscription] Dismissing modal...")
+        // Dismiss the modal after all updates
+        dismiss()
     }
     
     private func saveImageToDocuments(_ image: UIImage, serviceName: String) -> String? {

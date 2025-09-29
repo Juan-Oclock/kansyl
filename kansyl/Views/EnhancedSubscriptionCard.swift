@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct EnhancedSubscriptionCard: View {
-    let subscription: Subscription
+    @ObservedObject var subscription: Subscription
     let subscriptionStore: SubscriptionStore
     let action: () -> Void
     var onQuickAction: ((SubscriptionActionModal.SubscriptionAction, Subscription) -> Void)? = nil
@@ -60,6 +60,9 @@ struct EnhancedSubscriptionCard: View {
                             Text(subscription.name ?? "Unknown")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Design.Colors.textPrimary)
+                            
+                            // Subscription type badge
+                            InlineSubscriptionTypeBadge(subscription: subscription)
                             
                             // Status Badge if decision made
                             if let decision = decisionMade {

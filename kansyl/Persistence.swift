@@ -53,18 +53,32 @@ class PersistenceController {
         container.persistentStoreDescriptions.forEach { storeDescription in
             storeDescription.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
             storeDescription.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
+            
+            // Additional options to handle model changes more gracefully
+            storeDescription.shouldMigrateStoreAutomatically = true
+            storeDescription.shouldInferMappingModelAutomatically = true
+            
+            // Enable persistent history tracking for better sync
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         }
         
         container.loadPersistentStores { [weak self] (storeDescription, error) in
             if let error = error as NSError? {
                 print("❌ [PersistenceController] Core Data failed to load: \(error.localizedDescription)")
+                print("❌ [PersistenceController] Error code: \(error.code)")
                 self?.loadError = error
                 self?.isLoaded = false
                 
-                // Attempt recovery in production
-                #if !DEBUG
-                self?.attemptRecovery()
-                #endif
+                // Check if this is a model incompatibility error
+                if error.code == 134020 || error.code == 134100 {
+                    print("🔧 [PersistenceController] Model incompatibility detected. Attempting to recreate store...")
+                    self?.recreateStore()
+                } else {
+                    // Attempt recovery in production
+                    #if !DEBUG
+                    self?.attemptRecovery()
+                    #endif
+                }
             } else {
                 print("✅ [PersistenceController] Core Data loaded successfully")
                 self?.isLoaded = true
@@ -82,6 +96,50 @@ class PersistenceController {
                     CloudKitManager.shared.setupRemoteChangeNotifications()
                     #endif
                 }
+            }
+        }
+    }
+    
+    private func recreateStore() {
+        print("🔄 [PersistenceController] Recreating Core Data store...")
+        
+        // Get the persistent store coordinator
+        let coordinator = container.persistentStoreCoordinator
+        let stores = coordinator.persistentStores
+        
+        // Remove all stores from coordinator
+        for store in stores {
+            do {
+                try coordinator.remove(store)
+                
+                // Delete the store files
+                if let storeURL = store.url, storeURL.path != "/dev/null" {
+                    try FileManager.default.removeItem(at: storeURL)
+                    print("🗑 [PersistenceController] Deleted store at: \(storeURL)")
+                    
+                    // Also delete associated files
+                    let walURL = storeURL.appendingPathExtension("wal")
+                    let shmURL = storeURL.appendingPathExtension("shm")
+                    try? FileManager.default.removeItem(at: walURL)
+                    try? FileManager.default.removeItem(at: shmURL)
+                }
+            } catch {
+                print("⚠️ [PersistenceController] Could not remove/delete store: \(error)")
+            }
+        }
+        
+        // Reload stores with same configuration
+        container.loadPersistentStores { [weak self] (storeDescription, error) in
+            if let error = error {
+                print("❌ [PersistenceController] Failed to recreate store: \(error)")
+                self?.loadError = error
+                // Fall back to in-memory store
+                self?.attemptRecovery()
+            } else {
+                print("✅ [PersistenceController] Store recreated successfully")
+                self?.isLoaded = true
+                self?.container.viewContext.automaticallyMergesChangesFromParent = true
+                self?.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
             }
         }
     }
@@ -109,11 +167,13 @@ class PersistenceController {
     
     private func setupCloudKitStores() {
         #if DEBUG
-        // For development with personal team, use only local store to avoid CloudKit issues
+        // For development with personal team, use a store without configuration restrictions
+        // This allows all entities to be saved in DEBUG mode
         let localStoreDescription = NSPersistentStoreDescription(
             url: NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("LocalStore.sqlite")
         )
-        localStoreDescription.configuration = "LocalConfiguration"
+        // IMPORTANT: Don't set configuration in DEBUG to allow all entities
+        // localStoreDescription.configuration = "LocalConfiguration"  // <-- This was the problem!
         localStoreDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         
         container.persistentStoreDescriptions = [localStoreDescription]
