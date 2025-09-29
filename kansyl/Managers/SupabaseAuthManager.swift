@@ -275,6 +275,7 @@ class SupabaseAuthManager: ObservableObject {
         
         do {
             // Get Google OAuth URL from Supabase
+            // Using kansyl://auth-callback to avoid showing supabase.co in dialog
             let authURL = try supabase.auth.getOAuthSignInURL(
                 provider: .google,
                 redirectTo: URL(string: "kansyl://auth-callback")

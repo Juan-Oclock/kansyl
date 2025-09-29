@@ -8,7 +8,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>kansyl-oauth</string>
+			<string>kansyl.auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>kansyl</string>
