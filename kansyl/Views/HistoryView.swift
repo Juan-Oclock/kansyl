@@ -768,53 +768,39 @@ struct SubscriptionDetailView: View {
                         Button(action: {
                             showingDeleteAlert = true
                         }) {
-                            VStack(spacing: 6) {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 18, weight: .semibold))
-                                
-                                Text("Delete")
-                                    .font(.system(size: 15, weight: .semibold))
-                            }
-                            .foregroundColor(Color(hex: "EF4444"))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color(hex: "EF4444").opacity(0.1))
-                            .cornerRadius(14)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1)
-                            )
+                            Text("Delete")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color(hex: "EF4444"))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color(hex: "EF4444").opacity(0.08))
+                                .cornerRadius(12)
                         }
                         
                         // Use Again Button (Right)
                         Button(action: {
                             showingUseAgainSheet = true
                         }) {
-                            VStack(spacing: 6) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 18, weight: .semibold))
-                                
-                                Text("Use Again")
-                                    .font(.system(size: 15, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(hex: "3B82F6"),
-                                        Color(hex: "2563EB")
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                            Text("Use Again")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color(hex: "3B82F6"),
+                                            Color(hex: "2563EB")
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .cornerRadius(14)
-                            .shadow(color: Color(hex: "3B82F6").opacity(0.3), radius: 8, x: 0, y: 4)
+                                .cornerRadius(12)
                         }
                     }
-                    .padding(.top, 8)
+                    .padding(.top, 16)
+                    .padding(.bottom, 20)
                 }
                 .padding()
             }
