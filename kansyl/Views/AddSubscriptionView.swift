@@ -34,7 +34,7 @@ struct AddSubscriptionView: View {
     @State private var subscriptionLength: Int = 0  // 0 means use user's default
     @State private var customPrice: Double = 0.0
     @State private var notes = ""
-    @State private var selectedLogo = "questionmark.circle"
+    @State private var selectedLogo = "" // Empty string = use first letter of service name
     @State private var selectedImage: UIImage?
     @State private var showingImagePicker = false
     @State private var subscriptionType: SubscriptionType = .trial
@@ -827,7 +827,7 @@ struct AddSubscriptionView: View {
                 selectedLogo = "h.square.fill"
             default:
                 customPrice = 9.99
-                selectedLogo = "app.badge"
+                selectedLogo = "" // Use first letter of service name
             }
         }
     }

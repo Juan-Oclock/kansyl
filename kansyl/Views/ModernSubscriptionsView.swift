@@ -808,7 +808,7 @@ struct SubscriptionRowCard: View {
                 )
             
             // Content on top of white background
-            if let serviceLogo = subscription.serviceLogo {
+            if let serviceLogo = subscription.serviceLogo, !serviceLogo.isEmpty {
                 // Check if it's a custom uploaded image
                 if serviceLogo.contains("_logo_") && (serviceLogo.hasSuffix(".jpg") || serviceLogo.hasSuffix(".png")) {
                     // Custom uploaded image - smaller size to show white background
@@ -817,6 +817,12 @@ struct SubscriptionRowCard: View {
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 42, height: 42)
                         .clipShape(Circle())
+                // Check if it's a generic system icon that should show first letter instead
+                } else if shouldUseFirstLetter(serviceLogo) {
+                    // Show first letter for generic icons
+                    Text(subscription.name?.prefix(1).uppercased() ?? "?")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(serviceColor)
                 } else {
                     // System image or bundled service logo
                     let logoImage = Image.bundleImage(serviceLogo, fallbackSystemName: getServiceFallbackIcon())
@@ -868,6 +874,19 @@ struct SubscriptionRowCard: View {
     private func getLogoDisplayColor() -> Color {
         // All logos should be black for consistency
         return Color.black
+    }
+    
+    // Check if we should use first letter instead of generic icon
+    private func shouldUseFirstLetter(_ serviceLogo: String) -> Bool {
+        let genericIcons = [
+            "app.badge",
+            "questionmark.circle",
+            "square.fill",
+            "circle.fill",
+            "app",
+            "apps.iphone"
+        ]
+        return genericIcons.contains(serviceLogo)
     }
     
     // MARK: - Actions

@@ -364,7 +364,7 @@ struct HistorySubscriptionRow: View {
                 )
             
             // Content on top of white background
-            if let serviceLogo = subscription.serviceLogo {
+            if let serviceLogo = subscription.serviceLogo, !serviceLogo.isEmpty {
                 // Check if it's a custom uploaded image
                 if serviceLogo.contains("_logo_") && (serviceLogo.hasSuffix(".jpg") || serviceLogo.hasSuffix(".png")) {
                     // Custom uploaded image - smaller size to show white background
@@ -373,6 +373,12 @@ struct HistorySubscriptionRow: View {
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 38, height: 38)
                         .clipShape(Circle())
+                // Check if it's a generic system icon that should show first letter instead
+                } else if shouldUseFirstLetter(serviceLogo) {
+                    // Show first letter for generic icons
+                    Text(subscription.name?.prefix(1).uppercased() ?? "?")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(serviceColor)
                 } else {
                     // Try to load bundled service logo first
                     let logoImage = Image.bundleImage(serviceLogo, fallbackSystemName: getFallbackSystemName())
@@ -392,10 +398,10 @@ struct HistorySubscriptionRow: View {
                     }
                 }
             } else {
-                // Use SF Symbol fallback or text
-                Image(systemName: getFallbackSystemName())
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(getLogoColor())
+                // Text fallback - show first letter
+                Text(subscription.name?.prefix(1).uppercased() ?? "?")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(serviceColor)
             }
         }
     }
@@ -453,6 +459,19 @@ struct HistorySubscriptionRow: View {
         // All logos should be black for consistency
         // This is kept for potential future use but currently returns black
         return Color.black
+    }
+    
+    // Check if we should use first letter instead of generic icon
+    private func shouldUseFirstLetter(_ serviceLogo: String) -> Bool {
+        let genericIcons = [
+            "app.badge",
+            "questionmark.circle",
+            "square.fill",
+            "circle.fill",
+            "app",
+            "apps.iphone"
+        ]
+        return genericIcons.contains(serviceLogo)
     }
     
     var body: some View {
