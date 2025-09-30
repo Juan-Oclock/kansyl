@@ -18,6 +18,8 @@ struct PremiumFeatureView: View {
     
     @State private var selectedPlan = "yearly"
     @State private var isPurchasing = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -58,6 +60,11 @@ struct PremiumFeatureView: View {
                             .foregroundColor(Design.Colors.textPrimary)
                     }
                 }
+            }
+            .alert("Purchase Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
             }
         }
     }
@@ -223,11 +230,36 @@ struct PremiumFeatureView: View {
     private var purchaseButton: some View {
         Button(action: {
             Task {
+                // Check if products are loaded
+                guard premiumManager.getMonthlyPrice() != nil || premiumManager.getYearlyPrice() != nil else {
+                    errorMessage = "Unable to load premium products. Please check your internet connection and try again."
+                    showingError = true
+                    return
+                }
+                
                 isPurchasing = true
+                HapticManager.shared.playButtonTap()
+                
                 await premiumManager.purchase(yearly: selectedPlan == "yearly")
+                
                 isPurchasing = false
-                if premiumManager.isPremium {
-                    dismiss()
+                
+                // Handle purchase result
+                switch premiumManager.purchaseState {
+                case .purchased:
+                    HapticManager.shared.playSuccess()
+                    if premiumManager.isPremium {
+                        dismiss()
+                    }
+                case .failed(let error):
+                    HapticManager.shared.playError()
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                case .idle:
+                    // User cancelled, no error needed
+                    break
+                case .loading:
+                    break
                 }
             }
         }) {
@@ -260,6 +292,14 @@ struct PremiumFeatureView: View {
     // MARK: - Terms Section
     private var termsSection: some View {
         VStack(spacing: 8) {
+            #if DEBUG
+            // Development/TestFlight info
+            Text("Testing in sandbox mode - use your Apple ID")
+                .font(.system(size: 11))
+                .foregroundColor(.orange)
+                .padding(.bottom, 4)
+            #endif
+            
             Text("Cancel anytime. No hidden fees.")
                 .font(.system(size: 13))
                 .foregroundColor(Design.Colors.textSecondary)
