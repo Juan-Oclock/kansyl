@@ -715,6 +715,7 @@ struct SubscriptionDetailView: View {
     let subscriptionStore: SubscriptionStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var navigationCoordinator = NavigationCoordinator.shared
     @State private var showingDeleteAlert = false
     @State private var showingUseAgainSheet = false
     
@@ -830,8 +831,14 @@ struct SubscriptionDetailView: View {
             AddSubscriptionView(
                 subscriptionStore: subscriptionStore,
                 prefilledServiceName: subscription.name,
-                onSave: { _ in
+                onSave: { newSubscription in
+                    // Dismiss both modals
                     dismiss()
+                    
+                    // Navigate to subscriptions tab after a brief delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        navigationCoordinator.navigateToSubscriptions()
+                    }
                 }
             )
         }
