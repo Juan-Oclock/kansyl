@@ -15,7 +15,7 @@ class PremiumManager: ObservableObject {
     @Published var purchaseState: PurchaseState = .idle
     
     // Premium limits - New freemium model: All features available, subscription limit only
-    static let freeSubscriptionLimit = 50 // Temporarily increased for testing (was 5)
+    static let freeSubscriptionLimit = 5 // Free users limited to 5 subscriptions
     static let premiumSubscriptionLimit = Int.max // Premium users have unlimited subscriptions
     
     // Product identifiers
