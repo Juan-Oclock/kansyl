@@ -20,6 +20,22 @@
         <attribute name="subscriptionType" optional="YES" attributeType="String" defaultValueString="trial"/>
         <attribute name="trialEndDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="userID" optional="YES" attributeType="String"/>
+        <fetchIndex name="byNameIndex">
+            <fetchIndexElement property="name" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byEndDateIndex">
+            <fetchIndexElement property="endDate" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byStatusIndex">
+            <fetchIndexElement property="status" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="bySubscriptionTypeIndex">
+            <fetchIndexElement property="subscriptionType" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byStatusAndEndDateIndex">
+            <fetchIndexElement property="status" type="Binary" order="ascending"/>
+            <fetchIndexElement property="endDate" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="ServiceTemplate" representedClassName="ServiceTemplate" syncable="YES" codeGenerationType="class">
         <attribute name="defaultSubscriptionLength" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
