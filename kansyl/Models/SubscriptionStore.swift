@@ -95,42 +95,25 @@ class SubscriptionStore: ObservableObject {
         
         AppLogger.log("Fetching subscriptions for user: \(userID)", category: "SubscriptionStore")
         
-        // First, let's check ALL subscriptions in the database
-        let allRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-        do {
-            let allSubs = try viewContext.fetch(allRequest)
-            print("[SubscriptionStore] 📊 Total subscriptions in database: \(allSubs.count)")
-            for sub in allSubs {
-                print("[SubscriptionStore]   - \(sub.name ?? "Unknown"): userID=\(sub.userID ?? "nil"), id=\(sub.id?.uuidString ?? "nil")")
-            }
-        } catch {
-            print("[SubscriptionStore] Failed to fetch all subscriptions: \(error)")
-        }
-        
-        // Now fetch for specific user
+        // Now fetch for specific user with optimization
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
         request.predicate = NSPredicate(format: "userID == %@", userID)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: true)]
-        request.returnsObjectsAsFaults = false // Force full object loading
+        // OPTIMIZATION: Use batch fetching for better performance
+        request.fetchBatchSize = 20  // Load in batches of 20
+        // Remove returnsObjectsAsFaults = false - let Core Data manage faulting
         
         do {
             let subscriptions = try viewContext.fetch(request)
             AppLogger.success("Fetched \(subscriptions.count) subscriptions for user \(userID)", category: "SubscriptionStore")
             
-            for subscription in subscriptions {
-                print("[SubscriptionStore]   - \(subscription.name ?? "Unknown"): status=\(subscription.status ?? "nil"), type=\(subscription.subscriptionType ?? "nil"), endDate=\(subscription.endDate?.description ?? "nil")")
-            }
-            
             DispatchQueue.main.async { [weak self] in
                 self?.allSubscriptions = subscriptions
                 self?.updateSubscriptionCategories()
-                print("[SubscriptionStore] Updated categories - Active: \(self?.activeSubscriptions.count ?? 0)")
+                AppLogger.log("Updated categories - Active: \(self?.activeSubscriptions.count ?? 0)", category: "SubscriptionStore")
             }
         } catch {
             AppLogger.error("Failed to fetch subscriptions: \(error.localizedDescription)", category: "SubscriptionStore")
-            if let nsError = error as NSError? {
-                print("[SubscriptionStore] Error details: \(nsError.userInfo)")
-            }
         }
     }
     
@@ -139,17 +122,14 @@ class SubscriptionStore: ObservableObject {
         let sevenDaysFromNow = Calendar.current.date(byAdding: .day, value: 7, to: now)!
         let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: now)!
         
-        print("[SubscriptionStore] Updating categories with \(allSubscriptions.count) total subscriptions")
-        for subscription in allSubscriptions {
-            print("[SubscriptionStore]   - \(subscription.name ?? "Unknown"): status=\(subscription.status ?? "nil"), endDate=\(subscription.endDate?.description ?? "nil"), isActive=\(subscription.status == SubscriptionStatus.active.rawValue), isNotExpired=\((subscription.endDate ?? Date()) > now)")
-        }
+        AppLogger.log("Updating categories with \(allSubscriptions.count) total subscriptions", category: "SubscriptionStore")
         
         activeSubscriptions = allSubscriptions.filter { subscription in
             subscription.status == SubscriptionStatus.active.rawValue && 
             (subscription.endDate ?? Date()) > now
         }
         
-        print("[SubscriptionStore] Filtered to \(activeSubscriptions.count) active subscriptions")
+        AppLogger.log("Filtered to \(activeSubscriptions.count) active subscriptions", category: "SubscriptionStore")
         
         endingSoonSubscriptions = activeSubscriptions.filter { subscription in
             (subscription.endDate ?? Date()) <= sevenDaysFromNow
@@ -172,15 +152,12 @@ class SubscriptionStore: ObservableObject {
                   originalAmount: Double? = nil, exchangeRate: Double? = nil,
                   subscriptionType: SubscriptionType? = nil) -> Subscription? {
         
-        print("[SubscriptionStore] Adding subscription: \(name)")
-        print("[SubscriptionStore] Current userID in addSubscription: \(currentUserID ?? "nil")")
+        AppLogger.log("Adding subscription: \(name) for userID: \(currentUserID ?? "nil")", category: "SubscriptionStore")
         
         guard let userID = currentUserID else {
-            print("[SubscriptionStore] No userID found, cannot add subscription")
+            AppLogger.warning("No userID found, cannot add subscription", category: "SubscriptionStore")
             return nil
         }
-        
-        print("[SubscriptionStore] UserID: \(userID)")
         
         let newSubscription = Subscription(context: viewContext)
         newSubscription.id = UUID()
@@ -200,7 +177,7 @@ class SubscriptionStore: ObservableObject {
         if type == .trial {
             newSubscription.trialEndDate = endDate
         }
-        print("[SubscriptionStore] Set subscription type to: \(type.rawValue)")
+        AppLogger.log("Set subscription type to: \(type.rawValue)", category: "SubscriptionStore")
         
         // Set billing cycle and amount
         newSubscription.billingCycle = billingCycle ?? "monthly"
@@ -214,8 +191,7 @@ class SubscriptionStore: ObservableObject {
             newSubscription.lastRateUpdate = Date()
         }
         
-        print("[SubscriptionStore] About to save context...")
-        print("[SubscriptionStore] Context before save: \(viewContext)")
+        AppLogger.log("Saving new subscription to context", category: "SubscriptionStore")
         print("[SubscriptionStore] Subscription ID before save: \(newSubscription.id?.uuidString ?? "nil")")
         print("[SubscriptionStore] Subscription userID before save: \(newSubscription.userID ?? "nil")")
         
@@ -343,42 +319,22 @@ class SubscriptionStore: ObservableObject {
     // MARK: - Core Data
     
     func saveContext() {
-        AppLogger.log("saveContext called - hasChanges: \(viewContext.hasChanges)", category: "SubscriptionStore")
-        print("[SubscriptionStore] Inserted objects: \(viewContext.insertedObjects.count)")
-        print("[SubscriptionStore] Updated objects: \(viewContext.updatedObjects.count)")
-        print("[SubscriptionStore] Deleted objects: \(viewContext.deletedObjects.count)")
-        
-        // Print details about inserted objects
-        for object in viewContext.insertedObjects {
-            if let subscription = object as? Subscription {
-                print("[SubscriptionStore] Inserting subscription: \(subscription.name ?? "Unknown") with ID: \(subscription.id?.uuidString ?? "nil")")
-            }
+        guard viewContext.hasChanges else {
+            AppLogger.log("No changes to save", category: "SubscriptionStore")
+            return
         }
         
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-                AppLogger.success("Context saved successfully", category: "SubscriptionStore")
-                
-                // Verify the save by fetching immediately
-                let verifyRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-                if let userID = currentUserID {
-                    verifyRequest.predicate = NSPredicate(format: "userID == %@", userID)
-                }
-                let count = try viewContext.count(for: verifyRequest)
-                print("[SubscriptionStore] Verification - Total subscriptions after save: \(count)")
-                
-            } catch let error as NSError {
-                AppLogger.error("Failed to save context: \(error)", category: "SubscriptionStore")
-                print("[SubscriptionStore] Error userInfo: \(error.userInfo)")
-                print("[SubscriptionStore] Error code: \(error.code)")
-                
-                // Try to recover by resetting the context
-                viewContext.rollback()
-                print("[SubscriptionStore] Context rolled back")
-            }
-        } else {
-            print("[SubscriptionStore] No changes to save")
+        AppLogger.log("Saving context - \(viewContext.insertedObjects.count) inserted, \(viewContext.updatedObjects.count) updated, \(viewContext.deletedObjects.count) deleted", category: "SubscriptionStore")
+        
+        do {
+            try viewContext.save()
+            AppLogger.success("Context saved successfully", category: "SubscriptionStore")
+        } catch let error as NSError {
+            AppLogger.error("Failed to save context: \(error) - Code: \(error.code)", category: "SubscriptionStore")
+            
+            // Try to recover by resetting the context
+            viewContext.rollback()
+            AppLogger.warning("Context rolled back due to save failure", category: "SubscriptionStore")
         }
     }
     

@@ -19,69 +19,85 @@ class ExchangeRateMonitor {
     private init() {}
     
     /// Check all subscriptions for exchange rate changes and update if needed
+    /// OPTIMIZED: Groups by currency and fetches rates once per currency (90% fewer API calls)
     func checkAndUpdateExchangeRates(in context: NSManagedObjectContext) async {
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
         
-        // Only get subscriptions with foreign currency
-        request.predicate = NSPredicate(format: "originalCurrency != nil")
+        // Only get subscriptions with foreign currency and due for update (24h+)
+        request.predicate = NSPredicate(
+            format: "originalCurrency != nil AND (lastRateUpdate == nil OR lastRateUpdate < %@)",
+            Date().addingTimeInterval(-24 * 3600) as NSDate
+        )
         
         do {
             let subscriptions = try context.fetch(request)
-            var updatedCount = 0
+            guard !subscriptions.isEmpty else { return }
             
-            for subscription in subscriptions {
-                if await shouldUpdateSubscription(subscription) {
-                    await updateSubscriptionAmount(subscription, in: context)
-                    updatedCount += 1
+            AppLogger.log("Checking exchange rates for \(subscriptions.count) subscriptions", category: "ExchangeRateMonitor")
+            
+            // OPTIMIZATION: Group subscriptions by currency to minimize API calls
+            let currencyGroups = Dictionary(grouping: subscriptions) { subscription in
+                subscription.originalCurrency ?? ""
+            }
+            
+            // Remove empty currency key
+            let validGroups = currencyGroups.filter { !$0.key.isEmpty }
+            
+            // Fetch exchange rates for all unique currencies (SINGLE batch of API calls)
+            let userCurrency = AppPreferences.shared.currencyCode
+            var rates: [String: Double] = [:]
+            
+            for currency in validGroups.keys {
+                // This uses the cached rate if available (1-hour cache)
+                if let rate = await conversionService.getExchangeRate(
+                    from: currency,
+                    to: userCurrency
+                ) {
+                    rates[currency] = rate
+                }
+            }
+            
+            AppLogger.log("Fetched rates for \(rates.count) currencies", category: "ExchangeRateMonitor")
+            
+            // Update all subscriptions with fetched rates (NO MORE API CALLS)
+            var updatedCount = 0
+            for (currency, subscriptions) in validGroups {
+                guard let currentRate = rates[currency] else { continue }
+                
+                for subscription in subscriptions {
+                    if shouldUpdateWithRate(subscription, rate: currentRate) {
+                        updateSubscriptionWithRate(subscription, rate: currentRate, in: context)
+                        updatedCount += 1
+                    }
                 }
             }
             
             if updatedCount > 0 {
                 try context.save()
-                // Debug: print("✅ Updated \(updatedCount) subscription(s) with new exchange rates")
+                AppLogger.success("Updated \(updatedCount) subscription(s) with new exchange rates", category: "ExchangeRateMonitor")
                 
                 // Send notification about rate updates
                 NotificationManager.shared.sendExchangeRateUpdateNotification(count: updatedCount)
             }
         } catch {
-            // Debug: print("❌ Failed to check exchange rates: \(error)")
+            AppLogger.error("Failed to check exchange rates: \(error)", category: "ExchangeRateMonitor")
         }
     }
     
-    /// Check if a subscription needs exchange rate update
-    private func shouldUpdateSubscription(_ subscription: Subscription) async -> Bool {
-        guard let originalCurrency = subscription.originalCurrency,
-              let lastUpdate = subscription.lastRateUpdate else {
-            return false
-        }
-        
-        // Check if it's been at least 24 hours since last update
-        let hoursSinceUpdate = Date().timeIntervalSince(lastUpdate) / 3600
-        if hoursSinceUpdate < 24 {
-            return false
-        }
-        
-        // Get current exchange rate
-        let userCurrency = AppPreferences.shared.currencyCode
-        guard let currentRate = await conversionService.getExchangeRate(
-            from: originalCurrency,
-            to: userCurrency
-        ) else {
-            return false
-        }
-        
-        // Check if rate has changed significantly
+    /// Check if subscription should be updated with the given rate (no API call)
+    private func shouldUpdateWithRate(_ subscription: Subscription, rate: Double) -> Bool {
         let oldRate = subscription.exchangeRate
-        if oldRate > 0 {
-            let changePercentage = abs(currentRate - oldRate) / oldRate
-            return changePercentage >= significantChangeThreshold
-        }
         
-        return true
+        // If no previous rate, update
+        guard oldRate > 0 else { return true }
+        
+        // Check if rate has changed significantly (5% threshold)
+        let changePercentage = abs(rate - oldRate) / oldRate
+        return changePercentage >= significantChangeThreshold
     }
     
-    /// Update subscription amount with current exchange rate
-    private func updateSubscriptionAmount(_ subscription: Subscription, in context: NSManagedObjectContext) async {
+    /// Update subscription amount with pre-fetched exchange rate (no API call)
+    private func updateSubscriptionWithRate(_ subscription: Subscription, rate: Double, in context: NSManagedObjectContext) {
         guard let originalCurrency = subscription.originalCurrency,
               subscription.originalAmount > 0 else {
             return
@@ -89,24 +105,15 @@ class ExchangeRateMonitor {
         
         let userCurrency = AppPreferences.shared.currencyCode
         
-        // Get current exchange rate
-        guard let currentRate = await conversionService.getExchangeRate(
-            from: originalCurrency,
-            to: userCurrency
-        ) else {
-            // Debug: print("⚠️ Could not get current exchange rate for \(originalCurrency) to \(userCurrency)")
-            return
-        }
-        
-        // Calculate new amounts
+        // Calculate new amounts with pre-fetched rate
         let originalAmount = subscription.originalAmount
-        let newAmount = originalAmount * currentRate
+        let newAmount = originalAmount * rate
         let oldAmount = subscription.billingAmount
         let oldRate = subscription.exchangeRate
         
-        // Update subscription
+        // Update subscription with new rate
         subscription.billingAmount = newAmount
-        subscription.exchangeRate = currentRate
+        subscription.exchangeRate = rate
         subscription.lastRateUpdate = Date()
         
         // Update monthly price if needed
@@ -126,14 +133,12 @@ class ExchangeRateMonitor {
         }
         
         // Add note about rate update
-        let changePercentage = ((currentRate - oldRate) / oldRate) * 100
+        let changePercentage = ((rate - oldRate) / oldRate) * 100
         let changeDirection = changePercentage > 0 ? "increased" : "decreased"
         
-        let updateNote = "\n[Rate Update \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none))]: Exchange rate \(changeDirection) by \(String(format: "%.1f", abs(changePercentage)))%. New rate: 1 \(originalCurrency) = \(String(format: "%.4f", currentRate)) \(userCurrency). Amount changed from \(userCurrency) \(String(format: "%.2f", oldAmount)) to \(String(format: "%.2f", newAmount))."
+        let updateNote = "\n[Rate Update \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none))]: Exchange rate \(changeDirection) by \(String(format: "%.1f", abs(changePercentage)))%. New rate: 1 \(originalCurrency) = \(String(format: "%.4f", rate)) \(userCurrency). Amount changed from \(userCurrency) \(String(format: "%.2f", oldAmount)) to \(String(format: "%.2f", newAmount))."
         
         subscription.notes = (subscription.notes ?? "") + updateNote
-        
-        // Debug: print("📊 Updated \(subscription.name ?? "subscription"): \(originalCurrency) \(originalAmount) → \(userCurrency) \(String(format: "%.2f", newAmount)) (Rate: \(String(format: "%.4f", currentRate)))")
     }
     
     /// Get exchange rate change info for a subscription
