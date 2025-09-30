@@ -29,6 +29,7 @@ struct ModernSubscriptionsView: View {
     @State private var animateElements = false
     @State private var subscriptionJustAdded = false
     @State private var searchText = ""
+    @State private var isSearchExpanded = false // Track search visibility
     @State private var showEndingSoonSection = true
     @State private var showActiveSection = true
     @State private var showingActionModal = false
@@ -83,10 +84,13 @@ struct ModernSubscriptionsView: View {
                                 savingsSpotlightCard
                                     .padding(.horizontal, 20)
                                 
-                                // Search Bar - Always visible below spotlight card
-                                searchBarView
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 4)
+                                // Search Bar - Only visible when expanded
+                                if isSearchExpanded {
+                                    searchBarView
+                                        .padding(.horizontal, 20)
+                                        .padding(.top, 4)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
+                                }
                                 
                                 // Subscription sections
                                 if !subscriptionStore.activeSubscriptions.isEmpty {
@@ -237,6 +241,40 @@ struct ModernSubscriptionsView: View {
             }
             
             Spacer()
+            
+            // Search Button - toggles search bar visibility
+            Button(action: { 
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isSearchExpanded.toggle()
+                    if isSearchExpanded {
+                        // Auto-focus when expanded
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isSearchFocused = true
+                        }
+                    } else {
+                        // Clear search when collapsing
+                        isSearchFocused = false
+                        searchText = ""
+                    }
+                }
+                HapticManager.shared.playSelection()
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Design.Colors.surface)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: Design.Colors.primary.opacity(0.08), radius: 4, x: 0, y: 2)
+                    
+                    Image(systemName: isSearchExpanded ? "xmark" : "magnifyingglass")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Design.Colors.primary)
+                        .rotationEffect(.degrees(isSearchExpanded ? 90 : 0))
+                }
+            }
+            .scaleEffect(animateElements ? 1.0 : 0.8)
+            .opacity(animateElements ? 1.0 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8).delay(0.05), value: animateElements)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSearchExpanded)
             
             // Add Button
             Button(action: { showingAddSubscription = true }) {
@@ -426,7 +464,7 @@ struct ModernSubscriptionsView: View {
     
     // MARK: - Search Bar
     private var searchBarView: some View {
-        HStack {
+        HStack(spacing: 12) {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(Design.Colors.textSecondary.opacity(0.7))
@@ -467,6 +505,20 @@ struct ModernSubscriptionsView: View {
                     )
             )
             .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+            
+            // Cancel button
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isSearchFocused = false
+                    isSearchExpanded = false
+                    searchText = ""
+                }
+                HapticManager.shared.playSelection()
+            }) {
+                Text("Cancel")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Design.Colors.primary)
+            }
         }
     }
 }
