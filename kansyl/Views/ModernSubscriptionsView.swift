@@ -41,6 +41,12 @@ struct ModernSubscriptionsView: View {
     @State private var successToastAmount: String? = nil
     @FocusState private var isSearchFocused: Bool
     
+    // Cached filtered subscriptions (recomputed only when needed)
+    @State private var cachedEndingSoon: [Subscription] = []
+    @State private var cachedActive: [Subscription] = []
+    @State private var lastFilteredSourceCount: Int = 0
+    @State private var lastSearchText: String = ""
+    
     // Computed property to get the display name from auth manager
     private var displayName: String {
         // Try to get first name only from full name
@@ -340,27 +346,44 @@ struct ModernSubscriptionsView: View {
         }
     }
     
-    // MARK: - Filtered Subscriptions
+    // MARK: - Filtered Subscriptions with Caching
     private var filteredEndingSoonSubscriptions: [Subscription] {
-        let endingSoon = subscriptionStore.activeSubscriptions.filter { isSubscriptionEndingSoon($0) }
-        if searchText.isEmpty {
-            return endingSoon
-        } else {
-            return endingSoon.filter { subscription in
-                (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
-            }
-        }
+        updateFilteredSubscriptionsIfNeeded()
+        return cachedEndingSoon
     }
     
     private var filteredActiveSubscriptions: [Subscription] {
+        updateFilteredSubscriptionsIfNeeded()
+        return cachedActive
+    }
+    
+    private func updateFilteredSubscriptionsIfNeeded() {
+        // Only recompute if source data or search text changed
+        let currentCount = subscriptionStore.activeSubscriptions.count
+        let currentSearch = searchText
+        
+        guard lastFilteredSourceCount != currentCount || lastSearchText != currentSearch else {
+            return // Cache is still valid
+        }
+        
+        // Update cache
+        let endingSoon = subscriptionStore.activeSubscriptions.filter { isSubscriptionEndingSoon($0) }
         let active = subscriptionStore.activeSubscriptions.filter { !isSubscriptionEndingSoon($0) }
+        
         if searchText.isEmpty {
-            return active
+            cachedEndingSoon = endingSoon
+            cachedActive = active
         } else {
-            return active.filter { subscription in
+            cachedEndingSoon = endingSoon.filter { subscription in
+                (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
+            }
+            cachedActive = active.filter { subscription in
                 (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
             }
         }
+        
+        lastFilteredSourceCount = currentCount
+        lastSearchText = currentSearch
     }
     
     // MARK: - Subscription List
