@@ -762,26 +762,43 @@ struct SubscriptionDetailView: View {
                     .background(colorScheme == .dark ? Color(hex: "252525") : Color(.secondarySystemBackground))
                     .cornerRadius(12)
                     
-                    // Action Buttons
-                    VStack(spacing: 12) {
-                        // Use Again Button
+                    // Action Buttons - Side by Side
+                    HStack(spacing: 12) {
+                        // Delete Button (Left)
+                        Button(action: {
+                            showingDeleteAlert = true
+                        }) {
+                            VStack(spacing: 6) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 18, weight: .semibold))
+                                
+                                Text("Delete")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .foregroundColor(Color(hex: "EF4444"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                        
+                        // Use Again Button (Right)
                         Button(action: {
                             showingUseAgainSheet = true
                         }) {
-                            HStack(spacing: 10) {
+                            VStack(spacing: 6) {
                                 Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 18, weight: .semibold))
                                 
                                 Text("Use Again")
-                                    .font(.system(size: 17, weight: .semibold))
-                                
-                                Spacer()
-                                
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(size: 15, weight: .semibold))
                             }
                             .foregroundColor(.white)
-                            .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
                                 LinearGradient(
@@ -795,30 +812,6 @@ struct SubscriptionDetailView: View {
                             )
                             .cornerRadius(14)
                             .shadow(color: Color(hex: "3B82F6").opacity(0.3), radius: 8, x: 0, y: 4)
-                        }
-                        
-                        // Delete Button
-                        Button(action: {
-                            showingDeleteAlert = true
-                        }) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 16, weight: .semibold))
-                                
-                                Text("Delete")
-                                    .font(.system(size: 17, weight: .semibold))
-                                
-                                Spacer()
-                            }
-                            .foregroundColor(Color(hex: "EF4444"))
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                            .background(Color(hex: "EF4444").opacity(0.1))
-                            .cornerRadius(14)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1)
-                            )
                         }
                     }
                     .padding(.top, 8)
