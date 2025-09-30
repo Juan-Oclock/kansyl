@@ -354,7 +354,7 @@ struct EnhancedSettingsView: View {
     
     // MARK: - About Section
     private var aboutSection: some View {
-        Section(header: Text("About & Support")) {
+        Section("About & Support") {
             HStack {
                 Label("Version", systemImage: "info.circle")
                 Spacer()
@@ -363,7 +363,7 @@ struct EnhancedSettingsView: View {
             }
             
             Button(action: {
-                if let url = URL(string: "mailto:support@kansyl.app") {
+                if let url = URL(string: "mailto:kansyl@juan-oclock.com?subject=Kansyl%20Support") {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -371,6 +371,24 @@ struct EnhancedSettingsView: View {
                     Label("Contact Support", systemImage: "envelope")
                         .foregroundColor(.primary)
                     Spacer()
+                    Text("kansyl@juan-oclock.com")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Button(action: {
+                if let url = URL(string: "https://kansyl.juan-oclock.com") {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                HStack {
+                    Label("Website", systemImage: "globe")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text("kansyl.juan-oclock.com")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     Image(systemName: "arrow.up.right.square")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -378,7 +396,7 @@ struct EnhancedSettingsView: View {
             }
             
             Button(action: {
-                if let url = URL(string: "https://kansyl.app/privacy") {
+                if let url = URL(string: "https://kansyl.juan-oclock.com/privacy") {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -393,7 +411,7 @@ struct EnhancedSettingsView: View {
             }
             
             Button(action: {
-                if let url = URL(string: "https://kansyl.app/terms") {
+                if let url = URL(string: "https://kansyl.juan-oclock.com/terms") {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -405,15 +423,6 @@ struct EnhancedSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            }
-            
-            Button(action: {
-                if let url = URL(string: "https://apps.apple.com/app/kansyl/id123456789") {
-                    UIApplication.shared.open(url)
-                }
-            }) {
-                Label("Rate on App Store", systemImage: "star")
-                    .foregroundColor(.primary)
             }
         }
     }

@@ -21,7 +21,6 @@ struct SettingsView: View {
     @State private var showingResetAlert = false
     @State private var showingUserProfile = false
     @State private var showingSignOutAlert = false
-    @State private var showingResetOnboardingAlert = false
     @State private var showingSignOutError = false
     @State private var signOutErrorMessage = ""
     
@@ -256,13 +255,6 @@ struct SettingsView: View {
                         Label("Reset All Settings", systemImage: "arrow.counterclockwise")
                             .foregroundColor(.orange)
                     }
-                    
-                    #if DEBUG
-                    Button(action: { showingResetOnboardingAlert = true }) {
-                        Label("Reset Onboarding (Debug)", systemImage: "rectangle.and.arrow.up.right.and.arrow.down.left")
-                            .foregroundColor(.purple)
-                    }
-                    #endif
                 } header: {
                     Text("Advanced")
                 } footer: {
@@ -279,7 +271,7 @@ struct SettingsView: View {
                     }
                     
                     Button(action: {
-                        if let url = URL(string: "mailto:support@kansyl.app?subject=Kansyl%20Support") {
+                        if let url = URL(string: "mailto:kansyl@juan-oclock.com?subject=Kansyl%20Support") {
                             UIApplication.shared.open(url)
                         }
                     }) {
@@ -287,33 +279,18 @@ struct SettingsView: View {
                             Label("Contact Support", systemImage: "envelope")
                                 .foregroundColor(.primary)
                             Spacer()
-                            Text("support@kansyl.app")
+                            Text("kansyl@juan-oclock.com")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                     
-                    Button(action: {
-                        if let url = URL(string: "https://twitter.com/kansylapp") {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack {
-                            Label("Follow Us", systemImage: "at")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text("@kansylapp")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    Link(destination: URL(string: "https://kansyl.app")!) {
+                    Link(destination: URL(string: "https://kansyl.juan-oclock.com")!) {
                         HStack {
                             Label("Website", systemImage: "globe")
                                 .foregroundColor(.primary)
                             Spacer()
-                            Text("kansyl.app")
+                            Text("kansyl.juan-oclock.com")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Image(systemName: "arrow.up.right.square")
@@ -322,7 +299,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Link(destination: URL(string: "https://kansyl.app/privacy")!) {
+                    Link(destination: URL(string: "https://kansyl.juan-oclock.com/privacy")!) {
                         HStack {
                             Label("Privacy Policy", systemImage: "hand.raised")
                                 .foregroundColor(.primary)
@@ -333,7 +310,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Link(destination: URL(string: "https://kansyl.app/terms")!) {
+                    Link(destination: URL(string: "https://kansyl.juan-oclock.com/terms")!) {
                         HStack {
                             Label("Terms of Service", systemImage: "doc.text")
                                 .foregroundColor(.primary)
@@ -343,27 +320,8 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
-                    Button(action: {
-                        if let url = URL(string: "https://apps.apple.com/app/kansyl/id123456789") {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack {
-                            Label("Rate on App Store", systemImage: "star")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
                 } header: {
                     Text("About & Support")
-                } footer: {
-                    Text("Made with ❤️ in San Francisco\n© 2025 Kansyl. All rights reserved.")
-                        .multilineTextAlignment(.center)
-                        .font(.caption)
                 }
             }
             .padding(.bottom, 100)
@@ -406,14 +364,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to sign out?")
-            }
-            .alert("Reset Onboarding?", isPresented: $showingResetOnboardingAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Reset", role: .destructive) {
-                    resetOnboarding()
-                }
-            } message: {
-                Text("This will show the onboarding screen again next time you open the app.")
             }
             .alert("Sign Out Error", isPresented: $showingSignOutError) {
                 Button("OK", role: .cancel) { }
@@ -554,11 +504,6 @@ struct SettingsView: View {
         } catch {
             // Debug: print("Error clearing data: \(error)")
         }
-    }
-    
-    private func resetOnboarding() {
-        UserDefaults.standard.removeObject(forKey: "device_has_completed_onboarding")
-        UserDefaults.standard.synchronize()
     }
 }
 

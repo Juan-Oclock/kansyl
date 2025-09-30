@@ -7,12 +7,52 @@
 
 ---
 
+## 🎯 Current Status Summary
+
+### ✅ Completed
+- Code signing configured (Automatic signing enabled)
+- App successfully runs on physical iPhone device
+- Bundle ID: `com.juan-oclock.kansyl.kansyl`
+- iOS 15.0+ deployment target set
+- All privacy permission descriptions configured
+- Version 1.0, Build 1 set
+- API keys properly secured in Config.private.xcconfig
+- Backend services: Supabase (Google auth) + DeepSeek (receipt scanning)
+- iPhone & iPad support configured
+
+### ⏳ In Progress
+- Apple Developer Program membership (pending approval)
+
+### 🚫 Blockers
+- Cannot proceed with App Store Connect setup until Apple Developer membership is approved
+- Cannot create App ID or Distribution Certificate until membership approved
+
+### 📋 Next Steps (After Membership Approval)
+1. Complete Apple Developer account setup (certificates, App ID)
+2. Create App Store Connect listing
+3. ~~Write App Store description and marketing materials~~ ✅ CAN DO NOW
+4. ~~Take and prepare screenshots~~ ✅ CAN DO NOW
+5. ~~Create privacy policy~~ ✅ DONE (kansyl.juan-oclock.com)
+6. TestFlight testing
+7. Submit for review
+
+### ✨ Tasks That Can Be Done NOW (While Waiting for Approval)
+1. ✅ Write App Store description and marketing materials (Section 3)
+2. ✅ Prepare screenshots and app preview video (Section 5)
+3. ✅ Write reviewer notes and prepare demo account info (Section 6)
+4. ✅ Fix compiler warnings and run tests (Section 7)
+5. ✅ Plan TestFlight testing strategy (Section 8)
+6. ✅ Review App Store Guidelines compliance (Section 9)
+7. ✅ Prepare marketing materials and launch plan (Section 12)
+
+---
+
 ## Pre-Submission Requirements
 
 ### 1. Apple Developer Account Setup
 
 #### Developer Account
-- [ ] Active Apple Developer Program membership ($99/year)
+- [ ] Active Apple Developer Program membership ($99/year) - **PENDING - In progress**
 - [ ] Account in good standing
 - [ ] Tax and banking information completed
 - [ ] Agreements accepted in App Store Connect
@@ -38,21 +78,21 @@
 ## 2. App Configuration
 
 ### Info.plist Requirements
-- [ ] Bundle identifier matches App ID
-- [ ] Version number set (e.g., 1.0)
-- [ ] Build number set (must be unique for each submission)
+- [x] Bundle identifier matches App ID - `com.juan-oclock.kansyl.kansyl`
+- [x] Version number set (e.g., 1.0) - Currently 1.0
+- [x] Build number set (must be unique for each submission) - Currently 1
 - [ ] Display name set
-- [ ] Minimum iOS version specified (15.0)
+- [x] Minimum iOS version specified (15.0) - ✅ iOS 15.0
 - [ ] Required device capabilities defined
-- [ ] Supported interface orientations configured
+- [x] Supported interface orientations configured - Portrait, Landscape Left & Right
 
 ### Privacy Permissions Descriptions
-- [ ] `NSUserNotificationsUsageDescription` - "Kansyl needs notification access to remind you before free trials end."
-- [ ] `NSCameraUsageDescription` - "Kansyl uses your camera to scan receipts for quick trial entry." (if used)
-- [ ] `NSPhotoLibraryUsageDescription` - "Access photos to scan receipts." (if used)
-- [ ] `NSCalendarUsageDescription` - "Add trial end dates to your calendar." (if used)
-- [ ] `NSUserTrackingUsageDescription` - "We respect your privacy. Tracking helps improve your experience." (if using analytics)
-- [ ] All descriptions are clear, user-friendly, and accurate
+- [x] `NSUserNotificationsUsageDescription` - ✅ "Kansyl sends you timely reminders before your free trials end, helping you avoid unwanted charges."
+- [x] `NSCameraUsageDescription` - ✅ "Kansyl needs access to your camera to scan receipts and automatically detect subscription information using AI."
+- [x] `NSPhotoLibraryUsageDescription` - ✅ "Kansyl needs access to your photo library to let you add custom logos for your subscriptions and scan receipt images for AI-powered subscription detection."
+- [x] `NSCalendarUsageDescription` - ✅ "Kansyl needs access to your calendar to create reminders for your trial end dates. This helps ensure you never forget to cancel unwanted subscriptions."
+- [ ] `NSUserTrackingUsageDescription` - Not needed (not using tracking)
+- [x] All descriptions are clear, user-friendly, and accurate - ✅ Well written
 
 ### App Transport Security
 - [ ] All API endpoints use HTTPS
@@ -60,10 +100,10 @@
 - [ ] If exceptions exist, document justification
 
 ### Supported Devices
-- [ ] iPhone support verified
-- [ ] iPad support configured (if supporting)
-- [ ] Device requirements specified
-- [ ] Orientation support tested
+- [x] iPhone support verified - ✅ Tested on physical iPhone
+- [x] iPad support configured (if supporting) - ✅ TARGETED_DEVICE_FAMILY = "1,2" (iPhone & iPad)
+- [x] Device requirements specified
+- [x] Orientation support tested - Portrait, Landscape Left & Right
 
 ---
 
@@ -72,9 +112,9 @@
 ### App Information
 
 #### Basic Information
-- [ ] App name (max 30 characters): "Kansyl"
-- [ ] Subtitle (max 30 characters): "Never Miss a Free Trial"
-- [ ] Bundle ID selected
+- [x] App name (max 30 characters): "Kansyl" - ✅ Only 6 characters
+- [ ] Subtitle (max 30 characters): "Never Miss a Free Trial" - To be set in App Store Connect
+- [ ] Bundle ID selected - `com.juan-oclock.kansyl.kansyl` (ready to register)
 - [ ] SKU created (unique identifier for your reference)
 - [ ] Primary language selected
 
@@ -125,27 +165,27 @@
 - [ ] Professional tone
 
 #### Support URL
-- [ ] Website or support page URL provided
-- [ ] URL is accessible and works correctly
-- [ ] Page includes contact information
-- [ ] FAQ or documentation available
+- [x] Website or support page URL provided - ✅ https://kansyl.juan-oclock.com
+- [x] URL is accessible and works correctly - ✅ Confirmed
+- [x] Page includes contact information - ✅ Has contact link
+- [x] FAQ or documentation available - ✅ Has FAQ section
 
 #### Marketing URL (optional)
-- [ ] Product website URL (if available)
-- [ ] Landing page with app information
+- [x] Product website URL (if available) - ✅ https://kansyl.juan-oclock.com
+- [x] Landing page with app information - ✅ Complete with features, pricing, FAQ
 
 #### Privacy Policy URL (REQUIRED)
-- [ ] Privacy policy created and hosted
-- [ ] URL accessible to everyone
-- [ ] Policy covers:
+- [x] Privacy policy created and hosted - ✅ https://kansyl.juan-oclock.com/privacy
+- [x] URL accessible to everyone - ✅ Confirmed accessible
+- [x] Policy covers:
   - What data is collected
   - How data is used
   - Data storage and security
   - User rights (access, deletion, export)
   - Third-party services (DeepSeek, Supabase)
   - Contact information
-- [ ] Complies with GDPR and CCPA
-- [ ] Written in plain language
+- [x] Complies with GDPR and CCPA - ✅ Ready
+- [x] Written in plain language - ✅ Ready
 
 ---
 
@@ -155,17 +195,17 @@
 Complete for all applicable data types:
 
 #### Contact Information
-- [ ] Name: ☐ Yes ☐ No
-- [ ] Email: ☐ Yes ☐ No (if using Supabase auth)
-- [ ] Purpose: Account creation, user support
-- [ ] Linked to user: Yes/No
-- [ ] Used for tracking: No
+- [x] Name: ☐ Yes ☑ No - Not collected
+- [x] Email: ☑ Yes ☐ No - Using Supabase Google auth
+- [x] Purpose: Account creation, authentication, user support
+- [x] Linked to user: Yes
+- [x] Used for tracking: No
 
 #### Financial Information
-- [ ] Purchase History: ☐ Yes ☐ No
-- [ ] Subscription data: Yes (for core functionality)
-- [ ] Linked to user: Yes (stored locally)
-- [ ] Used for tracking: No
+- [x] Purchase History: ☐ Yes ☑ No
+- [x] Subscription data: Yes (for core functionality) - User tracks their own subscriptions
+- [x] Linked to user: Yes (stored locally via Supabase)
+- [x] Used for tracking: No
 
 #### Usage Data
 - [ ] Product Interaction: ☐ Yes ☐ No (if using analytics)
@@ -276,10 +316,10 @@ Complete for all applicable data types:
 - [ ] All performance optimizations done
 - [ ] All compiler warnings fixed
 - [ ] Release scheme selected in Xcode
-- [ ] Correct bundle ID verified
-- [ ] Version and build numbers incremented
-- [ ] API keys and secrets not hardcoded
-- [ ] Config files (.xcconfig, .plist) properly configured
+- [x] Correct bundle ID verified - ✅ `com.juan-oclock.kansyl.kansyl`
+- [x] Version and build numbers incremented - ✅ Version 1.0, Build 1
+- [x] API keys and secrets not hardcoded - ✅ Using Config.private.xcconfig
+- [x] Config files (.xcconfig, .plist) properly configured - ✅ Config.private.xcconfig exists
 - [ ] All tests passing
 
 ### Archive Process
@@ -559,10 +599,10 @@ Complete for all applicable data types:
 ## 15. Legal and Compliance
 
 ### Required Legal Documents
-- [ ] Privacy Policy (required)
-- [ ] Terms of Service (recommended)
-- [ ] End User License Agreement (optional)
-- [ ] Cookie Policy (if using cookies)
+- [x] Privacy Policy (required) - ✅ https://kansyl.juan-oclock.com/privacy
+- [x] Terms of Service (recommended) - ✅ https://kansyl.juan-oclock.com/terms
+- [x] End User License Agreement (optional) - ✅ Not needed (covered in ToS)
+- [x] Cookie Policy (if using cookies) - ✅ Not needed (no cookies in native app)
 
 ### Compliance
 - [ ] GDPR compliance (EU users)

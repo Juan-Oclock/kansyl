@@ -129,9 +129,9 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 If you have questions about this Privacy Policy or our privacy practices, please contact us:
 
-**Email:** privacy@kansyl.app
-**Website:** https://kansyl.app/support
-**Mailing Address:** [Your mailing address]
+**Email:** kansyl@juan-oclock.com
+**Website:** https://kansyl.juan-oclock.com
+**In-App:** Settings → Support → "Contact Us"
 
 ## Additional Disclosures for Specific Regions
 

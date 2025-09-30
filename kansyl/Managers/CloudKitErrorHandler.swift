@@ -304,7 +304,7 @@ enum CloudKitRecoveryAction: CaseIterable {
                 UIApplication.shared.open(settingsURL)
             }
         case .contactSupport:
-            if let url = URL(string: "mailto:support@kansyl.app?subject=iCloud%20Sync%20Issue") {
+            if let url = URL(string: "mailto:kansyl@juan-oclock.com?subject=iCloud%20Sync%20Issue") {
                 UIApplication.shared.open(url)
             }
         }

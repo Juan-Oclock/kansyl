@@ -233,14 +233,14 @@ struct PremiumFeaturesView: View {
             
             HStack(spacing: 16) {
                 Button("Privacy Policy") {
-                    if let url = URL(string: "https://kansyl.app/privacy") {
+                    if let url = URL(string: "https://kansyl.juan-oclock.com/privacy") {
                         UIApplication.shared.open(url)
                     }
                 }
                 .font(.caption)
                 
                 Button("Terms of Service") {
-                    if let url = URL(string: "https://kansyl.app/terms") {
+                    if let url = URL(string: "https://kansyl.juan-oclock.com/terms") {
                         UIApplication.shared.open(url)
                     }
                 }
