@@ -357,6 +357,7 @@ struct TypePill: View {
             Text(label)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(Color.white.opacity(0.7))
+                .lineLimit(1)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
