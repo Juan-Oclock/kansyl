@@ -304,7 +304,7 @@ struct ModernSubscriptionsView: View {
         SavingsSpotlightCard(subscriptionStore: subscriptionStore)
             .scaleEffect(animateElements ? 1.0 : 0.95)
             .opacity(animateElements ? 1.0 : 0)
-            .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.4), value: animateElements)
+            .animation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.15), value: animateElements)
     }
     
     // MARK: - Subscription Sections
@@ -398,8 +398,8 @@ struct ModernSubscriptionsView: View {
                 .scaleEffect(animateElements ? 1.0 : 0.99) // Lighter animation
                 .opacity(animateElements ? 1.0 : 0.8) // Less dramatic opacity change
                 .animation(
-                    // Simpler, faster animation with reduced delay calculations
-                    .easeOut(duration: 0.2).delay(min(0.2, Double(index) * 0.02)),
+                    // Simpler, faster animation with capped delay to prevent 5+ second delays
+                    .easeOut(duration: 0.2).delay(min(0.3, Double(index) * 0.02)),
                     value: animateElements
                 )
             }

@@ -85,6 +85,12 @@ struct kansylApp: App {
                     await appState.initialize()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didReceiveMemoryWarningNotification
+            )) { _ in
+                // Handle memory warning
+                appState.handleMemoryWarning()
+            }
         }
     }
     
@@ -326,17 +332,21 @@ class AppState: ObservableObject {
         // Core Data initialization is already lazy in PersistenceController
         _ = persistenceController.container
         
-        // Verify Core Data integrity
-        let integrity = CoreDataReset.shared.verifyDataIntegrity()
-        if !integrity.isValid {
-            print("⚠️ [AppState] Core Data integrity issues detected:")
-            for issue in integrity.issues {
-                print("  - \(issue)")
+        #if DEBUG
+        // Verify Core Data integrity (DEBUG ONLY - moved to background)
+        Task.detached(priority: .background) {
+            let integrity = CoreDataReset.shared.verifyDataIntegrity()
+            if !integrity.isValid {
+                print("⚠️ [AppState] Core Data integrity issues detected:")
+                for issue in integrity.issues {
+                    print("  - \(issue)")
+                }
             }
+            
+            // Debug: Print all existing subscriptions (DEBUG ONLY - moved to background)
+            CoreDataReset.shared.debugPrintAllSubscriptions()
         }
-        
-        // Debug: Print all existing subscriptions on launch
-        CoreDataReset.shared.debugPrintAllSubscriptions()
+        #endif
         
         print("✅ [AppState] Core Data initialized")
     }
@@ -376,6 +386,22 @@ class AppState: ObservableObject {
         notificationManager.setupNotificationCategories()
         notificationManager.requestNotificationPermission()
         print("✅ [AppState] Notifications configured")
+    }
+    
+    // MARK: - Memory Management
+    func handleMemoryWarning() {
+        print("⚠️ [AppState] Memory warning received - clearing caches")
+        
+        // Clear any in-memory caches
+        subscriptionStore.clearCaches()
+        
+        // Clear image caches if any (future implementation)
+        // ImageCache.shared.clearMemoryCache()
+        
+        // Force Core Data to clear cached objects
+        viewContext.refreshAllObjects()
+        
+        print("✅ [AppState] Caches cleared")
     }
 }
 

@@ -308,4 +308,13 @@ class CostCalculationEngine: ObservableObject {
     func refreshMetrics() {
         calculateMetrics()
     }
+    
+    // MARK: - Memory Management
+    
+    func clearCaches() {
+        // Clear any cached metrics or computations
+        // Currently metrics are computed on-demand, so nothing to clear
+        // Future: If we add caching, clear it here
+        print("[CostCalculationEngine] Caches cleared")
+    }
 }

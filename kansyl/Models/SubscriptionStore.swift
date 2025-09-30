@@ -452,4 +452,15 @@ class SubscriptionStore: ObservableObject {
     var promotionalSubscriptions: [Subscription] {
         return getSubscriptions(ofType: .promotional)
     }
+    
+    // MARK: - Memory Management
+    
+    /// Clear in-memory caches to free up memory
+    func clearCaches() {
+        print("[SubscriptionStore] Clearing caches due to memory pressure")
+        // Note: Don't clear @Published arrays as they're needed for UI
+        // Only clear cached computations if they exist
+        // The cost engine maintains its own caches
+        costEngine.clearCaches()
+    }
 }

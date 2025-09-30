@@ -15,6 +15,16 @@ class CurrencyConversionService {
     private var lastUpdateDate: Date?
     private let cacheExpirationInterval: TimeInterval = 3600 // 1 hour
     
+    // Custom URLSession with timeout configuration
+    private lazy var urlSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10  // 10 seconds per request
+        config.timeoutIntervalForResource = 30  // 30 seconds total
+        config.waitsForConnectivity = true
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: config)
+    }()
+    
     // Fallback exchange rates (as of late 2024, update periodically)
     private let fallbackRates: [String: Double] = [
         "USD": 1.0,
@@ -111,7 +121,7 @@ class CurrencyConversionService {
         }
         
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await urlSession.data(from: url)
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
