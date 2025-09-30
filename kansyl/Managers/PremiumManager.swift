@@ -14,6 +14,15 @@ class PremiumManager: ObservableObject {
     @Published var isPremium: Bool = false
     @Published var purchaseState: PurchaseState = .idle
     
+    // Check if running on simulator
+    private var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+    
     // Premium limits - New freemium model: All features available, subscription limit only
     static let freeSubscriptionLimit = 5 // Free users limited to 5 subscriptions
     static let premiumSubscriptionLimit = Int.max // Premium users have unlimited subscriptions
@@ -96,6 +105,12 @@ class PremiumManager: ObservableObject {
     func purchase(yearly: Bool = false) async {
         purchaseState = .loading
         
+        // Check if running on simulator
+        if isSimulator {
+            purchaseState = .failed(PremiumError.simulatorNotSupported)
+            return
+        }
+        
         let productId = yearly ? premiumYearlyProductId : premiumProductId
         guard let product = products.first(where: { $0.id == productId }) else {
             purchaseState = .failed(PremiumError.productNotFound)
@@ -171,6 +186,23 @@ class PremiumManager: ObservableObject {
         return canAddMoreSubscriptions(currentCount: currentCount)
     }
     
+    // Development/Testing helper - Enable premium for testing on simulator
+    #if DEBUG
+    @MainActor
+    func enableTestPremium() {
+        isPremium = true
+        purchaseState = .purchased
+        print("[PremiumManager] Test premium enabled for development")
+    }
+    
+    @MainActor
+    func disableTestPremium() {
+        isPremium = false
+        purchaseState = .idle
+        print("[PremiumManager] Test premium disabled")
+    }
+    #endif
+    
     func getMonthlyPrice() -> String? {
         guard let product = products.first(where: { $0.id == premiumProductId }) else {
             return nil
@@ -189,6 +221,7 @@ class PremiumManager: ObservableObject {
 enum PremiumError: LocalizedError {
     case productNotFound
     case unverifiedTransaction
+    case simulatorNotSupported
     
     var errorDescription: String? {
         switch self {
@@ -196,6 +229,8 @@ enum PremiumError: LocalizedError {
             return "Premium product not found"
         case .unverifiedTransaction:
             return "Transaction could not be verified"
+        case .simulatorNotSupported:
+            return "In-App Purchases are not supported on iOS Simulator. Please test on a real device or use the development bypass option."
         }
     }
 }

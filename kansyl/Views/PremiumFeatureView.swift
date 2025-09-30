@@ -293,11 +293,45 @@ struct PremiumFeatureView: View {
     private var termsSection: some View {
         VStack(spacing: 8) {
             #if DEBUG
-            // Development/TestFlight info
+            #if targetEnvironment(simulator)
+            // Simulator testing bypass
+            Button(action: {
+                Task {
+                    await premiumManager.enableTestPremium()
+                    dismiss()
+                }
+            }) {
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "wrench.and.screwdriver.fill")
+                            .font(.system(size: 12))
+                        Text("Enable Test Premium (Simulator Only)")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    Text("Bypass purchase for testing - this only works on simulator")
+                        .font(.system(size: 10))
+                        .foregroundColor(.orange.opacity(0.8))
+                }
+                .foregroundColor(.orange)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
+            .padding(.bottom, 8)
+            #else
+            // Real device testing info
             Text("Testing in sandbox mode - use your Apple ID")
                 .font(.system(size: 11))
                 .foregroundColor(.orange)
                 .padding(.bottom, 4)
+            #endif
             #endif
             
             Text("Cancel anytime. No hidden fees.")
