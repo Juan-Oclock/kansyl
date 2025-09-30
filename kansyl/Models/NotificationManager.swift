@@ -94,6 +94,20 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         // Remove existing notifications for this subscription
         removeNotifications(for: subscription)
         
+        // Schedule new notifications
+        scheduleNotificationsWithoutRemoval(for: subscription)
+    }
+    
+    // MARK: - Private Scheduling (Without Removal)
+    
+    private func scheduleNotificationsWithoutRemoval(for subscription: Subscription) {
+        guard notificationsEnabled,
+              let subscriptionId = subscription.id?.uuidString,
+              let subscriptionName = subscription.name,
+              let endDate = subscription.endDate else {
+            return
+        }
+        
         // Determine subscription type
         let subscriptionType = SubscriptionType(rawValue: subscription.subscriptionType ?? "trial") ?? .trial
         
@@ -315,8 +329,19 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         // Only schedule for active subscriptions
         let activeSubscriptions = subscriptions.filter { $0.status == SubscriptionStatus.active.rawValue }
         
+        // OPTIMIZATION: Batch remove all old notifications first (single API call)
+        let allNotificationIds = activeSubscriptions.flatMap { subscription -> [String] in
+            guard let id = subscription.id?.uuidString else { return [] }
+            return ["\(id)-3day", "\(id)-1day", "\(id)-dayof"]
+        }
+        
+        if !allNotificationIds.isEmpty {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: allNotificationIds)
+        }
+        
+        // Then schedule new notifications (without individual removes)
         for subscription in activeSubscriptions {
-            scheduleNotifications(for: subscription)
+            scheduleNotificationsWithoutRemoval(for: subscription)
         }
     }
     

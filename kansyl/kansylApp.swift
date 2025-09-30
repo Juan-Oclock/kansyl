@@ -280,7 +280,7 @@ class AppState: ObservableObject {
     }
     
     func initialize() async {
-        print("🚀 [AppState] Starting async initialization...")
+        AppLogger.debug("Starting async initialization...", emoji: "🚀", category: "AppState")
         
         // Reset error state
         initializationError = nil
@@ -315,20 +315,20 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.isFullyLoaded = true
                 self.isInitializing = false
-                print("✅ [AppState] Initialization complete")
+                AppLogger.success("Initialization complete", category: "AppState")
             }
             
         } catch {
             await MainActor.run {
                 self.initializationError = error.localizedDescription
                 self.isInitializing = false
-                print("❌ [AppState] Initialization failed: \(error)")
+                AppLogger.error("Initialization failed: \(error)", category: "AppState")
             }
         }
     }
     
     private func initializePersistence() async {
-        print("📦 [AppState] Initializing Core Data...")
+        AppLogger.debug("Initializing Core Data...", emoji: "📦", category: "AppState")
         // Core Data initialization is already lazy in PersistenceController
         _ = persistenceController.container
         
@@ -337,9 +337,9 @@ class AppState: ObservableObject {
         Task.detached(priority: .background) {
             let integrity = CoreDataReset.shared.verifyDataIntegrity()
             if !integrity.isValid {
-                print("⚠️ [AppState] Core Data integrity issues detected:")
+                AppLogger.warning("Core Data integrity issues detected", category: "AppState")
                 for issue in integrity.issues {
-                    print("  - \(issue)")
+                    AppLogger.log("  - \(issue)", category: "AppState")
                 }
             }
             
@@ -348,20 +348,20 @@ class AppState: ObservableObject {
         }
         #endif
         
-        print("✅ [AppState] Core Data initialized")
+        AppLogger.success("Core Data initialized", category: "AppState")
     }
     
     private func initializeAuth() async {
-        print("🔐 [AppState] Initializing Auth...")
+        AppLogger.debug("Initializing Auth...", emoji: "🔐", category: "AppState")
         // Auth manager initialization is already safe
         _ = authManager
         // Check session without blocking
         await authManager.checkExistingSession()
-        print("✅ [AppState] Auth initialized")
+        AppLogger.success("Auth initialized", category: "AppState")
     }
     
     private func initializeServices() async {
-        print("⚙️ [AppState] Initializing services...")
+        AppLogger.debug("Initializing services...", emoji: "⚙️", category: "AppState")
         
         // Initialize services that don't block
         _ = appPreferences
@@ -369,7 +369,7 @@ class AppState: ObservableObject {
         
         // Initialize subscription store with current user
         let userID = authManager.currentUser?.id.uuidString
-        print("[AppState] Setting subscription store userID to: \(userID ?? "nil")")
+        AppLogger.log("Setting subscription store userID to: \(userID ?? "nil")", category: "AppState")
         subscriptionStore.updateCurrentUser(userID: userID)
         
         // Defer heavy operations
@@ -378,19 +378,19 @@ class AppState: ObservableObject {
             await self.subscriptionStore.costEngine.refreshMetrics()
         }
         
-        print("✅ [AppState] Services initialized")
+        AppLogger.success("Services initialized", category: "AppState")
     }
     
     private func setupNotifications() async {
-        print("🔔 [AppState] Setting up notifications...")
+        AppLogger.debug("Setting up notifications...", emoji: "🔔", category: "AppState")
         notificationManager.setupNotificationCategories()
         notificationManager.requestNotificationPermission()
-        print("✅ [AppState] Notifications configured")
+        AppLogger.success("Notifications configured", category: "AppState")
     }
     
     // MARK: - Memory Management
     func handleMemoryWarning() {
-        print("⚠️ [AppState] Memory warning received - clearing caches")
+        AppLogger.warning("Memory warning received - clearing caches", category: "AppState")
         
         // Clear any in-memory caches
         subscriptionStore.clearCaches()
@@ -401,7 +401,7 @@ class AppState: ObservableObject {
         // Force Core Data to clear cached objects
         viewContext.refreshAllObjects()
         
-        print("✅ [AppState] Caches cleared")
+        AppLogger.success("Caches cleared", category: "AppState")
     }
 }
 

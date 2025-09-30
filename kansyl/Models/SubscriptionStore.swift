@@ -69,7 +69,7 @@ class SubscriptionStore: ObservableObject {
     }
     
     init(context: NSManagedObjectContext? = nil, userID: String? = nil) {
-        print("📚 [SubscriptionStore] Initializing with lazy loading...")
+        AppLogger.debug("Initializing with lazy loading...", emoji: "📚", category: "SubscriptionStore")
         self._viewContext = context
         self.currentUserID = userID
         // Set up remote change notifications for CloudKit
@@ -80,12 +80,11 @@ class SubscriptionStore: ObservableObject {
     // MARK: - Fetch Operations
     
     func fetchSubscriptions() {
-        print("[SubscriptionStore] 🔄 fetchSubscriptions called")
-        print("[SubscriptionStore] Current userID in fetchSubscriptions: \(currentUserID ?? "nil")")
-        print("[SubscriptionStore] ViewContext: \(viewContext)")
+        AppLogger.log("🔄 fetchSubscriptions called", category: "SubscriptionStore")
+        AppLogger.log("Current userID: \(currentUserID ?? "nil")", category: "SubscriptionStore")
         
         guard let userID = currentUserID else {
-            print("[SubscriptionStore] No userID, clearing subscriptions")
+            AppLogger.log("No userID, clearing subscriptions", category: "SubscriptionStore")
             // No user logged in, clear all subscriptions
             DispatchQueue.main.async { [weak self] in
                 self?.allSubscriptions = []
@@ -94,7 +93,7 @@ class SubscriptionStore: ObservableObject {
             return
         }
         
-        print("[SubscriptionStore] Fetching subscriptions for user: \(userID)")
+        AppLogger.log("Fetching subscriptions for user: \(userID)", category: "SubscriptionStore")
         
         // First, let's check ALL subscriptions in the database
         let allRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
@@ -116,7 +115,7 @@ class SubscriptionStore: ObservableObject {
         
         do {
             let subscriptions = try viewContext.fetch(request)
-            print("[SubscriptionStore] ✅ Fetched \(subscriptions.count) subscriptions for user \(userID)")
+            AppLogger.success("Fetched \(subscriptions.count) subscriptions for user \(userID)", category: "SubscriptionStore")
             
             for subscription in subscriptions {
                 print("[SubscriptionStore]   - \(subscription.name ?? "Unknown"): status=\(subscription.status ?? "nil"), type=\(subscription.subscriptionType ?? "nil"), endDate=\(subscription.endDate?.description ?? "nil")")
@@ -128,7 +127,7 @@ class SubscriptionStore: ObservableObject {
                 print("[SubscriptionStore] Updated categories - Active: \(self?.activeSubscriptions.count ?? 0)")
             }
         } catch {
-            print("[SubscriptionStore] ❌ Failed to fetch subscriptions: \(error.localizedDescription)")
+            AppLogger.error("Failed to fetch subscriptions: \(error.localizedDescription)", category: "SubscriptionStore")
             if let nsError = error as NSError? {
                 print("[SubscriptionStore] Error details: \(nsError.userInfo)")
             }
@@ -344,8 +343,7 @@ class SubscriptionStore: ObservableObject {
     // MARK: - Core Data
     
     func saveContext() {
-        print("[SubscriptionStore] saveContext called")
-        print("[SubscriptionStore] Context hasChanges: \(viewContext.hasChanges)")
+        AppLogger.log("saveContext called - hasChanges: \(viewContext.hasChanges)", category: "SubscriptionStore")
         print("[SubscriptionStore] Inserted objects: \(viewContext.insertedObjects.count)")
         print("[SubscriptionStore] Updated objects: \(viewContext.updatedObjects.count)")
         print("[SubscriptionStore] Deleted objects: \(viewContext.deletedObjects.count)")
@@ -360,7 +358,7 @@ class SubscriptionStore: ObservableObject {
         if viewContext.hasChanges {
             do {
                 try viewContext.save()
-                print("[SubscriptionStore] ✅ Context saved successfully")
+                AppLogger.success("Context saved successfully", category: "SubscriptionStore")
                 
                 // Verify the save by fetching immediately
                 let verifyRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
@@ -371,8 +369,7 @@ class SubscriptionStore: ObservableObject {
                 print("[SubscriptionStore] Verification - Total subscriptions after save: \(count)")
                 
             } catch let error as NSError {
-                print("[SubscriptionStore] ❌ Failed to save context")
-                print("[SubscriptionStore] Error: \(error)")
+                AppLogger.error("Failed to save context: \(error)", category: "SubscriptionStore")
                 print("[SubscriptionStore] Error userInfo: \(error.userInfo)")
                 print("[SubscriptionStore] Error code: \(error.code)")
                 
@@ -457,7 +454,7 @@ class SubscriptionStore: ObservableObject {
     
     /// Clear in-memory caches to free up memory
     func clearCaches() {
-        print("[SubscriptionStore] Clearing caches due to memory pressure")
+        AppLogger.log("Clearing caches due to memory pressure", category: "SubscriptionStore")
         // Note: Don't clear @Published arrays as they're needed for UI
         // Only clear cached computations if they exist
         // The cost engine maintains its own caches
