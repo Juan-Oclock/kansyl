@@ -55,6 +55,29 @@ struct SavingsSpotlightCard: View {
         return monthlyRate * 12
     }
     
+    // Subscription type counts
+    private var trialCount: Int {
+        subscriptionStore.activeSubscriptions
+            .filter { SubscriptionType(rawValue: $0.subscriptionType ?? "trial") == .trial }
+            .count
+    }
+    
+    private var paidCount: Int {
+        subscriptionStore.activeSubscriptions
+            .filter { SubscriptionType(rawValue: $0.subscriptionType ?? "paid") == .paid }
+            .count
+    }
+    
+    private var promoCount: Int {
+        subscriptionStore.activeSubscriptions
+            .filter { SubscriptionType(rawValue: $0.subscriptionType ?? "promotional") == .promotional }
+            .count
+    }
+    
+    private var hasActiveSubscriptions: Bool {
+        trialCount + paidCount + promoCount > 0
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Minimal Header
@@ -147,6 +170,62 @@ struct SavingsSpotlightCard: View {
             }
             .padding(.top, 14)
             .padding(.bottom, 6)
+            
+            // Subscription Type Breakdown (if any active subscriptions)
+            if hasActiveSubscriptions {
+                VStack(spacing: 0) {
+                    Divider()
+                        .background(Color.white.opacity(0.12))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                    
+                    HStack(spacing: 12) {
+                        // Trial
+                        if trialCount > 0 {
+                            TypePill(
+                                icon: "clock.badge.checkmark",
+                                count: trialCount,
+                                label: "Trial",
+                                color: Color.orange
+                            )
+                        }
+                        
+                        // Premium
+                        if paidCount > 0 {
+                            if trialCount > 0 {
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(width: 3, height: 3)
+                            }
+                            
+                            TypePill(
+                                icon: "star.fill",
+                                count: paidCount,
+                                label: "Premium",
+                                color: Color(hex: "22C55E")
+                            )
+                        }
+                        
+                        // Promo
+                        if promoCount > 0 {
+                            if trialCount > 0 || paidCount > 0 {
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(width: 3, height: 3)
+                            }
+                            
+                            TypePill(
+                                icon: "gift",
+                                count: promoCount,
+                                label: "Promo",
+                                color: Color.purple
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                }
+            }
             
             // Expandable projection section
             if isExpanded {
@@ -255,6 +334,40 @@ struct MinimalMetric: View {
                     .tracking(0.3)
             }
         }
+    }
+}
+
+// Compact subscription type pill
+struct TypePill: View {
+    let icon: String
+    let count: Int
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(color)
+            
+            Text("\(count)")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+            
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(Color.white.opacity(0.7))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(color.opacity(0.15))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
