@@ -715,6 +715,8 @@ struct SubscriptionDetailView: View {
     let subscriptionStore: SubscriptionStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @State private var showingDeleteAlert = false
+    @State private var showingUseAgainSheet = false
     
     var body: some View {
         NavigationView {
@@ -759,6 +761,67 @@ struct SubscriptionDetailView: View {
                     .padding()
                     .background(colorScheme == .dark ? Color(hex: "252525") : Color(.secondarySystemBackground))
                     .cornerRadius(12)
+                    
+                    // Action Buttons
+                    VStack(spacing: 12) {
+                        // Use Again Button
+                        Button(action: {
+                            showingUseAgainSheet = true
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 16, weight: .semibold))
+                                
+                                Text("Use Again")
+                                    .font(.system(size: 17, weight: .semibold))
+                                
+                                Spacer()
+                                
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(hex: "3B82F6"),
+                                        Color(hex: "2563EB")
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(14)
+                            .shadow(color: Color(hex: "3B82F6").opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        
+                        // Delete Button
+                        Button(action: {
+                            showingDeleteAlert = true
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 16, weight: .semibold))
+                                
+                                Text("Delete")
+                                    .font(.system(size: 17, weight: .semibold))
+                                
+                                Spacer()
+                            }
+                            .foregroundColor(Color(hex: "EF4444"))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                            .background(Color(hex: "EF4444").opacity(0.1))
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color(hex: "EF4444").opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.top, 8)
                 }
                 .padding()
             }
@@ -774,6 +837,25 @@ struct SubscriptionDetailView: View {
             }
         }
         .halfHeightDetent()
+        .alert("Delete Subscription?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                subscriptionStore.deleteSubscription(subscription)
+                HapticManager.shared.playSuccess()
+                dismiss()
+            }
+        } message: {
+            Text("This will permanently delete this subscription from your history.")
+        }
+        .sheet(isPresented: $showingUseAgainSheet) {
+            AddSubscriptionView(
+                subscriptionStore: subscriptionStore,
+                prefilledServiceName: subscription.name,
+                onSave: { _ in
+                    dismiss()
+                }
+            )
+        }
     }
     
     @ViewBuilder
