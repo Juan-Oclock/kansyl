@@ -48,6 +48,8 @@ struct AddSubscriptionView: View {
     @State private var isServiceNameInvalid = false
     @State private var attempts = 0
     @State private var showingDaysPicker = false
+    @State private var showingAmountWarning = false
+    @State private var isAmountInvalid = false
     
     // Focus states for keyboard management
     @FocusState private var isFocused: Bool
@@ -179,6 +181,13 @@ struct AddSubscriptionView: View {
                     dismiss()
                 }
             }
+        }
+        .alert("Amount Required", isPresented: $showingAmountWarning) {
+            Button("OK", role: .cancel) {
+                isPriceFocused = true
+            }
+        } message: {
+            Text("Please enter an amount greater than \(userPreferences.currencySymbol)0 for \(subscriptionType.displayName) subscriptions.")
         }
         .onAppear {
             if startWithCustom {
@@ -592,6 +601,9 @@ struct AddSubscriptionView: View {
                             .foregroundColor(Design.Colors.textPrimary)
                             .multilineTextAlignment(.center)
                             .focused($isPriceFocused)
+                            .onChange(of: customPrice) { _ in
+                                isAmountInvalid = false
+                            }
                         
                         Text("/mo")
                             .font(.system(size: 15, weight: .medium))
@@ -602,6 +614,10 @@ struct AddSubscriptionView: View {
                     .padding(.vertical, 14)
                     .background(colorScheme == .dark ? Color(hex: "252525") : Design.Colors.surfaceSecondary)
                     .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isAmountInvalid ? Color.red : Color.clear, lineWidth: 2)
+                    )
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 20)
@@ -688,6 +704,14 @@ struct AddSubscriptionView: View {
                 self.attempts += 1
             }
             isFocused = true
+            return
+        }
+        
+        // Validate amount for Premium and Promo types
+        if (subscriptionType == .paid || subscriptionType == .promotional) && customPrice <= 0 {
+            isAmountInvalid = true
+            showingAmountWarning = true
+            HapticManager.shared.playError()
             return
         }
 

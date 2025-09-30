@@ -27,6 +27,8 @@ struct EditSubscriptionView: View {
     @State private var showingImagePicker = false
     @State private var saveError: String?
     @State private var subscriptionType: SubscriptionType
+    @State private var showingAmountWarning = false
+    @State private var isAmountInvalid = false
     
     // Focus states for keyboard management
     @FocusState private var isServiceNameFocused: Bool
@@ -107,6 +109,13 @@ struct EditSubscriptionView: View {
                 selectedImage = image
                 selectedLogo = "custom_uploaded_logo"
             }
+        }
+        .alert("Amount Required", isPresented: $showingAmountWarning) {
+            Button("OK", role: .cancel) {
+                isPriceFocused = true
+            }
+        } message: {
+            Text("Please enter an amount greater than \(userPreferences.currencySymbol)0 for \(subscriptionType.displayName) subscriptions.")
         }
     }
     
@@ -306,6 +315,9 @@ struct EditSubscriptionView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                             .focused($isPriceFocused)
+                            .onChange(of: monthlyPrice) { _ in
+                                isAmountInvalid = false
+                            }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -314,7 +326,7 @@ struct EditSubscriptionView: View {
                 .cornerRadius(12)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(isPriceFocused ? Design.Colors.primary : Color.clear, lineWidth: isPriceFocused ? 2 : 0)
+                        .stroke(isAmountInvalid ? Color.red : (isPriceFocused ? Design.Colors.primary : Color.clear), lineWidth: (isAmountInvalid || isPriceFocused) ? 2 : 0)
                 )
                 
                 // Subscription Type Picker
@@ -450,6 +462,14 @@ struct EditSubscriptionView: View {
         print("[EditSubscription] Starting save...")
         print("[EditSubscription] Current subscription type: \(subscription.subscriptionType ?? "nil")")
         print("[EditSubscription] New subscription type to save: \(subscriptionType.rawValue)")
+        
+        // Validate amount for Premium and Promo types
+        if (subscriptionType == .paid || subscriptionType == .promotional) && monthlyPrice <= 0 {
+            isAmountInvalid = true
+            showingAmountWarning = true
+            HapticManager.shared.playError()
+            return
+        }
         
         // Update the subscription with new values
         subscription.name = serviceName.isEmpty ? subscription.name : serviceName
