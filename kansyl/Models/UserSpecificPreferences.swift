@@ -225,11 +225,16 @@ class UserSpecificPreferences: ObservableObject {
     private func loadUserPreferences() {
         guard currentUserID != nil else { return }
         
+        print("🔍 [UserPrefs] Loading preferences for user: \(currentUserID ?? "nil")")
+        
         // Temporarily disable didSet to prevent recursive saves during loading
         let wasCompleted = loadPreference(for: "hasCompletedOnboarding", defaultValue: false)
         
         // Load all preferences for the current user
-        appTheme = AppTheme(rawValue: loadPreference(for: "appTheme", defaultValue: AppTheme.system.rawValue)) ?? .system
+        let loadedTheme = AppTheme(rawValue: loadPreference(for: "appTheme", defaultValue: AppTheme.system.rawValue)) ?? .system
+        print("🔍 [UserPrefs] Loaded theme: \(loadedTheme.rawValue)")
+        appTheme = loadedTheme
+        
         defaultTrialLength = loadPreference(for: "defaultTrialLength", defaultValue: 30)
         defaultTrialLengthUnit = TrialLengthUnit(rawValue: loadPreference(for: "defaultTrialLengthUnit", defaultValue: TrialLengthUnit.days.rawValue)) ?? .days
         

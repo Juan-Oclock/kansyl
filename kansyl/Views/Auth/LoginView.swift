@@ -14,6 +14,7 @@ struct LoginView: View {
     @EnvironmentObject private var userStateManager: UserStateManager
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var navigationCoordinator = NavigationCoordinator.shared
     @State private var showingEmailLogin = false
     @State private var email = ""
     @State private var password = ""
@@ -229,9 +230,29 @@ struct LoginView: View {
             startAnimationSequence()
         }
         .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            print("🔍 [LoginView] onChange triggered - isAuthenticated: \(isAuthenticated), isAnonymousMode: \(userStateManager.isAnonymousMode)")
             if isAuthenticated && !userStateManager.isAnonymousMode {
-                print("✅ [LoginView] User authenticated successfully, dismissing login view")
-                dismiss()
+                print("✅ [LoginView] User authenticated successfully, dismissing login view and navigating to subscriptions")
+                // Dismiss on next run loop to ensure state updates are complete
+                DispatchQueue.main.async {
+                    // Navigate to subscriptions tab
+                    navigationCoordinator.navigateToSubscriptions()
+                    // Then dismiss the login sheet
+                    dismiss()
+                }
+            }
+        }
+        .onChange(of: userStateManager.isAnonymousMode) { isAnonymous in
+            print("🔍 [LoginView] Anonymous mode changed to: \(isAnonymous), isAuthenticated: \(authManager.isAuthenticated)")
+            // If user just exited anonymous mode and is authenticated, dismiss
+            if !isAnonymous && authManager.isAuthenticated {
+                print("✅ [LoginView] Exited anonymous mode while authenticated, dismissing login view and navigating to subscriptions")
+                DispatchQueue.main.async {
+                    // Navigate to subscriptions tab
+                    navigationCoordinator.navigateToSubscriptions()
+                    // Then dismiss the login sheet
+                    dismiss()
+                }
             }
         }
         .sheet(isPresented: $showingEmailLogin) {

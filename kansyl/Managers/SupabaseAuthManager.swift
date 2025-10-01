@@ -204,14 +204,38 @@ class SupabaseAuthManager: ObservableObject {
         defer { isLoading = false }
         
         do {
-            _ = try await supabase.auth.signUp(
+            let response = try await supabase.auth.signUp(
                 email: email,
                 password: password,
                 data: ["full_name": .string(fullName)]
             )
             
-            // Exit anonymous mode after successful signup
-            UserStateManager.shared.exitAnonymousMode()
+            // Check if user was in anonymous mode BEFORE updating anything
+            let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
+            let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
+            
+            // Migrate anonymous data if user was anonymous
+            if wasInAnonymousMode {
+                if anonymousUserID != nil {
+                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, migrating data during signup...")
+                    do {
+                        try await UserStateManager.shared.migrateAnonymousDataToAccount(
+                            viewContext: PersistenceController.shared.container.viewContext,
+                            newUserID: response.user.id.uuidString
+                        )
+                        print("✅ [SupabaseAuthManager] Anonymous data migration completed during signup")
+                    } catch {
+                        print("❌ [SupabaseAuthManager] Migration failed during signup: \(error.localizedDescription)")
+                        // Continue anyway - don't block signup
+                        // Still need to disable anonymous mode even if migration failed
+                        UserStateManager.shared.exitAnonymousMode()
+                    }
+                } else {
+                    // User was in anonymous mode but no ID exists - just exit anonymous mode
+                    print("⚠️ [SupabaseAuthManager] User was in anonymous mode but no ID found during signup, exiting anonymous mode")
+                    UserStateManager.shared.exitAnonymousMode()
+                }
+            }
             
             // Profile will be created automatically by database trigger
             // Note: User will need to confirm email before they can sign in
@@ -230,13 +254,37 @@ class SupabaseAuthManager: ObservableObject {
         defer { isLoading = false }
         
         do {
-            _ = try await supabase.auth.signIn(
+            let response = try await supabase.auth.signIn(
                 email: email,
                 password: password
             )
             
-            // Exit anonymous mode after successful authentication
-            UserStateManager.shared.exitAnonymousMode()
+            // Check if user was in anonymous mode BEFORE updating anything
+            let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
+            let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
+            
+            // Migrate anonymous data if user was anonymous
+            if wasInAnonymousMode {
+                if anonymousUserID != nil {
+                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, migrating data during sign-in...")
+                    do {
+                        try await UserStateManager.shared.migrateAnonymousDataToAccount(
+                            viewContext: PersistenceController.shared.container.viewContext,
+                            newUserID: response.user.id.uuidString
+                        )
+                        print("✅ [SupabaseAuthManager] Anonymous data migration completed during sign-in")
+                    } catch {
+                        print("❌ [SupabaseAuthManager] Migration failed during sign-in: \(error.localizedDescription)")
+                        // Continue anyway - don't block sign-in
+                        // Still need to disable anonymous mode even if migration failed
+                        UserStateManager.shared.exitAnonymousMode()
+                    }
+                } else {
+                    // User was in anonymous mode but no ID exists - just exit anonymous mode
+                    print("⚠️ [SupabaseAuthManager] User was in anonymous mode but no ID found during sign-in, exiting anonymous mode")
+                    UserStateManager.shared.exitAnonymousMode()
+                }
+            }
             
             // Auth state listener will handle the rest
             
@@ -452,21 +500,43 @@ class SupabaseAuthManager: ObservableObject {
             print("👤 [SupabaseAuthManager] User ID: \(session.user.id)")
             print("📧 [SupabaseAuthManager] User email: \(session.user.email ?? "none")")
             
+            // Check if user was in anonymous mode BEFORE updating anything
+            let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
+            let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
+            
             await MainActor.run {
                 self.currentUser = self.convertAuthUser(session.user)
                 self.isAuthenticated = true
                 print("✅ [SupabaseAuthManager] Updated currentUser and isAuthenticated = true")
-                
-                // Update SubscriptionStore's userID
+            }
+            
+            // Migrate anonymous data if user was anonymous
+            if wasInAnonymousMode {
+                if anonymousUserID != nil {
+                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, migrating data...")
+                    do {
+                        try await UserStateManager.shared.migrateAnonymousDataToAccount(
+                            viewContext: PersistenceController.shared.container.viewContext,
+                            newUserID: session.user.id.uuidString
+                        )
+                        print("✅ [SupabaseAuthManager] Anonymous data migration completed")
+                    } catch {
+                        print("❌ [SupabaseAuthManager] Migration failed: \(error.localizedDescription)")
+                        // Continue anyway - don't block authentication
+                        // Still need to disable anonymous mode even if migration failed
+                        UserStateManager.shared.exitAnonymousMode()
+                    }
+                } else {
+                    // User was in anonymous mode but no ID exists - just exit anonymous mode
+                    print("⚠️ [SupabaseAuthManager] User was in anonymous mode but no ID found, exiting anonymous mode")
+                    UserStateManager.shared.exitAnonymousMode()
+                }
+            }
+            
+            await MainActor.run {
+                // Update SubscriptionStore's userID AFTER migration
                 SubscriptionStore.currentUserID = session.user.id.uuidString
                 print("✅ [SupabaseAuthManager] SubscriptionStore userID updated to: \(session.user.id.uuidString)")
-                
-                // Exit anonymous mode if user was in it
-                if UserStateManager.shared.isAnonymousMode {
-                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, exiting...")
-                    UserStateManager.shared.disableAnonymousMode()
-                    print("✅ [SupabaseAuthManager] Anonymous mode disabled")
-                }
             }
             
             print("📋 [SupabaseAuthManager] Loading user profile...")

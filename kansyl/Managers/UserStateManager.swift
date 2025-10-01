@@ -93,7 +93,12 @@ class UserStateManager: ObservableObject {
     func disableAnonymousMode() {
         UserDefaults.standard.removeObject(forKey: ANONYMOUS_MODE_KEY)
         UserDefaults.standard.removeObject(forKey: ANONYMOUS_USER_ID_KEY)
-        isAnonymousMode = false
+        
+        // Update UI on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.isAnonymousMode = false
+        }
+        
         print("✅ [UserStateManager] Anonymous mode disabled")
     }
     
