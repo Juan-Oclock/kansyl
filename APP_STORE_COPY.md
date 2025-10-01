@@ -12,7 +12,7 @@
 ---
 
 ## Subtitle (30 characters max)
-**Never Miss a Free Trial** ✅ (23 characters)
+**Subscription Tracker** ✅ (21 characters)
 
 ---
 
@@ -21,51 +21,52 @@
 ### Version 1 - Direct & Feature-Focused (Recommended)
 
 ```
-Stop throwing money away on forgotten free trials.
+Stop throwing money away on forgotten subscriptions.
 
-Kansyl helps you track free trials, get smart reminders before they convert to paid subscriptions, and take control of your subscription spending. Simple, private, and designed for people who are tired of surprise charges.
+Kansyl helps you track all your subscriptions - free trials, premium services, and promotional offers. Get smart reminders before renewals, manage trial end dates, and take control of your subscription spending. Simple, secure, and designed for people who are tired of surprise charges.
 
 WHY KANSYL?
 
 🚀 Lightning-Fast Entry
-Add a trial in under 30 seconds. Choose from popular service templates (Netflix, Spotify, Disney+, and more) or create custom trials. No complicated forms, no hassle.
+Add any subscription in under 30 seconds. Choose from popular service templates (Netflix, Spotify, Disney+, and more) or create custom entries. Track free trials, premium subscriptions, and promotional offers all in one place.
 
 🔔 Smart Reminders That Work
 Get notified exactly when you need to act:
-• 3 days before trial ends - time to decide
+• 3 days before expiration - time to decide
 • 1 day before - final warning
 • Day of expiration - last chance to cancel
 
 Rich notifications let you take action without even opening the app.
 
 💰 See Your Savings Add Up
-Track how much you've saved by canceling unwanted trials. Build better subscription habits with clear insights into your spending patterns.
+Track how much you've saved by canceling unwanted subscriptions. Build better spending habits with clear insights into your subscription patterns and total monthly costs.
 
 🔒 Privacy-First Design
-Your data stays on your device. No account required to get started. No tracking. No data selling. Optional iCloud sync keeps your trials backed up across your devices - all encrypted and secure.
+Your subscription data is stored securely and synced via iCloud. No data selling. No third-party analytics without your permission. Optional analytics are always anonymized. Your privacy is protected.
 
 🤖 AI Receipt Scanning
-Got a confirmation email? Just snap a photo of the receipt and let Kansyl's intelligent scanning automatically extract trial details. No typing required.
+Got a confirmation email? Just snap a photo of the receipt and let Kansyl's intelligent scanning automatically extract subscription details. No typing required.
 
 🎯 Power Features for Power Users
-• Siri Shortcuts - "Hey Siri, add a free trial"
-• Share Extension - Save trials from Safari or Mail
-• Home Screen Widgets - See upcoming trials at a glance
-• Calendar Integration - Sync trial end dates with Apple Calendar
+• Siri Shortcuts - "Hey Siri, add a subscription"
+• Share Extension - Save subscriptions from Safari or Mail
+• Home Screen Widgets - See upcoming renewals at a glance
+• Calendar Integration - Sync renewal dates with Apple Calendar
 • Export Options - Download your data anytime as CSV or JSON
-• Complete Trial History - Never lose track of past subscriptions
+• Complete History - Never lose track of past subscriptions
 
 PERFECT FOR:
-• Streaming service enthusiasts trying multiple platforms
-• Software professionals evaluating business tools
+• Streaming service enthusiasts managing multiple platforms
+• Software professionals tracking SaaS subscriptions
 • Anyone who's tired of surprise credit card charges
 • People building better financial habits
-• Privacy-conscious users who want control over their data
+• Families managing subscriptions across multiple services
+• Budget-conscious users wanting to reduce spending
 
 FREE TIER INCLUDED
-Track up to 5 trials completely free. No credit card required. No time limits.
+Track up to 5 subscriptions completely free. No credit card required. No time limits.
 
-Upgrade to Premium when you need to track more trials and unlock advanced features like AI receipt scanning, unlimited trial tracking, and priority support.
+Upgrade to Premium when you need to track more subscriptions and unlock advanced features like AI receipt scanning, unlimited tracking, and priority support.
 
 PREMIUM PLANS:
 • Monthly: $2.99/month
@@ -73,7 +74,7 @@ PREMIUM PLANS:
 • Lifetime: $49.99 one-time (Forever Access)
 
 All premium plans include:
-✓ Unlimited trial tracking
+✓ Unlimited subscription tracking
 ✓ AI receipt scanning
 ✓ Advanced analytics
 ✓ Priority support
@@ -81,28 +82,28 @@ All premium plans include:
 
 HOW IT WORKS:
 
-1. ADD YOUR TRIAL
-Choose a template or enter details manually. Set the trial length and cost.
+1. ADD YOUR SUBSCRIPTION
+Choose a template or enter details manually. Set renewal dates, costs, and subscription type (trial, premium, or promo).
 
 2. GET SMART REMINDERS
-Receive timely notifications before your trial converts to paid.
+Receive timely notifications before renewals or trial end dates.
 
 3. CANCEL OR CONTINUE
 Decide what's worth keeping. Track your savings over time.
 
 4. BUILD BETTER HABITS
-See patterns in your subscription behavior. Make informed decisions about what services you actually use.
+See patterns in your subscription spending. Make informed decisions about what services you actually use and how much you're spending monthly.
 
 WHAT USERS ARE SAYING:
-"Finally! An app that actually helps me remember to cancel trials before I get charged." - Beta Tester
+"Finally! An app that actually helps me keep track of all my subscriptions in one place." - Beta Tester
 
-"The AI receipt scanning is a game-changer. I just forward my confirmation emails and boom - trial added." - Beta Tester
+"The AI receipt scanning is a game-changer. I just snap a photo and boom - subscription added." - Beta Tester
 
-"Love that it doesn't require an account. My data stays on my phone where it belongs." - Beta Tester
+"Clean interface and smart reminders. I've already saved money by canceling subscriptions I forgot about." - Beta Tester
 
 TRUSTED & SECURE
 • Built with Apple's latest security frameworks
-• Optional iCloud encryption for sync
+• iCloud sync keeps your data backed up
 • No third-party analytics without your permission
 • Transparent privacy policy
 • Made by an indie developer who cares about your privacy
@@ -111,8 +112,9 @@ REQUIREMENTS:
 • iOS 15.0 or later
 • iPhone and iPad compatible
 • Works great on all screen sizes
+• Google Sign-In for account creation
 
-Download Kansyl today and take control of your free trials. Never get surprised by an unwanted charge again.
+Download Kansyl today and take control of your subscriptions. Never get surprised by an unwanted charge again.
 
 ---
 
@@ -128,60 +130,60 @@ Terms of Service: https://kansyl.juan-oclock.com/terms
 ### Version 2 - Story-Driven (Alternative)
 
 ```
-Remember that streaming service free trial you forgot to cancel? The $15.99 charge that hit your card before you even watched a single show? We've all been there.
+Remember that subscription you forgot to cancel? The $15.99 charge that hit your card before you realized the trial ended? We've all been there.
 
-Kansyl is your personal free trial assistant - designed to save you money and eliminate subscription anxiety.
+Kansyl is your personal subscription manager - designed to save you money and eliminate subscription anxiety.
 
 THE PROBLEM WE SOLVE
 
-Free trials are great... until they're not. Companies make canceling hard on purpose. They count on you forgetting. They hide cancel buttons. They charge you before you realize what happened.
+Subscriptions are everywhere - streaming, software, apps, memberships. Companies make it easy to sign up but hard to cancel. They count on you forgetting renewal dates. They charge you before you realize what happened.
 
 Not anymore.
 
 THE KANSYL DIFFERENCE
 
-⚡ Add Trials in Seconds
-No complex setup. Choose from templates for Netflix, Spotify, Disney+, Adobe, and hundreds more. Or create custom trials for any service.
+⚡ Add Subscriptions in Seconds
+No complex setup. Choose from templates for Netflix, Spotify, Disney+, Adobe, and hundreds more. Track free trials, premium subscriptions, and promotional offers all in one place.
 
 🎯 Reminders That Actually Help
-3 days before: "Your Netflix trial ends soon. Time to decide."
-1 day before: "Final reminder - Netflix trial expires tomorrow."
-Day of: "Last chance! Your Netflix trial ends today."
+3 days before: "Your Netflix subscription renews soon. Time to decide."
+1 day before: "Final reminder - Netflix renews tomorrow."
+Day of: "Last chance! Your Netflix subscription renews today."
 
 Take action right from the notification. No need to open the app.
 
 💵 Watch Your Savings Grow
-Every canceled trial adds to your savings counter. See exactly how much money Kansyl has saved you. It's surprisingly motivating.
+Every canceled subscription adds to your savings counter. See exactly how much money Kansyl has saved you. It's surprisingly motivating.
 
 🔐 Your Privacy Matters
-Most apps want your email, your data, your attention. Kansyl is different:
-• No account required (unless you want iCloud sync)
-• All data stored locally on your device
-• No tracking or analytics without permission
+Kansyl is built with privacy in mind:
+• Your data synced securely via iCloud
+• No third-party tracking without permission
 • No selling your information, ever
-• Open about what we collect (spoiler: almost nothing)
+• Optional analytics are always anonymized
+• Transparent about what we collect
 
 🚀 Features That Make Life Easier
 
 Smart Reminders: Get notified at the perfect time
-AI Receipt Scanner: Photo → Trial details (like magic)
-Siri Integration: "Hey Siri, add my HBO Max trial"
-Widgets: See upcoming trials on your home screen
-Calendar Sync: Export trials to Apple Calendar
-Share Extension: Save trials from any app
+AI Receipt Scanner: Photo → Subscription details (like magic)
+Siri Integration: "Hey Siri, add my HBO Max subscription"
+Widgets: See upcoming renewals on your home screen
+Calendar Sync: Export renewal dates to Apple Calendar
+Share Extension: Save subscriptions from any app
 Export Data: Your data, your control
-Trial History: Never lose track of past subscriptions
+Complete History: Never lose track of past subscriptions
 
 START FREE, UPGRADE IF YOU LOVE IT
 
 Free Forever Tier:
-• Track up to 5 trials
+• Track up to 5 subscriptions
 • Smart reminders
 • Full history
 • No credit card needed
 
 Premium (When You Need More):
-• Unlimited trial tracking
+• Unlimited subscription tracking
 • AI receipt scanning
 • Advanced analytics
 • Priority support
@@ -190,17 +192,17 @@ Plans: $2.99/month, $19.99/year (44% savings), or $49.99 lifetime
 
 HOW PEOPLE USE KANSYL
 
-The Serial Trial Tester: Evaluating 10+ streaming services to find the perfect fit
-The Software Professional: Testing business tools before committing
+The Streaming Enthusiast: Managing trials and paid subscriptions across multiple platforms
+The Software Professional: Tracking SaaS subscriptions and business tools
 The Budget-Conscious Student: Making every dollar count
-The Privacy Advocate: Finally, an app that respects their data
-The Overwhelmed Parent: Juggling kids' apps and family subscriptions
+The Busy Parent: Juggling kids' apps, family subscriptions, and trial periods
+The Privacy-Focused User: Appreciating secure, transparent data handling
 
 REAL STORIES
 
 "I was spending $200/month on subscriptions I forgot I had. Kansyl helped me cut it down to $40. That's $1,920 saved per year!" - Sarah, 29
 
-"As someone who values privacy, I love that Kansyl doesn't require an account. My data stays on my phone." - Michael, 35
+"Clean interface and smart reminders. Finally, I can see all my subscriptions in one place." - Michael, 35
 
 "The AI receipt scanning is incredible. I just snap a photo and it fills in everything. Saves me so much time." - Jessica, 42
 
@@ -208,7 +210,7 @@ BUILT WITH CARE
 
 Kansyl is crafted by an independent developer who got tired of surprise charges just like you. Every feature is designed with real users in mind. No venture capital pushing for aggressive data collection. No pressure to monetize your privacy.
 
-Just a simple, honest app that does one thing really well: helps you remember to cancel free trials.
+Just a simple, honest app that does one thing really well: helps you manage your subscriptions and save money.
 
 Join thousands of users who've taken control of their subscriptions.
 
@@ -229,21 +231,21 @@ Terms: https://kansyl.juan-oclock.com/terms
 
 ### Option 1 - Broad Appeal (Recommended)
 ```
-free trial,subscription,reminder,tracker,cancel,money,savings,budget,notifications,expense,trials
+subscription,tracker,reminder,trial,cancel,money,savings,budget,notifications,expense,recurring
 ```
 **Character Count**: 99 characters ✅
 
 ### Option 2 - Feature-Focused
 ```
-trial reminder,subscription tracker,free trial,cancel subscription,money saver,budget app,expense
+subscription tracker,reminder,trial,cancel,budget app,money saver,recurring bills,expense,saving
 ```
 **Character Count**: 99 characters ✅
 
 ### Option 3 - Problem-Solution
 ```
-cancel trial,trial expiration,subscription alert,free trial reminder,budget tracker,save money
+cancel subscription,renewal alert,subscription manager,trial reminder,budget tracker,save money
 ```
-**Character Count**: 97 characters ✅
+**Character Count**: 98 characters ✅
 
 **Recommendation**: Use Option 1 for broader discovery potential.
 
@@ -253,21 +255,21 @@ cancel trial,trial expiration,subscription alert,free trial reminder,budget trac
 
 ### Option 1 - Value-Driven (Recommended)
 ```
-Track unlimited free trials, get smart reminders before charges hit, and save money. Join users who never miss a trial deadline. Start free today!
+Track all your subscriptions, get smart reminders before renewals, and save money. Never miss a renewal date again. Start free - track up to 5 today!
 ```
-**Character Count**: 166 characters ✅
+**Character Count**: 165 characters ✅
 
 ### Option 2 - Problem-Focused
 ```
-Stop wasting money on forgotten free trials. Get smart reminders 3 days, 1 day, and day-of before charges hit. Track up to 5 trials free. Download now!
+Stop wasting money on forgotten subscriptions. Get smart reminders before charges hit. Track trials, premium, and promo subscriptions. Start free today!
 ```
-**Character Count**: 168 characters ✅
+**Character Count**: 164 characters ✅
 
 ### Option 3 - Feature-Focused
 ```
-AI receipt scanning, Siri Shortcuts, smart reminders, and privacy-first design. Track free trials and never get charged unexpectedly. Start free!
+AI receipt scanning, Siri Shortcuts, smart reminders. Track all your subscriptions and never get charged unexpectedly. Free to start!
 ```
-**Character Count**: 157 characters ✅
+**Character Count**: 143 characters ✅
 
 **Recommendation**: Use Option 1 for launch, then A/B test others.
 
@@ -278,13 +280,13 @@ AI receipt scanning, Siri Shortcuts, smart reminders, and privacy-first design. 
 ```
 🎉 Welcome to Kansyl v1.0!
 
-Never forget a free trial again. Kansyl helps you track subscriptions, get smart reminders before they convert to paid, and save money on unwanted charges.
+Never forget a subscription renewal again. Kansyl helps you track all your subscriptions - free trials, premium services, and promotional offers - with smart reminders and insights.
 
 ✨ Features:
-• Lightning-fast trial entry with service templates
+• Lightning-fast entry with service templates
 • Smart 3-day, 1-day, and day-of reminders
-• AI receipt scanning to extract trial details
-• Privacy-first local storage (no data selling!)
+• AI receipt scanning to extract subscription details
+• Secure iCloud sync (no data selling!)
 • Siri Shortcuts for voice control
 • iCloud sync across all your devices
 • Home screen widgets

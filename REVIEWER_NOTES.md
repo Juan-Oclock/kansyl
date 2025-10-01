@@ -10,23 +10,23 @@
 
 ## 📱 App Overview
 
-Kansyl is a free trial reminder app that helps users track subscription trials and receive timely notifications before trials convert to paid subscriptions. The app is designed to help users save money by avoiding forgotten trial charges.
+Kansyl is a subscription tracking app that helps users manage all their subscriptions - free trials, premium services, and promotional offers. Users receive timely notifications before renewals or trial end dates. The app is designed to help users save money by avoiding forgotten charges and managing subscription spending.
 
-**Core Value Proposition**: Never get charged for a forgotten free trial again.
+**Core Value Proposition**: Track all your subscriptions and never miss a renewal date.
 
 ---
 
 ## 🎯 Core Functionality
 
 ### Primary Features:
-1. **Trial Management**: Users can add, edit, and delete free trial subscriptions
-2. **Smart Notifications**: 3-day, 1-day, and day-of reminders before trial ends
-3. **Savings Tracking**: Dashboard showing money saved by canceling trials
+1. **Subscription Management**: Users can add, edit, and delete all types of subscriptions (trials, premium, promo)
+2. **Smart Notifications**: 3-day, 1-day, and day-of reminders before renewals or trial ends
+3. **Savings Tracking**: Dashboard showing money saved by canceling subscriptions
 4. **Service Templates**: Pre-configured templates for popular services (Netflix, Spotify, etc.)
-5. **Privacy-First Design**: All data stored locally using Core Data
+5. **Secure Data Storage**: Data synced via iCloud, stored securely
 
 ### Premium Features (In-App Purchase):
-- Unlimited trial tracking (free tier limited to 5 trials)
+- Unlimited subscription tracking (free tier limited to 5 subscriptions)
 - AI receipt scanning (using DeepSeek API)
 - Advanced analytics and insights
 - Priority support
@@ -35,20 +35,20 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 
 ## 🔐 Account & Authentication
 
-### Sign-In Options:
-- **Google Sign-In** (via Supabase Authentication)
-- **Continue Without Account** (local-only mode)
+### Sign-In Requirement:
+- **Google Sign-In** (via Supabase Authentication) - **REQUIRED**
+- Users must create an account to use the app
 
 ### Important Notes:
-✅ **Account is OPTIONAL** - Users can use the app fully without signing in  
-✅ Data is stored locally in Core Data regardless of sign-in status  
-✅ iCloud sync is available for signed-in users  
-✅ No personal data is collected unless user explicitly signs in
+✅ **Account is REQUIRED** - Users need to sign in with Google to use the app  
+✅ Data is synced via iCloud automatically once signed in  
+✅ Free tier allows tracking up to 5 subscriptions  
+✅ Email address is collected for authentication and sync purposes
 
 ### For Testing:
-- The app works perfectly without any sign-in
-- If you'd like to test sign-in features, you can use any Google account
-- Demo Google account (if needed):
+- You'll need to sign in with a Google account to use the app
+- You can use any Google account for testing
+- Demo Google account (if you prefer not to use your own):
   - Email: [To be provided if required]
   - Password: [To be provided if required]
 
@@ -58,41 +58,43 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 
 ### Quick Start Test Flow (5 minutes):
 
-1. **Launch App**
+1. **Launch App & Sign In**
    - You'll see the onboarding screen (first launch only)
    - Tap through the onboarding (3 screens)
+   - **Sign in with Google** when prompted
    - Grant notification permissions when prompted
 
-2. **Add a Trial**
+2. **Add a Subscription**
    - Tap the "+" button in the bottom right
    - Select a template (e.g., "Netflix")
-   - Set trial length (default is 7 days)
-   - Set monthly cost (e.g., $15.99)
-   - Tap "Add Trial"
+   - Choose subscription type (Trial, Premium, or Promo)
+   - Set dates and cost
+   - Tap "Add Subscription"
 
-3. **View Your Trials**
-   - See the trial card on the main screen
-   - Shows days remaining, end date, and monthly cost
+3. **View Your Subscriptions**
+   - See the subscription card on the main screen
+   - Shows days remaining, renewal date, and monthly cost
    - Swipe left to see quick actions
 
 4. **Check Notifications**
    - Notifications are scheduled automatically
-   - To test immediately: Set a trial with 3 days duration
+   - To test immediately: Set a subscription expiring in 3 days
    - You'll see notification scheduled for today
 
 5. **Explore Features**
-   - Tap on a trial to see details
+   - Tap on a subscription to see details
    - Check the savings dashboard (bottom tab)
    - Go to Settings to explore options
+   - Sign out if desired (Settings → Sign Out)
 
 ---
 
 ## 🔔 Notification Testing
 
 ### Notification Schedule:
-- **3 days before**: "Your [Service] trial ends in 3 days"
-- **1 day before**: "Final reminder: [Service] trial ends tomorrow"
-- **Day of**: "Last chance! Your [Service] trial ends today"
+- **3 days before**: "Your [Service] subscription renews in 3 days" or "Your [Service] trial ends in 3 days"
+- **1 day before**: "Final reminder: [Service] renews/ends tomorrow"
+- **Day of**: "Last chance! Your [Service] subscription renews/ends today"
 
 ### Testing Notifications:
 1. Add a trial with 3-day duration
@@ -110,12 +112,12 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 
 ## 🌐 Third-Party Services
 
-### 1. Supabase (Authentication & Optional Sync)
-- **Purpose**: User authentication (Google Sign-In) and optional cloud sync
-- **Usage**: Only if user chooses to sign in (OPTIONAL)
-- **Data Stored**: Email address, user ID, trial data (if sync enabled)
-- **Privacy**: End-to-end encryption for synced data
-- **Can App Work Without It?**: YES - Full functionality works locally
+### 1. Supabase (Authentication & Required Sync)
+- **Purpose**: User authentication (Google Sign-In) and cloud sync
+- **Usage**: REQUIRED for app functionality
+- **Data Stored**: Email address, user ID, subscription data (synced via iCloud)
+- **Privacy**: Secure iCloud sync, data encrypted
+- **Can App Work Without It?**: NO - Sign-in is required to use the app
 
 ### 2. DeepSeek AI (Receipt Scanning)
 - **Purpose**: AI-powered receipt text extraction
@@ -138,16 +140,12 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 
 ### What Data We Collect:
 
-#### Without Sign-In (Local Mode):
-- ✅ Trial subscription data (service name, cost, dates) - **stored locally only**
-- ✅ User preferences (theme, notification settings) - **stored locally only**
-- ❌ NO email or personal information
-- ❌ NO tracking or analytics (unless user opts in)
-
-#### With Sign-In (Optional):
-- ✅ Email address (from Google auth)
+#### With Sign-In (Required for App Use):
+- ✅ Email address (from Google authentication)
 - ✅ User ID (generated by Supabase)
-- ✅ Trial data (if iCloud sync enabled)
+- ✅ Subscription data (service name, cost, dates, renewal dates)
+- ✅ User preferences (theme, notification settings)
+- ✅ iCloud sync automatically enabled
 - ❌ NO passwords (handled by Google/Supabase)
 - ❌ NO credit card information
 
@@ -157,9 +155,9 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 - ✅ Can be disabled in Settings → Advanced
 
 ### Data Storage:
-- **Local**: Core Data (SQLite database on device)
-- **Cloud**: iCloud (optional, encrypted, user-controlled)
-- **No Third-Party Analytics**: We don't use Google Analytics, Mixpanel, etc.
+- **Cloud**: iCloud (automatic sync when signed in, encrypted)
+- **Local Cache**: Core Data (SQLite database on device)
+- **No Third-Party Analytics**: We don't use Google Analytics, Mixpanel, etc. (unless user opts in)
 
 ### Privacy Policy:
 📄 https://kansyl.juan-oclock.com/privacy
@@ -177,7 +175,7 @@ Kansyl is a free trial reminder app that helps users track subscription trials a
 3. **Lifetime Premium**: $49.99 (one-time purchase)
 
 ### What Premium Includes:
-- Unlimited trial tracking (free tier: 5 trials)
+- Unlimited subscription tracking (free tier: 5 subscriptions)
 - AI receipt scanning
 - Advanced analytics
 - Priority support
