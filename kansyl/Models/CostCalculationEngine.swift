@@ -212,7 +212,7 @@ class CostCalculationEngine: ObservableObject {
     // MARK: - User ID Helper
     
     private func getCurrentUserID() -> String? {
-        return SubscriptionStore.shared.currentUserID
+        return SubscriptionStore.currentUserID
     }
     
     // MARK: - Analytics Helpers

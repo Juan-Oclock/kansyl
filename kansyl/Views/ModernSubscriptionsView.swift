@@ -133,6 +133,7 @@ struct ModernSubscriptionsView: View {
             }
             .sheet(isPresented: $showingPremiumRequired) {
                 PremiumFeatureView()
+                    .environmentObject(authManager)
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {

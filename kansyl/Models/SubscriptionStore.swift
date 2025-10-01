@@ -58,12 +58,13 @@ class SubscriptionStore: ObservableObject {
     @Published var allSubscriptions: [Subscription] = []
     @Published var recentlyEndedSubscriptions: [Subscription] = []
     
-    // Current user ID for data isolation
-    @Published var currentUserID: String? {
+    // Current user ID for data isolation - STATIC so it's shared across all instances
+    static var currentUserID: String? {
         didSet {
-            // Only fetch if we have a context ready
-            if _viewContext != nil {
-                fetchSubscriptions()
+            print("🔵 [SubscriptionStore] STATIC currentUserID changed from \(oldValue ?? "nil") to \(currentUserID ?? "nil")")
+            // Notify the shared instance to fetch subscriptions
+            DispatchQueue.main.async {
+                SubscriptionStore.shared.fetchSubscriptions()
             }
         }
     }
@@ -71,7 +72,9 @@ class SubscriptionStore: ObservableObject {
     init(context: NSManagedObjectContext? = nil, userID: String? = nil) {
         AppLogger.debug("Initializing with lazy loading...", emoji: "📚", category: "SubscriptionStore")
         self._viewContext = context
-        self.currentUserID = userID
+        if let userID = userID {
+            SubscriptionStore.currentUserID = userID
+        }
         // Set up remote change notifications for CloudKit
         setupRemoteChangeNotifications()
         // Don't fetch subscriptions on init - wait until context is accessed
@@ -81,9 +84,9 @@ class SubscriptionStore: ObservableObject {
     
     func fetchSubscriptions() {
         AppLogger.log("🔄 fetchSubscriptions called", category: "SubscriptionStore")
-        AppLogger.log("Current userID: \(currentUserID ?? "nil")", category: "SubscriptionStore")
+        AppLogger.log("Current userID: \(SubscriptionStore.currentUserID ?? "nil")", category: "SubscriptionStore")
         
-        guard let userID = currentUserID else {
+        guard let userID = SubscriptionStore.currentUserID else {
             AppLogger.log("No userID, clearing subscriptions", category: "SubscriptionStore")
             // No user logged in, clear all subscriptions
             DispatchQueue.main.async { [weak self] in
@@ -152,10 +155,15 @@ class SubscriptionStore: ObservableObject {
                   originalAmount: Double? = nil, exchangeRate: Double? = nil,
                   subscriptionType: SubscriptionType? = nil) -> Subscription? {
         
-        AppLogger.log("Adding subscription: \(name) for userID: \(currentUserID ?? "nil")", category: "SubscriptionStore")
+        print("🔵 [SubscriptionStore] addSubscription called")
+        print("🔵 [SubscriptionStore] SubscriptionStore.currentUserID = \(SubscriptionStore.currentUserID ?? "nil")")
+        print("🔵 [SubscriptionStore] SubscriptionStore.shared === self? \(SubscriptionStore.shared === self)")
         
-        guard let userID = currentUserID else {
+        AppLogger.log("Adding subscription: \(name) for userID: \(SubscriptionStore.currentUserID ?? "nil")", category: "SubscriptionStore")
+        
+        guard let userID = SubscriptionStore.currentUserID else {
             AppLogger.warning("No userID found, cannot add subscription", category: "SubscriptionStore")
+            print("⚠️ [SubscriptionStore] Returning nil due to missing userID")
             return nil
         }
         
@@ -276,7 +284,7 @@ class SubscriptionStore: ObservableObject {
     // MARK: - User Management
     
     func updateCurrentUser(userID: String?) {
-        self.currentUserID = userID
+        SubscriptionStore.currentUserID = userID
     }
     
     // MARK: - Helper Methods

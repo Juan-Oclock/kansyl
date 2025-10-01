@@ -9,10 +9,17 @@ import SwiftUI
 
 struct PremiumFeaturesView: View {
     @ObservedObject var appPreferences = AppPreferences.shared
+    @EnvironmentObject private var authManager: SupabaseAuthManager
+    @ObservedObject private var userStateManager = UserStateManager.shared
+    @ObservedObject private var premiumManager = PremiumManager.shared
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedPlan = PremiumPlan.yearly
     @State private var showingPurchaseAlert = false
+    @State private var showingSignInRequired = false
+    @State private var showingSignInSheet = false
+    @State private var isPurchasing = false
+    @State private var purchaseErrorMessage = ""
     
     enum PremiumPlan: String, CaseIterable {
         case monthly = "monthly"
@@ -78,12 +85,23 @@ struct PremiumFeaturesView: View {
                 }
             )
         }
-        .alert(isPresented: $showingPurchaseAlert) {
-            Alert(
-                title: Text("Coming Soon"),
-                message: Text("Premium features will be available in the next update. Stay tuned!"),
-                dismissButton: .default(Text("OK"))
-            )
+        .alert("Sign In Required", isPresented: $showingSignInRequired) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign In") {
+                showingSignInSheet = true
+            }
+        } message: {
+            Text("You need to sign in or create an account before purchasing premium features. This ensures your purchase is linked to your account.")
+        }
+        .alert("Purchase Error", isPresented: $showingPurchaseAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(purchaseErrorMessage)
+        }
+        .sheet(isPresented: $showingSignInSheet) {
+            LoginView()
+                .environmentObject(authManager)
+                .environmentObject(userStateManager)
         }
     }
     
@@ -203,24 +221,83 @@ struct PremiumFeaturesView: View {
     
     // MARK: - Purchase Button
     private var purchaseButton: some View {
-        Button(action: { showingPurchaseAlert = true }) {
-            VStack(spacing: 4) {
-                Text("Start Free Trial")
-                    .font(.headline)
-                Text("7 days free, then \(selectedPlan.price) \(selectedPlan.duration)")
-                    .font(.caption)
+        Button(action: handlePurchase) {
+            HStack {
+                if isPurchasing {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .padding(.trailing, 8)
+                }
+                
+                VStack(spacing: 4) {
+                    Text(isPurchasing ? "Processing..." : "Start Premium")
+                        .font(.headline)
+                    if !isPurchasing {
+                        Text(selectedPlan.price + " " + selectedPlan.duration)
+                            .font(.caption)
+                    }
+                }
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding()
             .background(
                 LinearGradient(
-                    colors: [Color.blue, Color.purple],
+                    colors: isPurchasing ? [Color.gray, Color.gray] : [Color.blue, Color.purple],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .cornerRadius(16)
+        }
+        .disabled(isPurchasing)
+    }
+    
+    // MARK: - Purchase Handler
+    private func handlePurchase() {
+        print("🛒 [PremiumFeaturesView] Purchase button tapped")
+        print("🔐 [PremiumFeaturesView] isAuthenticated: \(authManager.isAuthenticated)")
+        print("👤 [PremiumFeaturesView] isAnonymousMode: \(userStateManager.isAnonymousMode)")
+        
+        // Check if user is authenticated
+        if !authManager.isAuthenticated || userStateManager.isAnonymousMode {
+            print("⚠️ [PremiumFeaturesView] User not authenticated, showing sign-in prompt")
+            showingSignInRequired = true
+            return
+        }
+        
+        // Proceed with purchase
+        print("✅ [PremiumFeaturesView] User authenticated, initiating purchase")
+        isPurchasing = true
+        
+        Task {
+            let isYearly = selectedPlan == .yearly
+            await premiumManager.purchase(yearly: isYearly)
+            
+            await MainActor.run {
+                isPurchasing = false
+                
+                switch premiumManager.purchaseState {
+                case .purchased:
+                    print("✅ [PremiumFeaturesView] Purchase successful")
+                    presentationMode.wrappedValue.dismiss()
+                case .failed(let error):
+                    print("❌ [PremiumFeaturesView] Purchase failed: \(error.localizedDescription)")
+                    
+                    // Check if it's a simulator error
+                    if let premiumError = error as? PremiumError, premiumError == .simulatorNotSupported {
+                        purchaseErrorMessage = "In-app purchases are not supported on the iOS Simulator. Please test on a real device or use the DEBUG toggle in Settings to enable test premium."
+                    } else {
+                        purchaseErrorMessage = error.localizedDescription
+                    }
+                    
+                    showingPurchaseAlert = true
+                case .idle:
+                    print("ℹ️ [PremiumFeaturesView] Purchase cancelled or pending")
+                default:
+                    break
+                }
+            }
         }
     }
     

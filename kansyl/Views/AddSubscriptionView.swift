@@ -17,6 +17,7 @@ struct AddSubscriptionView: View {
     @ObservedObject private var appPreferences = AppPreferences.shared
     @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var premiumManager = PremiumManager.shared
+    @ObservedObject private var userStateManager = UserStateManager.shared
     
     // Optional prefilled service name from Siri Shortcuts
     var prefilledServiceName: String? = nil
@@ -50,6 +51,7 @@ struct AddSubscriptionView: View {
     @State private var showingDaysPicker = false
     @State private var showingAmountWarning = false
     @State private var isAmountInvalid = false
+    @State private var showingSubscriptionLimitPrompt = false
     
     // Focus states for keyboard management
     @FocusState private var isFocused: Bool
@@ -138,6 +140,7 @@ struct AddSubscriptionView: View {
         .navigationBarHidden(true)
         .sheet(isPresented: $showingPremiumRequired) {
             PremiumFeatureView()
+                .environmentObject(SupabaseAuthManager.shared)
         }
         .sheet(isPresented: $showingAllServices) {
             AllServicesSheet(selectedService: $selectedService, 
@@ -188,6 +191,18 @@ struct AddSubscriptionView: View {
             }
         } message: {
             Text("Please enter an amount greater than \(userPreferences.currencySymbol)0 for \(subscriptionType.displayName) subscriptions.")
+        }
+        .sheet(isPresented: $showingSubscriptionLimitPrompt) {
+            SubscriptionLimitPromptView()
+                .environmentObject(SupabaseAuthManager.shared)
+                .environmentObject(userStateManager)
+                .onDisappear {
+                    // If user signed in, allow them to continue
+                    if !userStateManager.isAnonymousMode || SupabaseAuthManager.shared.isAuthenticated {
+                        // Retry saving after authentication
+                        saveSubscription()
+                    }
+                }
         }
         .onAppear {
             if startWithCustom {
@@ -713,6 +728,16 @@ struct AddSubscriptionView: View {
             showingAmountWarning = true
             HapticManager.shared.playError()
             return
+        }
+        
+        // Check anonymous mode subscription limit
+        if userStateManager.isAnonymousMode && !SupabaseAuthManager.shared.isAuthenticated {
+            let currentCount = subscriptionStore.allSubscriptions.count
+            if currentCount >= userStateManager.anonymousSubscriptionLimit {
+                showingSubscriptionLimitPrompt = true
+                HapticManager.shared.playError()
+                return
+            }
         }
 
         // Check premium limits - count all subscriptions (not just active)

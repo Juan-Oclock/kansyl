@@ -11,6 +11,8 @@ import StoreKit
 struct PremiumFeatureView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var authManager: SupabaseAuthManager
+    @ObservedObject private var userStateManager = UserStateManager.shared
     @ObservedObject private var premiumManager = PremiumManager.shared
     
     var isForSubscriptionLimit: Bool = false
@@ -20,6 +22,8 @@ struct PremiumFeatureView: View {
     @State private var isPurchasing = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var showingSignInRequired = false
+    @State private var showingSignInSheet = false
     
     var body: some View {
         NavigationView {
@@ -61,10 +65,23 @@ struct PremiumFeatureView: View {
                     }
                 }
             }
+            .alert("Sign In Required", isPresented: $showingSignInRequired) {
+                Button("Cancel", role: .cancel) { }
+                Button("Sign In") {
+                    showingSignInSheet = true
+                }
+            } message: {
+                Text("You need to sign in or create an account before purchasing premium features. This ensures your purchase is linked to your account.")
+            }
             .alert("Purchase Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .sheet(isPresented: $showingSignInSheet) {
+                LoginView()
+                    .environmentObject(authManager)
+                    .environmentObject(userStateManager)
             }
         }
     }
@@ -229,14 +246,18 @@ struct PremiumFeatureView: View {
     // MARK: - Purchase Button
     private var purchaseButton: some View {
         Button(action: {
+            print("🛒 [PremiumFeatureView] Purchase button tapped")
+            print("🔐 [PremiumFeatureView] isAuthenticated: \(authManager.isAuthenticated)")
+            print("👤 [PremiumFeatureView] isAnonymousMode: \(userStateManager.isAnonymousMode)")
+            
+            // Check if user is authenticated FIRST
+            if !authManager.isAuthenticated || userStateManager.isAnonymousMode {
+                print("⚠️ [PremiumFeatureView] User not authenticated, showing sign-in prompt")
+                showingSignInRequired = true
+                return
+            }
+            
             Task {
-                // Check if products are loaded
-                guard premiumManager.getMonthlyPrice() != nil || premiumManager.getYearlyPrice() != nil else {
-                    errorMessage = "Unable to load premium products. Please check your internet connection and try again."
-                    showingError = true
-                    return
-                }
-                
                 isPurchasing = true
                 HapticManager.shared.playButtonTap()
                 
@@ -253,7 +274,14 @@ struct PremiumFeatureView: View {
                     }
                 case .failed(let error):
                     HapticManager.shared.playError()
-                    errorMessage = error.localizedDescription
+                    
+                    // Check if it's a simulator error
+                    if let premiumError = error as? PremiumError, premiumError == .simulatorNotSupported {
+                        errorMessage = "In-app purchases are not supported on the iOS Simulator. Please test on a real device or use the DEBUG button below to enable test premium."
+                    } else {
+                        errorMessage = error.localizedDescription
+                    }
+                    
                     showingError = true
                 case .idle:
                     // User cancelled, no error needed
@@ -269,7 +297,11 @@ struct PremiumFeatureView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(0.8)
                 } else {
-                    Text("Upgrade to Premium")
+                    // Show different text based on authentication status
+                    let buttonText = (authManager.isAuthenticated && !userStateManager.isAnonymousMode) 
+                        ? "Continue to Upgrade" 
+                        : "Upgrade to Premium"
+                    Text(buttonText)
                         .font(.system(size: 17, weight: .semibold))
                 }
             }

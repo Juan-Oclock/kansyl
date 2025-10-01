@@ -16,6 +16,7 @@ struct ContentView: View {
     @StateObject private var navigationCoordinator = NavigationCoordinator.shared
     @ObservedObject private var subscriptionStore = SubscriptionStore.shared
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var userStateManager = UserStateManager.shared
     
     init() {
         // Customize tab bar appearance
@@ -33,8 +34,14 @@ struct ContentView: View {
         mainAppView
             .onAppear {
                 // Update subscription store with current user ID
-                let userID = authManager.currentUser?.id.uuidString
-                print("[ContentView] onAppear - Setting userID: \(userID ?? "nil")")
+                // Priority: anonymous user ID > authenticated user ID
+                let userID: String?
+                if userStateManager.isAnonymousMode {
+                    userID = userStateManager.getAnonymousUserID()
+                } else {
+                    userID = authManager.currentUser?.id.uuidString
+                }
+                print("[ContentView] onAppear - Setting userID: \(userID ?? "nil") (anonymous: \(userStateManager.isAnonymousMode))")
                 subscriptionStore.updateCurrentUser(userID: userID)
                 
                 // Connect theme manager to user preferences
@@ -45,8 +52,15 @@ struct ContentView: View {
             }
             .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
                 // Update subscription store when user changes
-                print("[ContentView] onChange - User changed, new userID: \(newUserID ?? "nil")")
-                subscriptionStore.updateCurrentUser(userID: newUserID)
+                // Priority: anonymous user ID > authenticated user ID
+                let userID: String?
+                if userStateManager.isAnonymousMode {
+                    userID = userStateManager.getAnonymousUserID()
+                } else {
+                    userID = newUserID
+                }
+                print("[ContentView] onChange - User changed, new userID: \(userID ?? "nil") (anonymous: \(userStateManager.isAnonymousMode))")
+                subscriptionStore.updateCurrentUser(userID: userID)
             }
             .onChange(of: userPreferences.appTheme) { _ in
                 // Force UI refresh when theme changes

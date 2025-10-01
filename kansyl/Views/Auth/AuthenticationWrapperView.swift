@@ -10,6 +10,7 @@ import SwiftUI
 struct AuthenticationWrapperView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var userPreferences = UserSpecificPreferences.shared
+    @ObservedObject private var userStateManager = UserStateManager.shared
     // Device-level onboarding (not user-specific)
     @AppStorage("device_has_completed_onboarding") private var deviceHasCompletedOnboarding = false
     
@@ -19,26 +20,34 @@ struct AuthenticationWrapperView: View {
                 // Show onboarding first (before login)
                 OnboardingView(deviceHasCompletedOnboarding: $deviceHasCompletedOnboarding)
                     .environmentObject(authManager)
-            } else if authManager.isAuthenticated {
-                // User is authenticated - show main app
+            } else if authManager.isAuthenticated || userStateManager.isAnonymousMode {
+                // User is authenticated OR in anonymous mode - show main app
                 ContentView()
                     .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
                     .environmentObject(NotificationManager.shared)
                     .environmentObject(AppPreferences.shared)
                     .environmentObject(ThemeManager.shared)
                     .environmentObject(authManager)
+                    .environmentObject(userStateManager)
             } else {
                 // Device onboarding complete but user not authenticated - show login
                 LoginView()
                     .environmentObject(authManager)
+                    .environmentObject(userStateManager)
             }
         }
         .environmentObject(userPreferences)
         .themed()
         .onAppear {
             // Set the current user ID in the shared SubscriptionStore and preferences
-            let userID = authManager.currentUser?.id.uuidString
-            print("[AuthWrapper] onAppear - Setting userID: \(userID ?? "nil")")
+            // Priority: anonymous user ID > authenticated user ID
+            let userID: String?
+            if userStateManager.isAnonymousMode {
+                userID = userStateManager.getAnonymousUserID()
+            } else {
+                userID = authManager.currentUser?.id.uuidString
+            }
+            print("[AuthWrapper] onAppear - Setting userID: \(userID ?? "nil") (anonymous: \(userStateManager.isAnonymousMode))")
             SubscriptionStore.shared.updateCurrentUser(userID: userID)
             userPreferences.setCurrentUser(userID)
             
@@ -47,9 +56,16 @@ struct AuthenticationWrapperView: View {
         }
         .onChange(of: authManager.currentUser?.id.uuidString) { newUserID in
             // Update the shared SubscriptionStore and preferences when user changes
-            print("[AuthWrapper] onChange - User changed, new userID: \(newUserID ?? "nil")")
-            SubscriptionStore.shared.updateCurrentUser(userID: newUserID)
-            userPreferences.setCurrentUser(newUserID)
+            // Priority: anonymous user ID > authenticated user ID
+            let userID: String?
+            if userStateManager.isAnonymousMode {
+                userID = userStateManager.getAnonymousUserID()
+            } else {
+                userID = newUserID
+            }
+            print("[AuthWrapper] onChange - User changed, new userID: \(userID ?? "nil") (anonymous: \(userStateManager.isAnonymousMode))")
+            SubscriptionStore.shared.updateCurrentUser(userID: userID)
+            userPreferences.setCurrentUser(userID)
             
             // Reconnect theme manager to user preferences when user changes
             ThemeManager.shared.setUserPreferences(userPreferences)

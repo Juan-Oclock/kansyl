@@ -12,6 +12,7 @@ struct SettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @EnvironmentObject private var userPreferences: UserSpecificPreferences
+    @ObservedObject private var userStateManager = UserStateManager.shared
     @StateObject private var configManager = AIConfigManager.shared
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingClearDataAlert = false
@@ -23,6 +24,7 @@ struct SettingsView: View {
     @State private var showingSignOutAlert = false
     @State private var showingSignOutError = false
     @State private var signOutErrorMessage = ""
+    @State private var showingSignInSheet = false
     
     var body: some View {
         NavigationView {
@@ -32,8 +34,15 @@ struct SettingsView: View {
                     .background(Design.Colors.background)
                 
                 Form {
+                // Anonymous Mode Warning (if applicable)
+                if userStateManager.isAnonymousMode && !authManager.isAuthenticated {
+                    anonymousModeWarningSection
+                }
+                
                 // User Profile Section
-                userProfileSection
+                if authManager.isAuthenticated {
+                    userProfileSection
+                }
                 
                 // Premium Status (if applicable)
                 if userPreferences.isPremiumUser {
@@ -261,6 +270,32 @@ struct SettingsView: View {
                     Text("These settings help improve the app experience")
                 }
                 
+                // DEBUG Section (Simulator Only)
+                #if DEBUG
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { PremiumManager.shared.isPremium },
+                        set: { newValue in
+                            if newValue {
+                                Task { @MainActor in
+                                    PremiumManager.shared.enableTestPremium()
+                                }
+                            } else {
+                                Task { @MainActor in
+                                    PremiumManager.shared.disableTestPremium()
+                                }
+                            }
+                        }
+                    )) {
+                        Label("Enable Test Premium", systemImage: "ladybug")
+                    }
+                } header: {
+                    Text("🐛 DEBUG (Simulator Only)")
+                } footer: {
+                    Text("Enable premium features for testing on simulator. This toggle only works in DEBUG builds.")
+                }
+                #endif
+                
                 // 9. About & Support Section
                 Section {
                     HStack {
@@ -351,6 +386,7 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingPremiumFeatures) {
                 PremiumFeaturesView()
+                    .environmentObject(authManager)
             }
             .sheet(isPresented: $showingUserProfile) {
                 UserProfileView()
@@ -370,6 +406,11 @@ struct SettingsView: View {
             } message: {
                 Text(signOutErrorMessage)
             }
+            .sheet(isPresented: $showingSignInSheet) {
+                LoginView()
+                    .environmentObject(authManager)
+                    .environmentObject(userStateManager)
+            }
         }
     }
     
@@ -384,6 +425,76 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 6)
+    }
+    
+    // MARK: - Anonymous Mode Warning Section
+    private var anonymousModeWarningSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                // Warning Icon and Title
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("No Account")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Text("Using without sign-in")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Warning Message
+                Text("Your data is stored only on this device and is not backed up to the cloud. Create an account to sync across devices and keep your data safe.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                // Subscription Limit Info
+                let subscriptionCount = SubscriptionStore.shared.allSubscriptions.count
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.caption)
+                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? .red : .orange)
+                    
+                    Text("\(subscriptionCount) / \(userStateManager.anonymousSubscriptionLimit) subscriptions used")
+                        .font(.caption)
+                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? .red : .secondary)
+                }
+                
+                // Create Account Button
+                Button(action: {
+                    showingSignInSheet = true
+                }) {
+                    HStack {
+                        Image(systemName: "person.badge.plus")
+                        Text("Create Account or Sign In")
+                        Spacer()
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Design.Colors.primary, Design.Colors.secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.vertical, 8)
+        } header: {
+            Text("Account Status")
+        }
     }
     
     // MARK: - User Profile Section

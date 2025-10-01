@@ -55,10 +55,16 @@ struct kansylApp: App {
                             }
                         }
                         .onOpenURL { url in
+                            print("🔗 [kansylApp] onOpenURL called with: \(url)")
+                            print("🔍 [kansylApp] URL scheme: \(url.scheme ?? "none")")
+                            print("🔍 [kansylApp] URL host: \(url.host ?? "none")")
                             if url.scheme == "kansyl" {
+                                print("✅ [kansylApp] Scheme matches 'kansyl', handling OAuth callback")
                                 Task {
                                     await handleOAuthCallback(url: url)
                                 }
+                            } else {
+                                print("⚠️ [kansylApp] URL scheme doesn't match 'kansyl', ignoring")
                             }
                         }
                         .sheet(isPresented: $shouldShowAddSubscription) {
@@ -96,14 +102,18 @@ struct kansylApp: App {
     
     // MARK: - OAuth Handler
     private func handleOAuthCallback(url: URL) async {
+        print("🔄 [kansylApp] handleOAuthCallback called with URL: \(url)")
         do {
+            print("📡 [kansylApp] Calling authManager.handleOAuthCallback...")
             try await appState.authManager.handleOAuthCallback(url: url)
+            print("✅ [kansylApp] OAuth callback handled successfully")
             await MainActor.run {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
             }
         } catch {
-            print("OAuth callback failed: \(error.localizedDescription)")
+            print("❌ [kansylApp] OAuth callback failed: \(error.localizedDescription)")
+            print("❌ [kansylApp] Error type: \(type(of: error))")
             await MainActor.run {
                 let errorFeedback = UINotificationFeedbackGenerator()
                 errorFeedback.notificationOccurred(.error)

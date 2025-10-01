@@ -105,20 +105,37 @@ class PremiumManager: ObservableObject {
     func purchase(yearly: Bool = false) async {
         purchaseState = .loading
         
-        // Check if running on simulator
+        // Check if running on simulator FIRST (before checking products)
         if isSimulator {
+            print("⚠️ [PremiumManager] Simulator detected, cannot proceed with purchase")
             purchaseState = .failed(PremiumError.simulatorNotSupported)
             return
         }
         
+        // On real device, check if products are loaded
         let productId = yearly ? premiumYearlyProductId : premiumProductId
-        guard let product = products.first(where: { $0.id == productId }) else {
-            purchaseState = .failed(PremiumError.productNotFound)
-            return
+        var product = products.first(where: { $0.id == productId })
+        
+        if product == nil {
+            print("⚠️ [PremiumManager] Product not found: \(productId)")
+            print("⚠️ [PremiumManager] Available products: \(products.map { $0.id })")
+            
+            // Try to reload products
+            await loadProducts()
+            
+            // Check again
+            product = products.first(where: { $0.id == productId })
+            
+            guard product != nil else {
+                purchaseState = .failed(PremiumError.productNotFound)
+                return
+            }
+            
+            print("✅ [PremiumManager] Product found after reload")
         }
         
         do {
-            let result = try await product.purchase()
+            let result = try await product!.purchase()
             
             switch result {
             case .success(let verification):
@@ -218,7 +235,7 @@ class PremiumManager: ObservableObject {
     }
 }
 
-enum PremiumError: LocalizedError {
+enum PremiumError: LocalizedError, Equatable {
     case productNotFound
     case unverifiedTransaction
     case simulatorNotSupported

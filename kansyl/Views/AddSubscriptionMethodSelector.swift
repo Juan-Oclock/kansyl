@@ -201,9 +201,11 @@ struct AddSubscriptionMethodSelector: View {
             }
             .sheet(isPresented: $showingPremiumRequired) {
                 PremiumFeatureView()
+                    .environmentObject(SupabaseAuthManager.shared)
             }
             .sheet(isPresented: $showingLimitReached) {
                 PremiumFeatureView(isForSubscriptionLimit: true, currentCount: subscriptionStore.allSubscriptions.count)
+                    .environmentObject(SupabaseAuthManager.shared)
             }
             .onAppear {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {

@@ -11,8 +11,9 @@ import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
+    @EnvironmentObject private var userStateManager: UserStateManager
     @Environment(\.colorScheme) private var colorScheme
-    @State private var showingSignUp = false
+    @Environment(\.dismiss) private var dismiss
     @State private var showingEmailLogin = false
     @State private var email = ""
     @State private var password = ""
@@ -20,6 +21,7 @@ struct LoginView: View {
     @State private var logoAnimation = false
     @State private var contentAnimation = false
     @State private var buttonAnimation = false
+    @State private var showingAnonymousModeAlert = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -56,11 +58,11 @@ struct LoginView: View {
                                 .animation(Design.Animation.spring.delay(0.2), value: logoAnimation)
                             
                             VStack(spacing: Design.Spacing.sm) {
-                                Text("Welcome back")
+                                Text("Welcome")
                                     .font(Design.Typography.title2(.semibold))
                                     .foregroundColor(Design.Colors.textPrimary)
                                 
-                                Text("Sign in to continue tracking your subscriptions")
+                                Text("Choose how you'd like to continue")
                                     .font(Design.Typography.callout(.medium))
                                     .foregroundColor(Design.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -193,44 +195,18 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, Design.Spacing.xl)
                     
-                    Spacer(minLength: geometry.size.height * 0.05)
+                    Spacer(minLength: geometry.size.height * 0.06)
                     
-                    // Modern sign up section
+                    // Alternative option section
                     VStack(spacing: Design.Spacing.lg) {
-                        // Elegant divider
-                        HStack(spacing: Design.Spacing.md) {
-                            Rectangle()
-                                .fill(Design.Colors.border.opacity(0.5))
-                                .frame(height: 1)
-                            
-                            Text("New to Kansyl?")
-                                .font(Design.Typography.caption(.medium))
-                                .foregroundColor(Design.Colors.textSecondary)
-                                .padding(.horizontal, Design.Spacing.sm)
-                            
-                            Rectangle()
-                                .fill(Design.Colors.border.opacity(0.5))
-                                .frame(height: 1)
-                        }
-                        .padding(.horizontal, Design.Spacing.xl)
-                        
-                        // Sign up button
+                        // Continue Without Account button
                         Button(action: {
-                            showingSignUp = true
+                            showingAnonymousModeAlert = true
                         }) {
-                            Text("Create Account")
-                                .font(Design.Typography.headline(.semibold))
-                                .foregroundColor(Design.Colors.primary)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(
-                                    RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                        .stroke(Design.Colors.primary.opacity(0.3), lineWidth: 1.5)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: Design.Radius.lg)
-                                                .fill(Design.Colors.primary.opacity(0.05))
-                                        )
-                                )
+                            Text("Continue Without Account")
+                                .font(Design.Typography.subheadline(.medium))
+                                .foregroundColor(Design.Colors.textSecondary)
+                                .underline()
                         }
                         .padding(.horizontal, Design.Spacing.xl)
                         
@@ -240,6 +216,7 @@ struct LoginView: View {
                             .foregroundColor(Design.Colors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Design.Spacing.xl)
+                            .padding(.top, Design.Spacing.sm)
                     }
                     .opacity(buttonAnimation ? 1.0 : 0.0)
                     .animation(Design.Animation.spring.delay(1.2), value: buttonAnimation)
@@ -251,13 +228,27 @@ struct LoginView: View {
         .onAppear {
             startAnimationSequence()
         }
+        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            if isAuthenticated && !userStateManager.isAnonymousMode {
+                print("✅ [LoginView] User authenticated successfully, dismissing login view")
+                dismiss()
+            }
+        }
         .sheet(isPresented: $showingEmailLogin) {
             EmailLoginView()
                 .environmentObject(authManager)
         }
-        .sheet(isPresented: $showingSignUp) {
-            SignUpView()
-                .environmentObject(authManager)
+        .alert("Continue Without Account?", isPresented: $showingAnonymousModeAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Continue") {
+                Task { @MainActor in
+                    print("🔵 [LoginView] User confirmed anonymous mode")
+                    userStateManager.enterAnonymousMode()
+                    print("🔵 [LoginView] After enterAnonymousMode(), currentUserID = \(SubscriptionStore.currentUserID ?? "nil")")
+                }
+            }
+        } message: {
+            Text("Without an account, your subscriptions will only be saved on this device and won't be backed up to the cloud. You can create an account later in Settings.")
         }
         .disabled(authManager.isLoading)
     }
@@ -344,7 +335,7 @@ struct EmailLoginView: View {
                                 .animation(Design.Animation.spring.delay(0.1), value: headerAnimation)
                             
                             VStack(spacing: Design.Spacing.md) {
-                                Text("Sign In")
+                                Text("Continue with Email")
                                     .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .foregroundStyle(
                                         LinearGradient(
@@ -354,7 +345,7 @@ struct EmailLoginView: View {
                                         )
                                     )
                                 
-                                Text("Enter your credentials to access your account")
+                                Text("Sign in or create an account")
                                     .font(Design.Typography.body(.medium))
                                     .foregroundColor(Design.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -445,15 +436,10 @@ struct EmailLoginView: View {
                 
                     Spacer(minLength: geometry.size.height * 0.08)
                     
-                    // Sleek sign in button
+                    // Sleek continue button
                     Button(action: {
                         Task {
-                            do {
-                                try await authManager.signIn(email: email, password: password)
-                                presentationMode.wrappedValue.dismiss()
-                            } catch {
-                                // Error is handled by the auth manager's errorMessage property
-                            }
+                            await handleEmailAuth()
                         }
                     }) {
                         HStack(spacing: Design.Spacing.sm) {
@@ -463,7 +449,7 @@ struct EmailLoginView: View {
                                     .tint(.white)
                             }
                             
-                            Text(authManager.isLoading ? "Signing In..." : "Sign In")
+                            Text(authManager.isLoading ? "Processing..." : "Continue")
                                 .font(Design.Typography.headline(.semibold))
                                 .foregroundColor(.white)
                         }
@@ -539,6 +525,43 @@ struct EmailLoginView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Intelligent email authentication - tries sign-in first, then sign-up if user doesn't exist
+    private func handleEmailAuth() async {
+        do {
+            // First, try to sign in
+            try await authManager.signIn(email: email, password: password)
+            // Success! Dismiss the view
+            presentationMode.wrappedValue.dismiss()
+        } catch {
+            // If sign-in failed, check if it's because user doesn't exist
+            let errorMsg = error.localizedDescription.lowercased()
+            
+            if errorMsg.contains("invalid") || errorMsg.contains("not found") || errorMsg.contains("no user") {
+                // User doesn't exist, try to create account
+                do {
+                    // Attempt sign-up with the provided credentials
+                    try await authManager.signUp(email: email, password: password, fullName: "")
+                    
+                    // After sign-up, try to sign in automatically
+                    // Note: Some systems require email verification first
+                    try await authManager.signIn(email: email, password: password)
+                    presentationMode.wrappedValue.dismiss()
+                } catch {
+                    // Sign-up or auto sign-in failed
+                    // The error message is already set by authManager
+                    // Show a helpful message if it's about email verification
+                    if error.localizedDescription.lowercased().contains("confirm") || 
+                       error.localizedDescription.lowercased().contains("verification") {
+                        authManager.errorMessage = "Account created! Please check your email to verify your account, then sign in."
+                    }
+                }
+            }
+            // Otherwise, the error is already displayed via authManager.errorMessage
         }
     }
 }

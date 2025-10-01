@@ -140,6 +140,11 @@ class SupabaseAuthManager: ObservableObject {
             if let session = session {
                 self.currentUser = convertAuthUser(session.user)
                 self.isAuthenticated = true
+                
+                // Update SubscriptionStore's userID
+                SubscriptionStore.currentUserID = session.user.id.uuidString
+                print("✅ [SupabaseAuthManager] SubscriptionStore userID updated to: \(session.user.id.uuidString)")
+                
                 Task {
                     await self.loadUserProfile()
                 }
@@ -149,6 +154,10 @@ class SupabaseAuthManager: ObservableObject {
             self.currentUser = nil
             self.userProfile = nil
             self.isAuthenticated = false
+            
+            // Clear SubscriptionStore's userID on sign out
+            SubscriptionStore.currentUserID = nil
+            print("✅ [SupabaseAuthManager] SubscriptionStore userID cleared")
             
         case .tokenRefreshed:
             // Session refreshed, no additional action needed
@@ -166,6 +175,10 @@ class SupabaseAuthManager: ObservableObject {
             await MainActor.run {
                 self.currentUser = self.convertAuthUser(user)
                 self.isAuthenticated = true
+                
+                // Update SubscriptionStore's userID
+                SubscriptionStore.currentUserID = user.id.uuidString
+                print("✅ [SupabaseAuthManager] Existing session found, SubscriptionStore userID set to: \(user.id.uuidString)")
             }
             
             // Load user profile after setting authentication state
@@ -197,6 +210,9 @@ class SupabaseAuthManager: ObservableObject {
                 data: ["full_name": .string(fullName)]
             )
             
+            // Exit anonymous mode after successful signup
+            UserStateManager.shared.exitAnonymousMode()
+            
             // Profile will be created automatically by database trigger
             // Note: User will need to confirm email before they can sign in
             
@@ -218,6 +234,9 @@ class SupabaseAuthManager: ObservableObject {
                 email: email,
                 password: password
             )
+            
+            // Exit anonymous mode after successful authentication
+            UserStateManager.shared.exitAnonymousMode()
             
             // Auth state listener will handle the rest
             
@@ -268,47 +287,72 @@ class SupabaseAuthManager: ObservableObject {
     /// Sign in with Google using OAuth flow with in-app browser
     @MainActor
     func signInWithGoogle() async throws {
+        print("🚀 [SupabaseAuthManager] signInWithGoogle() called")
         isLoading = true
         errorMessage = nil
         
-        defer { isLoading = false }
+        defer { 
+            isLoading = false
+            print("🏁 [SupabaseAuthManager] signInWithGoogle() completed, isLoading = false")
+        }
         
         do {
             // Get Google OAuth URL from Supabase
             // Using kansyl://auth-callback to avoid showing supabase.co in dialog
+            print("📡 [SupabaseAuthManager] Getting OAuth URL from Supabase...")
             let authURL = try supabase.auth.getOAuthSignInURL(
                 provider: .google,
                 redirectTo: URL(string: "kansyl://auth-callback")
             )
+            print("✅ [SupabaseAuthManager] Got OAuth URL: \(authURL)")
             
             // Use a continuation to handle the async callback
+            print("⏳ [SupabaseAuthManager] Creating ASWebAuthenticationSession...")
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 // Create and configure the authentication session
                 let session = ASWebAuthenticationSession(
                     url: authURL,
                     callbackURLScheme: "kansyl"
                 ) { [weak self] callbackURL, error in
+                    print("📞 [SupabaseAuthManager] ASWebAuthenticationSession callback received")
+                    
                     if let error = error {
+                        print("❌ [SupabaseAuthManager] OAuth error: \(error)")
+                        print("❌ [SupabaseAuthManager] Error code: \((error as NSError).code)")
+                        print("❌ [SupabaseAuthManager] Error domain: \((error as NSError).domain)")
+                        
                         // Check if the user cancelled
                         if (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                            print("⚠️ [SupabaseAuthManager] User cancelled authentication")
                             continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Authentication cancelled by user"))
                         } else {
+                            print("❌ [SupabaseAuthManager] Authentication failed: \(error.localizedDescription)")
                             continuation.resume(throwing: SupabaseAuthError.googleSignInFailed(error.localizedDescription))
                         }
                         return
                     }
                     
                     guard let callbackURL = callbackURL else {
+                        print("❌ [SupabaseAuthManager] No callback URL received")
                         continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("No callback URL received"))
                         return
                     }
                     
+                    print("✅ [SupabaseAuthManager] Received callback URL: \(callbackURL)")
+                    print("🔍 [SupabaseAuthManager] Callback scheme: \(callbackURL.scheme ?? "none")")
+                    print("🔍 [SupabaseAuthManager] Callback host: \(callbackURL.host ?? "none")")
+                    print("🔍 [SupabaseAuthManager] Callback path: \(callbackURL.path)")
+                    print("🔍 [SupabaseAuthManager] Callback query: \(callbackURL.query ?? "none")")
+                    
                     // Handle the OAuth callback
                     Task { @MainActor [weak self] in
                         do {
+                            print("🔄 [SupabaseAuthManager] Handling OAuth callback...")
                             try await self?.handleOAuthCallback(url: callbackURL)
+                            print("✅ [SupabaseAuthManager] OAuth callback handled successfully")
                             continuation.resume()
                         } catch {
+                            print("❌ [SupabaseAuthManager] OAuth callback handling failed: \(error)")
                             continuation.resume(throwing: error)
                         }
                     }
@@ -317,23 +361,37 @@ class SupabaseAuthManager: ObservableObject {
                 // Configure presentation for iOS 13+
                 session.prefersEphemeralWebBrowserSession = false
                 
-                // Get the presentation context provider
+                // Get the topmost view controller (important for sheets!)
                 guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                       let rootViewController = windowScene.windows.first?.rootViewController else {
                     continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Unable to find presentation context"))
                     return
                 }
                 
-                let contextProvider = AuthPresentationContextProvider(rootViewController: rootViewController)
+                // Find the topmost presented view controller
+                var topController = rootViewController
+                while let presented = topController.presentedViewController {
+                    topController = presented
+                }
+                
+                print("🔍 [SupabaseAuthManager] Using topmost controller: \(type(of: topController))")
+                
+                let contextProvider = AuthPresentationContextProvider(rootViewController: topController)
                 session.presentationContextProvider = contextProvider
                 
                 // Start the authentication session
+                print("🚀 [SupabaseAuthManager] Starting ASWebAuthenticationSession...")
                 if !session.start() {
+                    print("❌ [SupabaseAuthManager] Failed to start authentication session")
                     continuation.resume(throwing: SupabaseAuthError.googleSignInFailed("Failed to start authentication session"))
+                } else {
+                    print("✅ [SupabaseAuthManager] Authentication session started successfully")
                 }
             }
             
         } catch {
+            print("❌ [SupabaseAuthManager] signInWithGoogle failed: \(error)")
+            print("❌ [SupabaseAuthManager] Error type: \(type(of: error))")
             errorMessage = "Google Sign In failed: \(error.localizedDescription)"
             throw error
         }
@@ -378,22 +436,46 @@ class SupabaseAuthManager: ObservableObject {
     
     /// Handle OAuth callback URL (called from SceneDelegate or App)
     func handleOAuthCallback(url: URL) async throws {
+        print("🔄 [SupabaseAuthManager] handleOAuthCallback called with URL: \(url)")
         isLoading = true
         errorMessage = nil
         
-        defer { isLoading = false }
+        defer { 
+            isLoading = false
+            print("🏁 [SupabaseAuthManager] handleOAuthCallback completed")
+        }
         
         do {
+            print("📡 [SupabaseAuthManager] Creating session from callback URL...")
             let session = try await supabase.auth.session(from: url)
+            print("✅ [SupabaseAuthManager] Session created successfully")
+            print("👤 [SupabaseAuthManager] User ID: \(session.user.id)")
+            print("📧 [SupabaseAuthManager] User email: \(session.user.email ?? "none")")
             
             await MainActor.run {
                 self.currentUser = self.convertAuthUser(session.user)
                 self.isAuthenticated = true
+                print("✅ [SupabaseAuthManager] Updated currentUser and isAuthenticated = true")
+                
+                // Update SubscriptionStore's userID
+                SubscriptionStore.currentUserID = session.user.id.uuidString
+                print("✅ [SupabaseAuthManager] SubscriptionStore userID updated to: \(session.user.id.uuidString)")
+                
+                // Exit anonymous mode if user was in it
+                if UserStateManager.shared.isAnonymousMode {
+                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, exiting...")
+                    UserStateManager.shared.disableAnonymousMode()
+                    print("✅ [SupabaseAuthManager] Anonymous mode disabled")
+                }
             }
             
+            print("📋 [SupabaseAuthManager] Loading user profile...")
             await loadUserProfile()
+            print("✅ [SupabaseAuthManager] User profile loaded")
             
         } catch {
+            print("❌ [SupabaseAuthManager] handleOAuthCallback failed: \(error)")
+            print("❌ [SupabaseAuthManager] Error description: \(error.localizedDescription)")
             errorMessage = "OAuth authentication failed: \(error.localizedDescription)"
             throw SupabaseAuthError.googleSignInFailed(error.localizedDescription)
         }
