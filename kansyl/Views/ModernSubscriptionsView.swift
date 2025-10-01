@@ -8,6 +8,7 @@
 
 import SwiftUI
 import CoreData
+import UserNotifications
 
 // MARK: - Scroll Offset Tracking
 struct ScrollOffsetPreferenceKey: PreferenceKey {
@@ -20,11 +21,13 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 struct ModernSubscriptionsView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @EnvironmentObject private var authManager: SupabaseAuthManager
+    @EnvironmentObject private var notificationManager: NotificationManager
     @ObservedObject private var premiumManager = PremiumManager.shared
     @ObservedObject private var userPreferences = UserSpecificPreferences.shared
     @ObservedObject private var appPreferences = AppPreferences.shared
     @State private var showingAddSubscription = false
     @State private var showingPremiumRequired = false
+    @State private var showingNotifications = false
     @State private var selectedSubscription: Subscription?
     @State private var animateElements = false
     @State private var subscriptionJustAdded = false
@@ -39,6 +42,7 @@ struct ModernSubscriptionsView: View {
     @State private var showSuccessToast = false
     @State private var successToastMessage = ""
     @State private var successToastAmount: String? = nil
+    @State private var notificationBadgeCount = 0
     @FocusState private var isSearchFocused: Bool
     
     // Cached filtered subscriptions (recomputed only when needed)
@@ -135,15 +139,26 @@ struct ModernSubscriptionsView: View {
                 PremiumFeatureView()
                     .environmentObject(authManager)
             }
+            .sheet(isPresented: $showingNotifications) {
+                NotificationsView()
+                    .environmentObject(notificationManager)
+            }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {
                     animateElements = true
                 }
                 subscriptionStore.fetchSubscriptions()
+                loadNotificationBadgeCount()
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
                 // Refresh when Core Data context saves
                 subscriptionStore.fetchSubscriptions()
+            }
+            .onChange(of: showingNotifications) { isShowing in
+                if !isShowing {
+                    // Reload badge count when NotificationsView is dismissed
+                    loadNotificationBadgeCount()
+                }
             }
         }
         .overlay(
@@ -234,6 +249,15 @@ struct ModernSubscriptionsView: View {
         // Scroll-based UI updates can be added here if needed
     }
     
+    private func loadNotificationBadgeCount() {
+        // Get delivered notifications count
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            DispatchQueue.main.async {
+                self.notificationBadgeCount = notifications.count
+            }
+        }
+    }
+    
     // MARK: - Static Header (No Dynamic Calculations)
     private var stickyHeader: some View {
         HStack(alignment: .top) {
@@ -249,8 +273,45 @@ struct ModernSubscriptionsView: View {
             
             Spacer()
             
+            // Notification Bell Button
+            Button(action: {
+                showingNotifications = true
+                HapticManager.shared.playSelection()
+            }) {
+                ZStack(alignment: .topTrailing) {
+                    // Background circle
+                    Circle()
+                        .fill(Design.Colors.surface)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: Design.Colors.primary.opacity(0.08), radius: 4, x: 0, y: 2)
+                    
+                    // Bell icon - centered in the circle
+                    Image(systemName: notificationBadgeCount > 0 ? "bell.badge.fill" : "bell")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(Design.Colors.primary)
+                        .frame(width: 44, height: 44) // Match circle size for centering
+                    
+                    // Badge indicator
+                    if notificationBadgeCount > 0 {
+                        Circle()
+                            .fill(Design.Colors.danger)
+                            .frame(width: 12, height: 12)
+                            .offset(x: 6, y: -6)
+                            .overlay(
+                                Text(notificationBadgeCount > 9 ? "9+" : "\(notificationBadgeCount)")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(x: 6, y: -6)
+                            )
+                    }
+                }
+            }
+            .scaleEffect(animateElements ? 1.0 : 0.8)
+            .opacity(animateElements ? 1.0 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.8).delay(0.02), value: animateElements)
+            
             // Search Button - toggles search bar visibility
-            Button(action: { 
+            Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     isSearchExpanded.toggle()
                     if isSearchExpanded {

@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var showingSignOutError = false
     @State private var signOutErrorMessage = ""
     @State private var showingSignInSheet = false
+    @State private var showingNotificationsView = false
     
     var body: some View {
         NavigationView {
@@ -149,6 +150,27 @@ struct SettingsView: View {
                 
                 // 3. Notification Settings Section
                 Section {
+                    // View Notifications
+                    Button(action: { showingNotificationsView = true }) {
+                        HStack {
+                            Image(systemName: "bell")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("View Notifications")
+                                    .foregroundColor(.primary)
+                                Text("Manage delivered and scheduled")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    // Notification Settings
                     Button(action: { showingNotificationSettings = true }) {
                         HStack {
                             Image(systemName: "bell.badge")
@@ -168,9 +190,9 @@ struct SettingsView: View {
                         }
                     }
                 } header: {
-                    Text("Notification Settings")
+                    Text("Notifications")
                 } footer: {
-                    Text("Customize when and how you receive trial reminders")
+                    Text("View your notifications and customize reminder preferences")
                 }
                 
                 // 4. Quick Actions Section
@@ -375,6 +397,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingNotificationSettings) {
                 NotificationSettingsView()
+            }
+            .sheet(isPresented: $showingNotificationsView) {
+                NotificationsView()
+                    .environmentObject(notificationManager)
             }
             .alert("Reset All Settings?", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) { }
