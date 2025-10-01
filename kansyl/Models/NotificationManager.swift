@@ -507,8 +507,11 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
             if let error = error {
                 print("Failed to deliver immediate notification: \(error)")
             } else {
-                // Update badge count after notification is added
-                self.updateBadgeCount()
+                // Update badge count after notification is delivered with a delay
+                // to ensure it appears in delivered notifications list
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self.updateBadgeCount()
+                }
             }
         }
     }
