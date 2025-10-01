@@ -215,6 +215,40 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     private func schedulePaidNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
         let subscriptionType = SubscriptionType.paid
         let calendar = Calendar.current
+        let now = Date()
+        let daysUntilEnd = calendar.dateComponents([.day], from: now, to: endDate).day ?? 0
+        
+        // Check if subscription is already in a reminder window and deliver immediately
+        if daysUntilEnd <= 0 && dayOfReminder {
+            // Day-of or past due - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-dayof-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: 0),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
+                subscription: subscription,
+                urgency: .normal
+            )
+        } else if daysUntilEnd <= 1 && oneDayReminder {
+            // 1 day or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-1day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .normal
+            )
+        } else if daysUntilEnd <= 3 && threeDayReminder {
+            // 3 days or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-3day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .normal
+            )
+        }
+        
+        // Also schedule future notifications if applicable
         
         // Schedule 3-day reminder if enabled
         if threeDayReminder {
@@ -269,6 +303,40 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     private func schedulePromoNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
         let subscriptionType = SubscriptionType.promotional
         let calendar = Calendar.current
+        let now = Date()
+        let daysUntilEnd = calendar.dateComponents([.day], from: now, to: endDate).day ?? 0
+        
+        // Check if subscription is already in a reminder window and deliver immediately
+        if daysUntilEnd <= 0 && dayOfReminder {
+            // Day-of or past due - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-dayof-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: 0),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
+                subscription: subscription,
+                urgency: .urgent
+            )
+        } else if daysUntilEnd <= 1 && oneDayReminder {
+            // 1 day or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-1day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .normal
+            )
+        } else if daysUntilEnd <= 3 && threeDayReminder {
+            // 3 days or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-3day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .normal
+            )
+        }
+        
+        // Also schedule future notifications if applicable
         
         // Schedule 3-day reminder if enabled
         if threeDayReminder {
