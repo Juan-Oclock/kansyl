@@ -465,7 +465,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         content.body = body
         content.sound = urgency == .critical ? .defaultCritical : .default
         content.categoryIdentifier = urgency == .critical ? "SUBSCRIPTION_REMINDER_URGENT" : "SUBSCRIPTION_REMINDER"
-        content.badge = 1
+        // Don't set badge here - let the system manage it based on delivered notification count
         
         // Add subscription data to userInfo for handling actions
         if let subscription = subscription, let subscriptionId = subscription.id?.uuidString {
@@ -506,6 +506,9 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("Failed to deliver immediate notification: \(error)")
+            } else {
+                // Update badge count after notification is added
+                self.updateBadgeCount()
             }
         }
     }
@@ -516,7 +519,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         content.body = body
         content.sound = urgency == .urgent ? .defaultCritical : .default
         content.categoryIdentifier = urgency == .urgent ? "SUBSCRIPTION_REMINDER_URGENT" : "SUBSCRIPTION_REMINDER"
-        content.badge = 1
+        // Don't set badge here - let the system manage it based on delivered notification count
         
         // Add subscription data to userInfo for handling actions
         if let subscription = subscription, let subscriptionId = subscription.id?.uuidString {
@@ -659,6 +662,20 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     }
     
     // MARK: - Helper Methods
+    
+    /// Updates the app icon badge to match the number of delivered notifications
+    private func updateBadgeCount() {
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            DispatchQueue.main.async {
+                let count = notifications.count
+                if #available(iOS 16.0, *) {
+                    UNUserNotificationCenter.current().setBadgeCount(count)
+                } else {
+                    UIApplication.shared.applicationIconBadgeNumber = count
+                }
+            }
+        }
+    }
     
     private func createSymbolImage(name: String) -> URL? {
         let size = CGSize(width: 60, height: 60)
