@@ -55,6 +55,7 @@ class SubscriptionStore: ObservableObject {
     
     @Published var activeSubscriptions: [Subscription] = []
     @Published var endingSoonSubscriptions: [Subscription] = []
+    @Published var pastDueSubscriptions: [Subscription] = []
     @Published var allSubscriptions: [Subscription] = []
     @Published var recentlyEndedSubscriptions: [Subscription] = []
     
@@ -127,17 +128,29 @@ class SubscriptionStore: ObservableObject {
         
         AppLogger.log("Updating categories with \(allSubscriptions.count) total subscriptions", category: "SubscriptionStore")
         
+        // Active subscriptions include:
+        // 1. Subscriptions with status "active" that haven't ended yet
+        // 2. Subscriptions with status "active" that HAVE ended but user hasn't acted on them
         activeSubscriptions = allSubscriptions.filter { subscription in
-            subscription.status == SubscriptionStatus.active.rawValue && 
-            (subscription.endDate ?? Date()) > now
+            subscription.status == SubscriptionStatus.active.rawValue
+            // Show all active subscriptions regardless of end date
+            // User must explicitly cancel or keep them
         }
         
         AppLogger.log("Filtered to \(activeSubscriptions.count) active subscriptions", category: "SubscriptionStore")
         
+        // Ending soon: within 7 days from now (future dates only)
         endingSoonSubscriptions = activeSubscriptions.filter { subscription in
-            (subscription.endDate ?? Date()) <= sevenDaysFromNow
+            let endDate = subscription.endDate ?? Date()
+            return endDate > now && endDate <= sevenDaysFromNow
         }
         
+        // Past due: end date has passed but still marked as active
+        pastDueSubscriptions = activeSubscriptions.filter { subscription in
+            (subscription.endDate ?? Date()) <= now
+        }
+        
+        // Recently ended: subscriptions that were canceled/kept in the last 30 days
         recentlyEndedSubscriptions = allSubscriptions.filter { subscription in
             subscription.status != SubscriptionStatus.active.rawValue &&
             (subscription.endDate ?? Date()) > thirtyDaysAgo &&

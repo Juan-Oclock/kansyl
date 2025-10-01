@@ -33,6 +33,7 @@ struct ModernSubscriptionsView: View {
     @State private var subscriptionJustAdded = false
     @State private var searchText = ""
     @State private var isSearchExpanded = false // Track search visibility
+    @State private var showPastDueSection = true
     @State private var showEndingSoonSection = true
     @State private var showActiveSection = true
     @State private var showingActionModal = false
@@ -43,9 +44,11 @@ struct ModernSubscriptionsView: View {
     @State private var successToastMessage = ""
     @State private var successToastAmount: String? = nil
     @State private var notificationBadgeCount = 0
+    @State private var badgeRefreshTimer: Timer?
     @FocusState private var isSearchFocused: Bool
     
     // Cached filtered subscriptions (recomputed only when needed)
+    @State private var cachedPastDue: [Subscription] = []
     @State private var cachedEndingSoon: [Subscription] = []
     @State private var cachedActive: [Subscription] = []
     @State private var lastFilteredSourceCount: Int = 0
@@ -149,10 +152,18 @@ struct ModernSubscriptionsView: View {
                 }
                 subscriptionStore.fetchSubscriptions()
                 loadNotificationBadgeCount()
+                startBadgeRefreshTimer()
+            }
+            .onDisappear {
+                stopBadgeRefreshTimer()
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
                 // Refresh when Core Data context saves
                 subscriptionStore.fetchSubscriptions()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Refresh badge count when app comes to foreground
+                loadNotificationBadgeCount()
             }
             .onChange(of: showingNotifications) { isShowing in
                 if !isShowing {
@@ -195,6 +206,12 @@ struct ModernSubscriptionsView: View {
                                         successToastAmount = SharedCurrencyFormatter.formatPrice(subscription.monthlyPrice)
                                         showSuccessToast = true
                                     }
+                                }
+                                
+                                // Refresh notification badge count after status change
+                                // (notifications were removed by updateSubscriptionStatus)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    loadNotificationBadgeCount()
                                 }
                                 
                                 // Reset state
@@ -250,12 +267,24 @@ struct ModernSubscriptionsView: View {
     }
     
     private func loadNotificationBadgeCount() {
-        // Get delivered notifications count
+        // Get delivered notifications count (notifications that have been shown to the user)
         UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
             DispatchQueue.main.async {
                 self.notificationBadgeCount = notifications.count
             }
         }
+    }
+    
+    private func startBadgeRefreshTimer() {
+        // Refresh badge every 5 seconds to catch newly delivered notifications
+        badgeRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            loadNotificationBadgeCount()
+        }
+    }
+    
+    private func stopBadgeRefreshTimer() {
+        badgeRefreshTimer?.invalidate()
+        badgeRefreshTimer = nil
     }
     
     // MARK: - Static Header (No Dynamic Calculations)
@@ -291,18 +320,18 @@ struct ModernSubscriptionsView: View {
                         .foregroundColor(Design.Colors.primary)
                         .frame(width: 44, height: 44) // Match circle size for centering
                     
-                    // Badge indicator
+                    // Badge indicator with count
                     if notificationBadgeCount > 0 {
-                        Circle()
-                            .fill(Design.Colors.danger)
-                            .frame(width: 12, height: 12)
-                            .offset(x: 6, y: -6)
-                            .overlay(
-                                Text(notificationBadgeCount > 9 ? "9+" : "\(notificationBadgeCount)")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .offset(x: 6, y: -6)
-                            )
+                        ZStack {
+                            Circle()
+                                .fill(Design.Colors.danger)
+                                .frame(width: 18, height: 18)
+                            
+                            Text(notificationBadgeCount > 9 ? "9+" : "\(notificationBadgeCount)")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .offset(x: 8, y: -8)
                     }
                 }
             }
@@ -379,13 +408,22 @@ struct ModernSubscriptionsView: View {
     private var subscriptionSections: some View {
         Group {
             if appPreferences.groupByEndDate {
-                // Group by end date: Ending Soon and Active sections
+                // Group by status: Past Due, Ending Soon, and Active sections
+                
+                // Past Due Section (Highest Priority)
+                if !filteredPastDueSubscriptions.isEmpty {
+                    Section(header: collapsibleSectionHeader("⚠️ Past Due - Take Action!", count: filteredPastDueSubscriptions.count, isExpanded: $showPastDueSection)) {
+                        if showPastDueSection {
+                            subscriptionsList(subscriptions: filteredPastDueSubscriptions, startIndex: 0, isCompact: appPreferences.compactMode)
+                        }
+                    }
+                }
                 
                 // Ending Soon Section
                 if !filteredEndingSoonSubscriptions.isEmpty {
                     Section(header: collapsibleSectionHeader("Ending Soon", count: filteredEndingSoonSubscriptions.count, isExpanded: $showEndingSoonSection)) {
                         if showEndingSoonSection {
-                            subscriptionsList(subscriptions: filteredEndingSoonSubscriptions, startIndex: 0, isCompact: appPreferences.compactMode)
+                            subscriptionsList(subscriptions: filteredEndingSoonSubscriptions, startIndex: filteredPastDueSubscriptions.count, isCompact: appPreferences.compactMode)
                         }
                     }
                 }
@@ -394,13 +432,13 @@ struct ModernSubscriptionsView: View {
                 if !filteredActiveSubscriptions.isEmpty {
                     Section(header: collapsibleSectionHeader("Active Subscriptions", count: filteredActiveSubscriptions.count, isExpanded: $showActiveSection)) {
                         if showActiveSection {
-                            subscriptionsList(subscriptions: filteredActiveSubscriptions, startIndex: filteredEndingSoonSubscriptions.count, isCompact: appPreferences.compactMode)
+                            subscriptionsList(subscriptions: filteredActiveSubscriptions, startIndex: filteredPastDueSubscriptions.count + filteredEndingSoonSubscriptions.count, isCompact: appPreferences.compactMode)
                         }
                     }
                 }
             } else {
                 // No grouping: Show all subscriptions in one list
-                let allSubscriptions = filteredEndingSoonSubscriptions + filteredActiveSubscriptions
+                let allSubscriptions = filteredPastDueSubscriptions + filteredEndingSoonSubscriptions + filteredActiveSubscriptions
                 if !allSubscriptions.isEmpty {
                     subscriptionsList(subscriptions: allSubscriptions, startIndex: 0, isCompact: appPreferences.compactMode)
                 }
@@ -409,6 +447,11 @@ struct ModernSubscriptionsView: View {
     }
     
     // MARK: - Filtered Subscriptions with Caching
+    private var filteredPastDueSubscriptions: [Subscription] {
+        updateFilteredSubscriptionsIfNeeded()
+        return cachedPastDue
+    }
+    
     private var filteredEndingSoonSubscriptions: [Subscription] {
         updateFilteredSubscriptionsIfNeeded()
         return cachedEndingSoon
@@ -428,14 +471,32 @@ struct ModernSubscriptionsView: View {
             return // Cache is still valid
         }
         
-        // Update cache
-        let endingSoon = subscriptionStore.activeSubscriptions.filter { isSubscriptionEndingSoon($0) }
-        let active = subscriptionStore.activeSubscriptions.filter { !isSubscriptionEndingSoon($0) }
+        // Update cache - categorize subscriptions
+        let now = Date()
+        
+        // Past due: end date has passed
+        let pastDue = subscriptionStore.activeSubscriptions.filter { ($0.endDate ?? Date()) <= now }
+        
+        // Ending soon: within 7 days but not past due
+        let endingSoon = subscriptionStore.activeSubscriptions.filter { 
+            let endDate = $0.endDate ?? Date()
+            return endDate > now && isSubscriptionEndingSoon($0)
+        }
+        
+        // Active: more than 7 days away
+        let active = subscriptionStore.activeSubscriptions.filter { 
+            let endDate = $0.endDate ?? Date()
+            return endDate > now && !isSubscriptionEndingSoon($0)
+        }
         
         if searchText.isEmpty {
+            cachedPastDue = pastDue
             cachedEndingSoon = endingSoon
             cachedActive = active
         } else {
+            cachedPastDue = pastDue.filter { subscription in
+                (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
+            }
             cachedEndingSoon = endingSoon.filter { subscription in
                 (subscription.name ?? "").localizedCaseInsensitiveContains(searchText)
             }

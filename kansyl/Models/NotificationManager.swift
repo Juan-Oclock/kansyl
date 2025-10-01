@@ -126,23 +126,87 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     
     private func scheduleTrialNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
         let subscriptionType = SubscriptionType.trial
-        let intervals = subscriptionType.notificationIntervals
         let calendar = Calendar.current
+        let now = Date()
+        let daysUntilEnd = calendar.dateComponents([.day], from: now, to: endDate).day ?? 0
         
-        for days in intervals {
-            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
-            let adjustedDate = setNotificationTime(for: notificationDate)
-            
+        // Check if subscription is already in a reminder window and deliver immediately
+        if daysUntilEnd <= 0 && dayOfReminder {
+            // Day-of or past due - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-dayof-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: 0),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
+                subscription: subscription,
+                urgency: .critical
+            )
+        } else if daysUntilEnd <= 1 && oneDayReminder {
+            // 1 day or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-1day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .urgent
+            )
+        } else if daysUntilEnd <= 3 && threeDayReminder {
+            // 3 days or less - deliver immediately
+            deliverImmediateNotification(
+                id: "\(id)-3day-immediate",
+                title: subscriptionType.notificationTitle(daysRemaining: max(0, daysUntilEnd)),
+                body: subscriptionType.notificationBody(serviceName: name, daysRemaining: max(0, daysUntilEnd)),
+                subscription: subscription,
+                urgency: .normal
+            )
+        }
+        
+        // Also schedule future notifications if applicable
+        
+        // Schedule 3-day reminder if enabled
+        if threeDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -3, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-3day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 3),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 3),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .normal
+                    )
+                }
+            }
+        }
+        
+        // Schedule 1-day reminder if enabled
+        if oneDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -1, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-1day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 1),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 1),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .urgent
+                    )
+                }
+            }
+        }
+        
+        // Schedule day-of reminder if enabled
+        if dayOfReminder {
+            let adjustedDate = setNotificationTime(for: endDate)
             if adjustedDate > Date() {
-                let urgency: NotificationUrgency = days <= 1 ? .critical : (days <= 3 ? .urgent : .normal)
-                
                 scheduleNotification(
-                    id: "\(id)-\(days)day",
-                    title: subscriptionType.notificationTitle(daysRemaining: days),
-                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    id: "\(id)-dayof",
+                    title: subscriptionType.notificationTitle(daysRemaining: 0),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
                     date: adjustedDate,
                     subscription: subscription,
-                    urgency: urgency
+                    urgency: .critical
                 )
             }
         }
@@ -150,18 +214,50 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     
     private func schedulePaidNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
         let subscriptionType = SubscriptionType.paid
-        let intervals = subscriptionType.notificationIntervals
         let calendar = Calendar.current
         
-        for days in intervals {
-            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
-            let adjustedDate = setNotificationTime(for: notificationDate)
-            
+        // Schedule 3-day reminder if enabled
+        if threeDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -3, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-3day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 3),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 3),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .normal
+                    )
+                }
+            }
+        }
+        
+        // Schedule 1-day reminder if enabled
+        if oneDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -1, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-1day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 1),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 1),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .normal
+                    )
+                }
+            }
+        }
+        
+        // Schedule day-of reminder if enabled
+        if dayOfReminder {
+            let adjustedDate = setNotificationTime(for: endDate)
             if adjustedDate > Date() {
                 scheduleNotification(
-                    id: "\(id)-\(days)day",
-                    title: subscriptionType.notificationTitle(daysRemaining: days),
-                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    id: "\(id)-dayof",
+                    title: subscriptionType.notificationTitle(daysRemaining: 0),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
                     date: adjustedDate,
                     subscription: subscription,
                     urgency: .normal
@@ -172,23 +268,53 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     
     private func schedulePromoNotifications(for subscription: Subscription, id: String, name: String, endDate: Date) {
         let subscriptionType = SubscriptionType.promotional
-        let intervals = subscriptionType.notificationIntervals
         let calendar = Calendar.current
         
-        for days in intervals {
-            guard let notificationDate = calendar.date(byAdding: .day, value: -days, to: endDate) else { continue }
-            let adjustedDate = setNotificationTime(for: notificationDate)
-            
+        // Schedule 3-day reminder if enabled
+        if threeDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -3, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-3day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 3),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 3),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .normal
+                    )
+                }
+            }
+        }
+        
+        // Schedule 1-day reminder if enabled
+        if oneDayReminder {
+            if let notificationDate = calendar.date(byAdding: .day, value: -1, to: endDate) {
+                let adjustedDate = setNotificationTime(for: notificationDate)
+                if adjustedDate > Date() {
+                    scheduleNotification(
+                        id: "\(id)-1day",
+                        title: subscriptionType.notificationTitle(daysRemaining: 1),
+                        body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 1),
+                        date: adjustedDate,
+                        subscription: subscription,
+                        urgency: .normal
+                    )
+                }
+            }
+        }
+        
+        // Schedule day-of reminder if enabled
+        if dayOfReminder {
+            let adjustedDate = setNotificationTime(for: endDate)
             if adjustedDate > Date() {
-                let urgency: NotificationUrgency = days == 0 ? .urgent : .normal
-                
                 scheduleNotification(
-                    id: "\(id)-\(days)day",
-                    title: subscriptionType.notificationTitle(daysRemaining: days),
-                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: days),
+                    id: "\(id)-dayof",
+                    title: subscriptionType.notificationTitle(daysRemaining: 0),
+                    body: subscriptionType.notificationBody(serviceName: name, daysRemaining: 0),
                     date: adjustedDate,
                     subscription: subscription,
-                    urgency: urgency
+                    urgency: .urgent
                 )
             }
         }
@@ -262,6 +388,60 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         return calendar.date(from: components) ?? date
     }
     
+    // MARK: - Immediate Notification Delivery
+    
+    /// Delivers a notification immediately (within 1 second) for subscriptions already in reminder window
+    private func deliverImmediateNotification(id: String, title: String, body: String, subscription: Subscription? = nil, urgency: NotificationUrgency = .normal) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = urgency == .critical ? .defaultCritical : .default
+        content.categoryIdentifier = urgency == .critical ? "SUBSCRIPTION_REMINDER_URGENT" : "SUBSCRIPTION_REMINDER"
+        content.badge = 1
+        
+        // Add subscription data to userInfo for handling actions
+        if let subscription = subscription, let subscriptionId = subscription.id?.uuidString {
+            content.userInfo = [
+                "subscriptionId": subscriptionId,
+                "subscriptionName": subscription.name ?? "Unknown",
+                "monthlyPrice": subscription.monthlyPrice,
+                "subscriptionType": subscription.subscriptionType ?? "trial",
+                "isTrial": subscription.isTrial
+            ]
+            
+            // Add subtitle with price info
+            if subscription.monthlyPrice > 0 {
+                content.subtitle = "$\(String(format: "%.2f", subscription.monthlyPrice))/month after subscription"
+            }
+        }
+        
+        // Add attachment for rich notification (service logo)
+        if let subscription = subscription, let logoName = subscription.serviceLogo {
+            content.threadIdentifier = "subscription-\(subscription.id?.uuidString ?? "unknown")"
+            
+            // Create a simple image attachment using SF Symbols
+            if let imageURL = createSymbolImage(name: logoName) {
+                do {
+                    let attachment = try UNNotificationAttachment(identifier: "logo", url: imageURL, options: nil)
+                    content.attachments = [attachment]
+                } catch {
+                    // Failed to create notification attachment
+                }
+            }
+        }
+        
+        // Trigger in 1 second (immediate delivery)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Failed to deliver immediate notification: \(error)")
+            }
+        }
+    }
+    
     private func scheduleNotification(id: String, title: String, body: String, date: Date, subscription: Subscription? = nil, urgency: NotificationUrgency = .normal) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -319,10 +499,28 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         let notificationIds = [
             "\(subscriptionId)-3day",
             "\(subscriptionId)-1day", 
-            "\(subscriptionId)-dayof"
+            "\(subscriptionId)-dayof",
+            "\(subscriptionId)-3day-immediate",
+            "\(subscriptionId)-1day-immediate",
+            "\(subscriptionId)-dayof-immediate"
         ]
         
+        // Remove pending (scheduled) notifications
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: notificationIds)
+        
+        // Remove delivered notifications from notification center
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: notificationIds)
+        
+        // Update badge count after removal
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            DispatchQueue.main.async {
+                if #available(iOS 16.0, *) {
+                    UNUserNotificationCenter.current().setBadgeCount(notifications.count)
+                } else {
+                    UIApplication.shared.applicationIconBadgeNumber = notifications.count
+                }
+            }
+        }
     }
     
     func scheduleAllSubscriptionNotifications(subscriptions: [Subscription]) {

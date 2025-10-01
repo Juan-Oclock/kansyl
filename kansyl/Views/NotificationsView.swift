@@ -12,7 +12,6 @@ struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var notificationManager: NotificationManager
     @State private var deliveredNotifications: [UNNotification] = []
-    @State private var pendingNotifications: [UNNotificationRequest] = []
     @State private var isLoading = true
     @State private var showingClearAlert = false
     
@@ -26,18 +25,11 @@ struct NotificationsView: View {
                     VStack(spacing: Design.Spacing.lg) {
                         if isLoading {
                             loadingView
-                        } else if deliveredNotifications.isEmpty && pendingNotifications.isEmpty {
+                        } else if deliveredNotifications.isEmpty {
                             emptyStateView
                         } else {
                             // Delivered Notifications Section
-                            if !deliveredNotifications.isEmpty {
-                                deliveredNotificationsSection
-                            }
-                            
-                            // Pending Notifications Section
-                            if !pendingNotifications.isEmpty {
-                                pendingNotificationsSection
-                            }
+                            deliveredNotificationsSection
                         }
                     }
                     .padding(Design.Spacing.lg)
@@ -53,12 +45,14 @@ struct NotificationsView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if !deliveredNotifications.isEmpty {
-                        Button(action: {
-                            showingClearAlert = true
-                        }) {
-                            Text("Clear All")
-                                .foregroundColor(Design.Colors.primary)
+                    Group {
+                        if !deliveredNotifications.isEmpty {
+                            Button(action: {
+                                showingClearAlert = true
+                            }) {
+                                Text("Clear All")
+                                    .foregroundColor(Design.Colors.primary)
+                            }
                         }
                     }
                 }
@@ -73,6 +67,8 @@ struct NotificationsView: View {
             }
             .onAppear {
                 loadNotifications()
+                // Clear the app icon badge when viewing notifications
+                clearAppBadge()
             }
         }
     }
@@ -142,73 +138,36 @@ struct NotificationsView: View {
         }
     }
     
-    // MARK: - Pending Notifications Section
-    private var pendingNotificationsSection: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.md) {
-            HStack {
-                Text("Scheduled")
-                    .font(Design.Typography.title3(.semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Spacer()
-                
-                Text("\(pendingNotifications.count)")
-                    .font(Design.Typography.callout(.medium))
-                    .foregroundColor(Design.Colors.textSecondary)
-                    .padding(.horizontal, Design.Spacing.sm)
-                    .padding(.vertical, 4)
-                    .background(Design.Colors.surfaceSecondary)
-                    .cornerRadius(Design.Radius.sm)
-            }
-            
-            VStack(spacing: Design.Spacing.sm) {
-                ForEach(pendingNotifications, id: \.identifier) { request in
-                    PendingNotificationCard(request: request) {
-                        cancelNotification(request)
-                    }
-                }
-            }
-        }
-        .padding(.top, Design.Spacing.lg)
-    }
     
     // MARK: - Helper Methods
     
     private func loadNotifications() {
         isLoading = true
         
-        let group = DispatchGroup()
-        
-        // Load delivered notifications
-        group.enter()
+        // Load only delivered notifications
         UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
             DispatchQueue.main.async {
                 self.deliveredNotifications = notifications.sorted { n1, n2 in
                     n1.date > n2.date
                 }
-                group.leave()
+                self.isLoading = false
             }
         }
-        
-        // Load pending notifications
-        group.enter()
-        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
-            DispatchQueue.main.async {
-                self.pendingNotifications = requests.sorted { r1, r2 in
-                    guard let trigger1 = r1.trigger as? UNCalendarNotificationTrigger,
-                          let trigger2 = r2.trigger as? UNCalendarNotificationTrigger,
-                          let date1 = trigger1.nextTriggerDate(),
-                          let date2 = trigger2.nextTriggerDate() else {
-                        return false
-                    }
-                    return date1 < date2
-                }
-                group.leave()
-            }
+    }
+    
+    private func clearAppBadge() {
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(0)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
         }
-        
-        group.notify(queue: .main) {
-            isLoading = false
+    }
+    
+    private func setAppBadge(_ count: Int) {
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(count)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = count
         }
     }
     
@@ -217,7 +176,7 @@ struct NotificationsView: View {
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         
         // Clear badge
-        UIApplication.shared.applicationIconBadgeNumber = 0
+        clearAppBadge()
         
         // Reload
         deliveredNotifications = []
@@ -230,29 +189,17 @@ struct NotificationsView: View {
     private func removeNotification(_ notification: UNNotification) {
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notification.request.identifier])
         
-        // Update badge count
-        if UIApplication.shared.applicationIconBadgeNumber > 0 {
-            UIApplication.shared.applicationIconBadgeNumber -= 1
-        }
-        
-        // Remove from list
+        // Remove from list first
         deliveredNotifications.removeAll { $0.request.identifier == notification.request.identifier }
+        
+        // Update badge count to match remaining notifications
+        setAppBadge(deliveredNotifications.count)
         
         // Haptic feedback
         let feedback = UIImpactFeedbackGenerator(style: .light)
         feedback.impactOccurred()
     }
     
-    private func cancelNotification(_ request: UNNotificationRequest) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [request.identifier])
-        
-        // Remove from list
-        pendingNotifications.removeAll { $0.identifier == request.identifier }
-        
-        // Haptic feedback
-        let feedback = UIImpactFeedbackGenerator(style: .light)
-        feedback.impactOccurred()
-    }
 }
 
 // MARK: - Delivered Notification Card
@@ -317,71 +264,6 @@ struct DeliveredNotificationCard: View {
     }
 }
 
-// MARK: - Pending Notification Card
-struct PendingNotificationCard: View {
-    let request: UNNotificationRequest
-    let onCancel: () -> Void
-    
-    private var scheduledDate: Date? {
-        guard let trigger = request.trigger as? UNCalendarNotificationTrigger else {
-            return nil
-        }
-        return trigger.nextTriggerDate()
-    }
-    
-    private var scheduledText: String {
-        guard let date = scheduledDate else {
-            return "Unknown time"
-        }
-        
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: Design.Spacing.md) {
-            Image(systemName: "clock")
-                .font(.title3)
-                .foregroundColor(Design.Colors.info)
-                .frame(width: 40, height: 40)
-                .background(Design.Colors.info.opacity(0.1))
-                .cornerRadius(Design.Radius.md)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(request.content.title)
-                    .font(Design.Typography.callout(.semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Text(request.content.body)
-                    .font(Design.Typography.caption(.regular))
-                    .foregroundColor(Design.Colors.textSecondary)
-                    .lineLimit(2)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption2)
-                    Text(scheduledText)
-                }
-                .font(Design.Typography.caption(.regular))
-                .foregroundColor(Design.Colors.textTertiary)
-            }
-            
-            Spacer()
-            
-            Button(action: onCancel) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(Design.Colors.textTertiary)
-            }
-        }
-        .padding(Design.Spacing.md)
-        .background(Design.Colors.surface)
-        .cornerRadius(Design.Radius.lg)
-        .shadow(color: Design.Colors.textPrimary.opacity(0.05), radius: 4, x: 0, y: 2)
-    }
-}
 
 // MARK: - Preview
 struct NotificationsView_Previews: PreviewProvider {
