@@ -22,12 +22,11 @@ PROJECT="$PROJECT_DIR/kansyl.xcodeproj"
 
 # Device configurations for App Store screenshots
 # Format: "Device Name|Width x Height|Scale|Directory Name"
+# Using devices that are actually installed on this system
 declare -a DEVICES=(
-    "iPhone 15 Pro Max|1290x2796|3x|6.7-inch"
-    "iPhone 15 Plus|1290x2796|3x|6.7-inch"
-    "iPhone 11 Pro Max|1242x2688|3x|6.5-inch"
-    "iPhone 8 Plus|1242x2208|3x|5.5-inch"
-    "iPad Pro (12.9-inch) (6th generation)|2048x2732|2x|12.9-inch-iPad"
+    "iPhone 16 Pro Max|1290x2796|3x|6.7-inch"
+    "iPhone 15 Pro|1179x2556|3x|6.1-inch"
+    "iPad Pro 13-inch (M4)|2048x2732|2x|13-inch-iPad"
 )
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
