@@ -18,6 +18,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCREENSHOTS_DIR="$PROJECT_DIR/Screenshots"
 SCHEME="kansyl"
 WORKSPACE="$PROJECT_DIR/kansyl.xcworkspace"
+PROJECT="$PROJECT_DIR/kansyl.xcodeproj"
 
 # Device configurations for App Store screenshots
 # Format: "Device Name|Width x Height|Scale|Directory Name"
@@ -40,9 +41,18 @@ if ! command -v xcodebuild &> /dev/null; then
     exit 1
 fi
 
-# Check if workspace exists
-if [ ! -f "$WORKSPACE" ]; then
-    echo -e "${RED}Error: Workspace not found at $WORKSPACE${NC}"
+# Check if workspace or project exists
+if [ -d "$WORKSPACE" ]; then
+    BUILD_TARGET="-workspace $WORKSPACE"
+    echo -e "${GREEN}Using workspace: $WORKSPACE${NC}"
+elif [ -d "$PROJECT" ]; then
+    BUILD_TARGET="-project $PROJECT"
+    echo -e "${GREEN}Using project: $PROJECT${NC}"
+else
+    echo -e "${RED}Error: Neither workspace nor project found${NC}"
+    echo -e "${RED}Looked for:${NC}"
+    echo -e "${RED}  - $WORKSPACE${NC}"
+    echo -e "${RED}  - $PROJECT${NC}"
     exit 1
 fi
 
@@ -71,7 +81,7 @@ capture_for_device() {
     echo -e "${YELLOW}Building and running UI tests...${NC}"
     
     xcodebuild test \
-        -workspace "$WORKSPACE" \
+        $BUILD_TARGET \
         -scheme "$SCHEME" \
         -destination "platform=iOS Simulator,name=$device_name" \
         -derivedDataPath "$PROJECT_DIR/DerivedData" \
