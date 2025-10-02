@@ -22,7 +22,7 @@ struct NotificationSettingsView: View {
                 Section {
                     HStack {
                         Image(systemName: notificationManager.notificationsEnabled ? "bell.fill" : "bell.slash.fill")
-                            .foregroundColor(notificationManager.notificationsEnabled ? .green : .red)
+                            .foregroundColor(notificationManager.notificationsEnabled ? Design.Colors.success : Design.Colors.danger)
                             .frame(width: 30)
                         
                         VStack(alignment: .leading, spacing: 4) {
@@ -39,7 +39,7 @@ struct NotificationSettingsView: View {
                             Button("Enable") {
                                 checkAndRequestPermission()
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(Design.Colors.info)
                         }
                     }
                     .padding(.vertical, 4)
@@ -57,7 +57,7 @@ struct NotificationSettingsView: View {
                         Toggle(isOn: $notificationManager.threeDayReminder) {
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(Design.Colors.info)
                                     .frame(width: 30)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("3-Day Warning")
@@ -71,7 +71,7 @@ struct NotificationSettingsView: View {
                         Toggle(isOn: $notificationManager.oneDayReminder) {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Design.Colors.warning)
                                     .frame(width: 30)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("1-Day Urgent")
@@ -85,7 +85,7 @@ struct NotificationSettingsView: View {
                         Toggle(isOn: $notificationManager.dayOfReminder) {
                             HStack {
                                 Image(systemName: "alarm.fill")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Design.Colors.danger)
                                     .frame(width: 30)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Day-Of Alert")
@@ -130,7 +130,7 @@ struct NotificationSettingsView: View {
                         Toggle(isOn: $appPreferences.quietHoursEnabled) {
                             HStack {
                                 Image(systemName: "moon.fill")
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(Design.Colors.primary)
                                     .frame(width: 30)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Quiet Hours")
@@ -272,9 +272,9 @@ struct NotificationPreview: View {
         
         var color: Color {
             switch self {
-            case .normal: return .blue
-            case .urgent: return .orange
-            case .critical: return .red
+            case .normal: return Design.Colors.info
+            case .urgent: return Design.Colors.warning
+            case .critical: return Design.Colors.danger
             }
         }
     }
@@ -283,7 +283,7 @@ struct NotificationPreview: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "app.badge.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(Design.Colors.info)
                 Text("Kansyl")
                     .font(.system(.caption, design: .default).weight(.medium))
                 Spacer()
@@ -312,8 +312,8 @@ struct NotificationPreview: View {
                         .font(.system(.caption2, design: .default).weight(.medium))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.green.opacity(0.15))
-                        .foregroundColor(.green)
+                        .background(Design.Colors.success.opacity(0.15))
+                        .foregroundColor(Design.Colors.success)
                         .cornerRadius(6)
                 }
                 .disabled(true)
@@ -323,8 +323,8 @@ struct NotificationPreview: View {
                         .font(.system(.caption2, design: .default).weight(.medium))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.purple.opacity(0.15))
-                        .foregroundColor(.purple)
+                        .background(Design.Colors.primary.opacity(0.15))
+                        .foregroundColor(Design.Colors.primary)
                         .cornerRadius(6)
                 }
                 .disabled(true)
@@ -335,8 +335,8 @@ struct NotificationPreview: View {
                             .font(.system(.caption2, design: .default).weight(.medium))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.gray.opacity(0.15))
-                            .foregroundColor(.gray)
+                            .background(Design.Colors.neutral.opacity(0.15))
+                            .foregroundColor(Design.Colors.textSecondary)
                             .cornerRadius(6)
                     }
                     .disabled(true)
@@ -344,7 +344,7 @@ struct NotificationPreview: View {
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.05))
+        .background(Design.Colors.surfaceSecondary)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
