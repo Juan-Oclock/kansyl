@@ -72,6 +72,18 @@ struct NotificationsView: View {
                 // Clear the app icon badge when viewing notifications
                 clearAppBadge()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+                // Reload notifications when subscription data changes (keep/cancel)
+                loadNotifications()
+            }
+            .onChange(of: selectedSubscription) { newValue in
+                // When sheet is dismissed, reload notifications
+                if newValue == nil {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        loadNotifications()
+                    }
+                }
+            }
             .sheet(item: $selectedSubscription) { subscription in
                 ModernSubscriptionDetailView(subscription: subscription, subscriptionStore: subscriptionStore)
             }
