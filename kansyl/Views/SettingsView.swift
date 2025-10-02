@@ -51,7 +51,7 @@ struct SettingsView: View {
                         HStack(spacing: 16) {
                             Image(systemName: "person.crop.circle.fill")
                                 .font(.system(size: 50))
-                                .foregroundColor(.blue)
+                                .foregroundColor(Design.Colors.primary)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Premium Member")
@@ -63,13 +63,13 @@ struct SettingsView: View {
                                 } else {
                                     Text("Lifetime Access")
                                         .font(.caption)
-                                        .foregroundColor(.green)
+                                        .foregroundColor(Design.Colors.success)
                                 }
                             }
                             Spacer()
                             Image(systemName: "star.circle.fill")
                                 .font(.title)
-                                .foregroundColor(.yellow)
+                                .foregroundColor(Design.Colors.warning)
                         }
                         .padding(.vertical, 8)
                     }
@@ -154,7 +154,7 @@ struct SettingsView: View {
                     Button(action: { showingNotificationsView = true }) {
                         HStack {
                             Image(systemName: "bell")
-                                .foregroundColor(.blue)
+                                .foregroundColor(Design.Colors.primary)
                                 .frame(width: 30)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("View Notifications")
@@ -174,7 +174,7 @@ struct SettingsView: View {
                     Button(action: { showingNotificationSettings = true }) {
                         HStack {
                             Image(systemName: "bell.badge")
-                                .foregroundColor(.blue)
+                                .foregroundColor(Design.Colors.primary)
                                 .frame(width: 30)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Notification Settings")
@@ -216,7 +216,7 @@ struct SettingsView: View {
                     NavigationLink(destination: SiriShortcutsView()) {
                         HStack {
                             Image(systemName: "mic.fill")
-                                .foregroundColor(.purple)
+                                .foregroundColor(Design.Colors.info)
                                 .frame(width: 30)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Siri Shortcuts")
@@ -266,7 +266,7 @@ struct SettingsView: View {
                     
                     Button(action: { showingClearDataAlert = true }) {
                         Label("Clear All Data", systemImage: "trash")
-                            .foregroundColor(.red)
+                            .foregroundColor(Design.Colors.danger)
                     }
                 } header: {
                     Text("Data Management")
@@ -462,7 +462,7 @@ struct SettingsView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Design.Colors.warning)
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("No Account")
@@ -486,11 +486,11 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.bar.fill")
                         .font(.caption)
-                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? .red : .orange)
+                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? Design.Colors.danger : Design.Colors.warning)
                     
                     Text("\(subscriptionCount) / \(userStateManager.anonymousSubscriptionLimit) subscriptions used")
                         .font(.caption)
-                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? .red : .secondary)
+                        .foregroundColor(subscriptionCount >= userStateManager.anonymousSubscriptionLimit ? Design.Colors.danger : Design.Colors.textSecondary)
                 }
                 
                 // Create Account Button
@@ -533,7 +533,7 @@ struct SettingsView: View {
                     // Profile Avatar
                     ZStack {
                         Circle()
-                            .fill(Color.blue)
+                            .fill(Design.Colors.primary)
                             .frame(width: 50, height: 50)
                         
                         Text(getInitials(from: authManager.userProfile?.fullName ?? authManager.currentUser?.email ?? "U"))
@@ -555,7 +555,7 @@ struct SettingsView: View {
                         HStack(spacing: 4) {
                             Image(systemName: authManager.isEmailVerified ? "checkmark.circle.fill" : "exclamationmark.circle")
                                 .font(.caption)
-                                .foregroundColor(authManager.isEmailVerified ? .green : .orange)
+                                .foregroundColor(authManager.isEmailVerified ? Design.Colors.success : Design.Colors.warning)
                             
                             Text(authManager.isEmailVerified ? "Verified" : "Not Verified")
                                 .font(.caption)
@@ -576,7 +576,7 @@ struct SettingsView: View {
             Button(action: { showingSignOutAlert = true }) {
                 HStack {
                     Label("Sign Out", systemImage: "arrow.right.square")
-                        .foregroundColor(.red)
+                        .foregroundColor(Design.Colors.danger)
                     Spacer()
                 }
             }
