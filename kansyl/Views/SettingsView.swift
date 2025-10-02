@@ -401,6 +401,7 @@ struct SettingsView: View {
             .sheet(isPresented: $showingNotificationsView) {
                 NotificationsView()
                     .environmentObject(notificationManager)
+                    .environmentObject(SubscriptionStore.shared)
             }
             .alert("Reset All Settings?", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) { }

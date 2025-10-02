@@ -11,9 +11,11 @@ import UserNotifications
 struct NotificationsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var notificationManager: NotificationManager
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @State private var deliveredNotifications: [UNNotification] = []
     @State private var isLoading = true
     @State private var showingClearAlert = false
+    @State private var selectedSubscription: Subscription?
     
     var body: some View {
         NavigationView {
@@ -69,6 +71,9 @@ struct NotificationsView: View {
                 loadNotifications()
                 // Clear the app icon badge when viewing notifications
                 clearAppBadge()
+            }
+            .sheet(item: $selectedSubscription) { subscription in
+                ModernSubscriptionDetailView(subscription: subscription, subscriptionStore: subscriptionStore)
             }
         }
     }
@@ -130,9 +135,16 @@ struct NotificationsView: View {
             
             VStack(spacing: Design.Spacing.sm) {
                 ForEach(deliveredNotifications, id: \.request.identifier) { notification in
-                    DeliveredNotificationCard(notification: notification) {
-                        removeNotification(notification)
-                    }
+                    DeliveredNotificationCard(
+                        notification: notification,
+                        subscriptionStore: subscriptionStore,
+                        onTap: {
+                            handleNotificationTap(notification)
+                        },
+                        onDelete: {
+                            removeNotification(notification)
+                        }
+                    )
                 }
             }
         }
@@ -186,6 +198,20 @@ struct NotificationsView: View {
         feedback.notificationOccurred(.success)
     }
     
+    private func handleNotificationTap(_ notification: UNNotification) {
+        // Get subscription ID from notification userInfo
+        guard let subscriptionId = notification.request.content.userInfo["subscriptionId"] as? String,
+              let uuid = UUID(uuidString: subscriptionId) else {
+            return
+        }
+        
+        // Find the subscription
+        if let subscription = subscriptionStore.allSubscriptions.first(where: { $0.id == uuid }) {
+            selectedSubscription = subscription
+            HapticManager.shared.playSelection()
+        }
+    }
+    
     private func removeNotification(_ notification: UNNotification) {
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notification.request.identifier])
         
@@ -205,7 +231,32 @@ struct NotificationsView: View {
 // MARK: - Delivered Notification Card
 struct DeliveredNotificationCard: View {
     let notification: UNNotification
+    @ObservedObject var subscriptionStore: SubscriptionStore
+    let onTap: () -> Void
     let onDelete: () -> Void
+    
+    private var serviceName: String {
+        if let subscriptionName = notification.request.content.userInfo["subscriptionName"] as? String {
+            return subscriptionName
+        }
+        return "Subscription"
+    }
+    
+    private var subscriptionType: String {
+        if let type = notification.request.content.userInfo["subscriptionType"] as? String {
+            switch type {
+            case "trial":
+                return "Trial"
+            case "paid":
+                return "Premium"
+            case "promotional":
+                return "Promo"
+            default:
+                return "Subscription"
+            }
+        }
+        return "Subscription"
+    }
     
     private var timeAgo: String {
         let date = notification.date
@@ -226,41 +277,59 @@ struct DeliveredNotificationCard: View {
     }
     
     var body: some View {
-        HStack(alignment: .top, spacing: Design.Spacing.md) {
-            Image(systemName: "bell.fill")
-                .font(.title3)
-                .foregroundColor(Design.Colors.primary)
-                .frame(width: 40, height: 40)
-                .background(Design.Colors.primary.opacity(0.1))
-                .cornerRadius(Design.Radius.md)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(notification.request.content.title)
-                    .font(Design.Typography.callout(.semibold))
-                    .foregroundColor(Design.Colors.textPrimary)
-                
-                Text(notification.request.content.body)
-                    .font(Design.Typography.caption(.regular))
-                    .foregroundColor(Design.Colors.textSecondary)
-                    .lineLimit(2)
-                
-                Text(timeAgo)
-                    .font(Design.Typography.caption(.regular))
-                    .foregroundColor(Design.Colors.textTertiary)
-            }
-            
-            Spacer()
-            
-            Button(action: onDelete) {
-                Image(systemName: "xmark.circle.fill")
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: Design.Spacing.md) {
+                Image(systemName: "bell.fill")
                     .font(.title3)
-                    .foregroundColor(Design.Colors.textTertiary)
+                    .foregroundColor(Design.Colors.primary)
+                    .frame(width: 40, height: 40)
+                    .background(Design.Colors.primary.opacity(0.1))
+                    .cornerRadius(Design.Radius.md)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    // Service name as title
+                    HStack(spacing: 6) {
+                        Text(serviceName)
+                            .font(Design.Typography.callout(.semibold))
+                            .foregroundColor(Design.Colors.textPrimary)
+                        
+                        // Subscription type badge
+                        Text(subscriptionType)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(subscriptionType == "Trial" ? Design.Colors.warning : Design.Colors.success)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((subscriptionType == "Trial" ? Design.Colors.warning : Design.Colors.success).opacity(0.15))
+                            .cornerRadius(4)
+                    }
+                    
+                    Text(notification.request.content.body)
+                        .font(Design.Typography.caption(.regular))
+                        .foregroundColor(Design.Colors.textSecondary)
+                        .lineLimit(2)
+                    
+                    Text(timeAgo)
+                        .font(Design.Typography.caption(.regular))
+                        .foregroundColor(Design.Colors.textTertiary)
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    onDelete()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(Design.Colors.textTertiary)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
+            .padding(Design.Spacing.md)
+            .background(Design.Colors.surface)
+            .cornerRadius(Design.Radius.lg)
+            .shadow(color: Design.Colors.textPrimary.opacity(0.05), radius: 4, x: 0, y: 2)
         }
-        .padding(Design.Spacing.md)
-        .background(Design.Colors.surface)
-        .cornerRadius(Design.Radius.lg)
-        .shadow(color: Design.Colors.textPrimary.opacity(0.05), radius: 4, x: 0, y: 2)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

@@ -145,6 +145,7 @@ struct ModernSubscriptionsView: View {
             .sheet(isPresented: $showingNotifications) {
                 NotificationsView()
                     .environmentObject(notificationManager)
+                    .environmentObject(subscriptionStore)
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {
