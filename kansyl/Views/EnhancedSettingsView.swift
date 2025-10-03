@@ -12,7 +12,8 @@ struct EnhancedSettingsView: View {
     @EnvironmentObject private var notificationManager: NotificationManager
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @ObservedObject private var appPreferences = AppPreferences.shared
-    @StateObject private var cloudKitManager = CloudKitManager.shared
+    // CloudKit disabled for v1.0
+    // @StateObject private var cloudKitManager = CloudKitManager.shared
     @Environment(\.managedObjectContext) private var viewContext
     
     @State private var showingNotificationSettings = false
@@ -291,6 +292,8 @@ struct EnhancedSettingsView: View {
                 Label("Export Data", systemImage: "square.and.arrow.up")
             }
             
+            // CloudKit sync disabled for v1.0 - will be enabled as premium feature
+            /*
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Label("iCloud Sync", systemImage: "icloud")
@@ -344,6 +347,7 @@ struct EnhancedSettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            */
             
             Button(action: { showingClearDataAlert = true }) {
                 Label("Clear All Data", systemImage: "trash")

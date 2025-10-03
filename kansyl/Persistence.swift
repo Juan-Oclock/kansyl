@@ -6,7 +6,6 @@
 //
 
 import CoreData
-import CloudKit
 
 class PersistenceController {
     static let shared = PersistenceController()
@@ -36,18 +35,20 @@ class PersistenceController {
         return result
     }()
     
-    let container: NSPersistentCloudKitContainer
+    // Use regular NSPersistentContainer instead of CloudKit container for v1.0
+    // CloudKit will be enabled in a future version as a premium feature
+    let container: NSPersistentContainer
     private(set) var isLoaded = false
     private(set) var loadError: Error?
     
     init(inMemory: Bool = false) {
-        container = NSPersistentCloudKitContainer(name: "Kansyl")
+        // Use regular NSPersistentContainer for v1.0 (local storage only)
+        container = NSPersistentContainer(name: "Kansyl")
         
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
-        } else {
-            setupCloudKitStores()
         }
+        // Note: setupCloudKitStores() is not called - CloudKit disabled for v1.0
         
         // Enable automatic lightweight migration
         container.persistentStoreDescriptions.forEach { storeDescription in
@@ -86,16 +87,8 @@ class PersistenceController {
                 self?.container.viewContext.automaticallyMergesChangesFromParent = true
                 self?.container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
                 
-                // Set up CloudKit remote change notifications (only if available)
-                DispatchQueue.main.async {
-                    // Check if CloudKit features are enabled before setting up notifications
-                    #if DEBUG
-                    // Skip CloudKit setup in debug mode for personal development teams
-                    print("🔧 [PersistenceController] Skipping CloudKit notifications in DEBUG mode")
-                    #else
-                    CloudKitManager.shared.setupRemoteChangeNotifications()
-                    #endif
-                }
+                // CloudKit disabled for v1.0 - will be enabled as premium feature in future
+                print("📋 [PersistenceController] CloudKit sync disabled - using local Core Data storage only")
             }
         }
     }

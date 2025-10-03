@@ -295,13 +295,18 @@ class SupabaseAuthManager: ObservableObject {
     }
     
     /// Sign in with Apple ID
-    func signInWithApple(idToken: String, nonce: String) async throws {
+    func signInWithApple(idToken: String, nonce: String, fullName: PersonNameComponents? = nil) async throws {
+        print("🍎 [SupabaseAuthManager] signInWithApple called")
         isLoading = true
         errorMessage = nil
         
-        defer { isLoading = false }
+        defer { 
+            isLoading = false
+            print("🏁 [SupabaseAuthManager] signInWithApple completed")
+        }
         
         do {
+            print("📡 [SupabaseAuthManager] Calling Supabase signInWithIdToken for Apple...")
             let response = try await supabase.auth.signInWithIdToken(
                 credentials: .init(
                     provider: .apple,
@@ -309,24 +314,87 @@ class SupabaseAuthManager: ObservableObject {
                     nonce: nonce
                 )
             )
+            print("✅ [SupabaseAuthManager] Supabase Apple sign-in successful")
+            print("👤 [SupabaseAuthManager] User ID: \(response.user.id)")
+            print("📧 [SupabaseAuthManager] User email: \(response.user.email ?? "none")")
             
-            // Create profile if this is a new user
-            let user = response.user
-            if userProfile == nil {
-                let fullName: String?
-                if case let .string(name) = user.userMetadata["full_name"] {
-                    fullName = name
+            // Check if user was in anonymous mode BEFORE updating anything
+            let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
+            let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
+            
+            await MainActor.run {
+                self.currentUser = self.convertAuthUser(response.user)
+                self.isAuthenticated = true
+                print("✅ [SupabaseAuthManager] Updated currentUser and isAuthenticated = true")
+            }
+            
+            // Migrate anonymous data if user was anonymous
+            if wasInAnonymousMode {
+                if anonymousUserID != nil {
+                    print("🔄 [SupabaseAuthManager] User was in anonymous mode, migrating data...")
+                    do {
+                        try await UserStateManager.shared.migrateAnonymousDataToAccount(
+                            viewContext: PersistenceController.shared.container.viewContext,
+                            newUserID: response.user.id.uuidString
+                        )
+                        print("✅ [SupabaseAuthManager] Anonymous data migration completed")
+                    } catch {
+                        print("❌ [SupabaseAuthManager] Migration failed: \(error.localizedDescription)")
+                        // Continue anyway - don't block authentication
+                        // Still need to disable anonymous mode even if migration failed
+                        UserStateManager.shared.exitAnonymousMode()
+                    }
                 } else {
-                    fullName = nil
+                    // User was in anonymous mode but no ID exists - just exit anonymous mode
+                    print("⚠️ [SupabaseAuthManager] User was in anonymous mode but no ID found, exiting anonymous mode")
+                    UserStateManager.shared.exitAnonymousMode()
                 }
-                try await createUserProfile(
-                    userId: user.id,
-                    email: user.email,
-                    fullName: fullName
-                )
+            }
+            
+            await MainActor.run {
+                // Update SubscriptionStore's userID AFTER migration
+                SubscriptionStore.currentUserID = response.user.id.uuidString
+                print("✅ [SupabaseAuthManager] SubscriptionStore userID updated to: \(response.user.id.uuidString)")
+            }
+            
+            // Load or create user profile
+            print("📋 [SupabaseAuthManager] Loading user profile...")
+            await loadUserProfile()
+            
+            // If profile doesn't exist, create it
+            if userProfile == nil {
+                print("📋 [SupabaseAuthManager] Profile not found, creating new profile...")
+                let user = response.user
+                let fullNameString: String?
+                if let fullName = fullName {
+                    fullNameString = [fullName.givenName, fullName.familyName]
+                        .compactMap { $0 }
+                        .joined(separator: " ")
+                } else if case let .string(name) = user.userMetadata["full_name"] {
+                    fullNameString = name
+                } else {
+                    fullNameString = nil
+                }
+                
+                do {
+                    try await createUserProfile(
+                        userId: user.id,
+                        email: user.email,
+                        fullName: fullNameString
+                    )
+                    print("✅ [SupabaseAuthManager] User profile created")
+                } catch {
+                    // Profile might have been created by database trigger or by another session
+                    print("⚠️ [SupabaseAuthManager] Profile creation failed (may already exist): \(error.localizedDescription)")
+                    // Try loading again
+                    await loadUserProfile()
+                }
+            } else {
+                print("✅ [SupabaseAuthManager] User profile loaded successfully")
             }
             
         } catch {
+            print("❌ [SupabaseAuthManager] Apple Sign In failed: \(error.localizedDescription)")
             errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
             throw SupabaseAuthError.appleSignInFailed(error.localizedDescription)
         }

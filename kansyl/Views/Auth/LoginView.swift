@@ -15,6 +15,7 @@ struct LoginView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var navigationCoordinator = NavigationCoordinator.shared
+    @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var showingEmailLogin = false
     @State private var email = ""
     @State private var password = ""
@@ -75,11 +76,10 @@ struct LoginView: View {
                         
                         // Modern authentication options
                         VStack(spacing: Design.Spacing.lg) {
-                            // Apple Sign In - Custom modern styling
+                            // Apple Sign In - Real implementation
                             Button(action: {
-                                // For now, show the error message since we don't have paid developer account
                                 Task {
-                                    await handleAppleSignIn(.failure(NSError(domain: "AppleSignIn", code: -1)))
+                                    await handleAppleSignIn()
                                 }
                             }) {
                                 HStack(spacing: Design.Spacing.sm) {
@@ -295,15 +295,31 @@ struct LoginView: View {
     
     // MARK: - Helper Methods
     
-    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
-        // Note: Sign In with Apple requires a paid Apple Developer Program membership
-        // For personal development teams, show a helpful message
-        authManager.errorMessage = "Sign In with Apple requires a paid Apple Developer Program membership ($99/year). Please use Email sign-in for now or upgrade your developer account."
-        
-        // When you have a paid Apple Developer account:
-        // 1. Uncomment the entitlement in kansyl.entitlements
-        // 2. Replace the custom button with the real SignInWithAppleButton
-        // 3. Implement the actual authentication logic here
+    private func handleAppleSignIn() async {
+        print("🍎 [LoginView] handleAppleSignIn called")
+        do {
+            // Use the coordinator to handle the Apple Sign In flow
+            let result = try await appleSignInCoordinator.signIn()
+            print("✅ [LoginView] Apple Sign In coordinator completed successfully")
+            
+            // Pass the result to the auth manager
+            try await authManager.signInWithApple(
+                idToken: result.idToken,
+                nonce: result.nonce,
+                fullName: result.fullName
+            )
+            print("✅ [LoginView] Apple Sign In completed successfully")
+        } catch AppleSignInError.cancelled {
+            // User cancelled - don't show error
+            print("⚠️ [LoginView] User cancelled Apple Sign In")
+            authManager.errorMessage = nil
+        } catch {
+            print("❌ [LoginView] Apple Sign In failed: \(error.localizedDescription)")
+            // Error is already set by auth manager or coordinator
+            if authManager.errorMessage == nil {
+                authManager.errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
+            }
+        }
     }
     
     private func handleGoogleSignIn() async {

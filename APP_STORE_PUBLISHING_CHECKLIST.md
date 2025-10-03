@@ -19,13 +19,24 @@
 - API keys properly secured in Config.private.xcconfig
 - Backend services: Supabase (Google auth) + DeepSeek (receipt scanning)
 - iPhone & iPad support configured
+- ✅ Apple Developer Program membership APPROVED!
+- ✅ Apple Developer account setup complete (tax forms, banking, agreements)
+- ✅ App IDs created for main app and Share Extension
+- ✅ App Groups configured: group.com.juan-oclock.kansyl
+- ✅ Distribution Certificate created and installed
+- ✅ APNs Key created and secured (Key ID: C294DWA9AX)
+- ✅ App Store provisioning profiles created and installed
+- ✅ Xcode signing configured (main app + Share Extension)
+- ✅ Push Notifications capability enabled
+- ✅ App Groups capability configured
+- ✅ CFBundleDisplayName set to "Kansyl"
 
 ### ⏳ In Progress
-- Apple Developer Program membership (pending approval)
+- Ready to create App Store Connect listing
+- Ready to archive and upload to TestFlight
 
 ### 🚫 Blockers
-- Cannot proceed with App Store Connect setup until Apple Developer membership is approved
-- Cannot create App ID or Distribution Certificate until membership approved
+- None! Ready to proceed with submission preparation
 
 ### 📋 Next Steps (After Membership Approval)
 1. Complete Apple Developer account setup (certificates, App ID)
@@ -52,26 +63,26 @@
 ### 1. Apple Developer Account Setup
 
 #### Developer Account
-- [ ] Active Apple Developer Program membership ($99/year) - **PENDING - In progress**
-- [ ] Account in good standing
-- [ ] Tax and banking information completed
-- [ ] Agreements accepted in App Store Connect
+- [x] Active Apple Developer Program membership ($99/year) - ✅ APPROVED
+- [x] Account in good standing - ✅ Active
+- [x] Tax and banking information completed - ✅ W-8BEN submitted
+- [x] Agreements accepted in App Store Connect - ✅ Free Apps Agreement active
 
 #### Certificates and Identifiers
-- [ ] App ID created with correct bundle identifier
-- [ ] Distribution Certificate created
-- [ ] App Store provisioning profile created
-- [ ] Push Notification certificate/key configured (if using)
-- [ ] CloudKit container configured
-- [ ] App Groups configured for extensions
+- [x] App ID created with correct bundle identifier - ✅ com.juan-oclock.kansyl.kansyl
+- [x] Distribution Certificate created - ✅ Apple Distribution certificate installed
+- [x] App Store provisioning profile created - ✅ Main app + Share Extension profiles
+- [x] Push Notification certificate/key configured - ✅ APNs Key (C294DWA9AX) created and secured
+- [ ] CloudKit container configured - Not using CloudKit
+- [x] App Groups configured for extensions - ✅ group.com.juan-oclock.kansyl
 
 #### Capabilities and Entitlements
-- [ ] Push Notifications enabled
-- [ ] CloudKit enabled (if syncing data)
-- [ ] Siri enabled (for shortcuts)
-- [ ] Background Modes configured (if needed)
-- [ ] App Groups for Widget and Share Extension
-- [ ] Sign in with Apple (if required)
+- [x] Push Notifications enabled - ✅ Main app configured
+- [ ] CloudKit enabled - Not using CloudKit
+- [ ] Siri enabled (for shortcuts) - Future feature
+- [ ] Background Modes configured - Not needed yet
+- [x] App Groups for Widget and Share Extension - ✅ group.com.juan-oclock.kansyl
+- [ ] Sign in with Apple - Using Google OAuth via Supabase
 
 ---
 
@@ -81,9 +92,9 @@
 - [x] Bundle identifier matches App ID - `com.juan-oclock.kansyl.kansyl`
 - [x] Version number set (e.g., 1.0) - Currently 1.0
 - [x] Build number set (must be unique for each submission) - Currently 1
-- [ ] Display name set
+- [x] Display name set - ✅ "Kansyl" in Info.plist
 - [x] Minimum iOS version specified (15.0) - ✅ iOS 15.0
-- [ ] Required device capabilities defined
+- [x] Required device capabilities defined - ✅ iPhone & iPad (1,2)
 - [x] Supported interface orientations configured - Portrait, Landscape Left & Right
 
 ### Privacy Permissions Descriptions

@@ -53,21 +53,31 @@ class PremiumManager: ObservableObject {
     }
     
     init() {
-        Task {
-            await loadProducts()
-            await updatePurchasedProducts()
-        }
+        // DISABLED: ALL StoreKit initialization to prevent freezing
+        // when user is not signed into App Store
+        // Both Product.products and Transaction.currentEntitlements can hang
+        print("⚠️ [PremiumManager] StoreKit initialization disabled to prevent freezing")
+        print("⚠️ [PremiumManager] Defaulting to free tier (5 subscriptions max)")
         
-        // Listen for transaction updates
-        observeTransactionUpdates()
+        // Set default to non-premium
+        isPremium = false
+        
+        // StoreKit will only be accessed when user explicitly tries to purchase
+        // This prevents any hanging at app startup or in Settings
     }
     
     @MainActor
     func loadProducts() async {
+        // Add protection against hanging
         do {
-            products = try await Product.products(for: [premiumProductId, premiumYearlyProductId])
+            // Use timeout to prevent hanging when not signed into App Store
+            try await withTimeout(seconds: 2.0) {
+                self.products = try await Product.products(for: [self.premiumProductId, self.premiumYearlyProductId])
+            }
+            print("✅ [PremiumManager] Products loaded successfully")
         } catch {
-            // Debug: print("Failed to load products: \(error)")
+            print("⚠️ [PremiumManager] Failed to load products: \(error.localizedDescription)")
+            products = [] // Ensure products array is empty on failure
         }
     }
     
@@ -75,30 +85,67 @@ class PremiumManager: ObservableObject {
     func updatePurchasedProducts() async {
         var hasPremium = false
         
-        for await result in Transaction.currentEntitlements {
-            guard case .verified(let transaction) = result else {
-                continue
+        // CRITICAL FIX: Skip StoreKit entirely if it's going to hang
+        // This prevents app freezing when user is not signed into App Store
+        print("💰 [PremiumManager] Checking premium status...")
+        
+        // Quick check: Try to access transactions with immediate timeout
+        let checkTask = Task {
+            for await result in Transaction.currentEntitlements {
+                guard case .verified(let transaction) = result else {
+                    continue
+                }
+                
+                if transaction.productID == self.premiumProductId || 
+                   transaction.productID == self.premiumYearlyProductId {
+                    return true
+                }
             }
+            return false
+        }
+        
+        // Give it only 0.5 seconds before cancelling
+        do {
+            hasPremium = try await withTimeout(seconds: 0.5) {
+                return await checkTask.value
+            }
+            print("✅ [PremiumManager] Successfully checked entitlements: isPremium = \(hasPremium)")
+        } catch {
+            // Cancel the hanging task
+            checkTask.cancel()
             
-            if transaction.productID == premiumProductId || 
-               transaction.productID == premiumYearlyProductId {
-                hasPremium = true
-                break
-            }
+            print("⚠️ [PremiumManager] StoreKit check timed out or failed: \(error.localizedDescription)")
+            print("⚠️ [PremiumManager] This usually means you're not signed into the App Store")
+            print("⚠️ [PremiumManager] Defaulting to free tier (5 subscriptions max)")
+            hasPremium = false
         }
         
         isPremium = hasPremium
     }
     
-    private func observeTransactionUpdates() {
-        Task {
-            for await result in Transaction.updates {
-                if case .verified(let transaction) = result {
-                    await transaction.finish()
-                    await updatePurchasedProducts()
-                }
+    // Helper function to add timeout to async operations
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
             }
+            
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw PremiumError.timeout
+            }
+            
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
         }
+    }
+    
+    private func observeTransactionUpdates() {
+        // DISABLED: This causes freezing when user is not signed into App Store
+        // Transaction.updates hangs indefinitely waiting for App Store connection
+        // Will be called manually after successful purchase instead
+        print("⚠️ [PremiumManager] Transaction observer disabled to prevent freezing")
     }
     
     @MainActor
@@ -239,6 +286,7 @@ enum PremiumError: LocalizedError, Equatable {
     case productNotFound
     case unverifiedTransaction
     case simulatorNotSupported
+    case timeout
     
     var errorDescription: String? {
         switch self {
@@ -248,6 +296,8 @@ enum PremiumError: LocalizedError, Equatable {
             return "Transaction could not be verified"
         case .simulatorNotSupported:
             return "In-App Purchases are not supported on iOS Simulator. Please test on a real device or use the development bypass option."
+        case .timeout:
+            return "StoreKit connection timeout. Please sign into the App Store and try again."
         }
     }
 }

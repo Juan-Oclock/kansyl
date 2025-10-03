@@ -114,3 +114,4 @@ error-fixed-history.md
 *.backup
 *.bak
 *~
+secrets/

@@ -9,7 +9,8 @@ import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
-    @StateObject private var cloudKitManager = CloudKitManager.shared
+    // CloudKit disabled for v1.0
+    // @StateObject private var cloudKitManager = CloudKitManager.shared
     @State private var showingDeleteAccount = false
     @State private var showingSignOutAlert = false
     @State private var showingEditProfile = false
@@ -93,6 +94,8 @@ struct UserProfileView: View {
                     }
                     .foregroundColor(Design.Colors.textPrimary)
                     
+                    // CloudKit sync disabled for v1.0 - will be enabled as premium feature
+                    /*
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Label("iCloud Sync", systemImage: "icloud.and.arrow.up")
@@ -125,6 +128,7 @@ struct UserProfileView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                    */
                 }
                 
                 // Danger zone
@@ -206,6 +210,8 @@ struct UserProfileView: View {
         // and present a share sheet
     }
     
+    // CloudKit functions disabled for v1.0
+    /*
     private func handleiCloudSync() async {
         do {
             if cloudKitManager.isSyncEnabled {
@@ -220,6 +226,7 @@ struct UserProfileView: View {
             }
         }
     }
+    */
     
     private func formatSyncDate(_ date: Date) -> String {
         let formatter = DateFormatter()

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Groups for Share Extension data sharing -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.juan-oclock.kansyl</string>
+	</array>
+	
+	<!-- Push Notifications Entitlement -->
+	<!-- Automatically added by Xcode when you enable Push Notifications capability -->
+	<key>aps-environment</key>
+	<string>production</string>
+	
+	<!-- Associated Domains for Universal Links (Optional) -->
+	<!-- Uncomment if you want to support Universal Links from your website -->
+	<!--
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:kansyl.juan-oclock.com</string>
+	</array>
+	-->
+	
+	<!-- CloudKit Containers (Optional - for future cloud sync) -->
+	<!-- Uncomment if you want to add CloudKit syncing -->
+	<!--
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.juan-oclock.kansyl</string>
+	</array>
+	
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	-->
+	
+	<!-- Sign In with Apple (Optional - you're using Google auth) -->
+	<!-- Uncomment if you want to add Sign in with Apple -->
+	<!--
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	-->
+</dict>
+</plist>
