@@ -292,31 +292,31 @@ struct SettingsView: View {
                     Text("These settings help improve the app experience")
                 }
                 
-                // DEBUG Section (Simulator Only)
-                #if DEBUG
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { PremiumManager.shared.isPremium },
-                        set: { newValue in
-                            if newValue {
-                                Task { @MainActor in
-                                    PremiumManager.shared.enableTestPremium()
-                                }
-                            } else {
-                                Task { @MainActor in
-                                    PremiumManager.shared.disableTestPremium()
-                                }
-                            }
-                        }
-                    )) {
-                        Label("Enable Test Premium", systemImage: "ladybug")
-                    }
-                } header: {
-                    Text("🐛 DEBUG (Simulator Only)")
-                } footer: {
-                    Text("Enable premium features for testing on simulator. This toggle only works in DEBUG builds.")
-                }
-                #endif
+                // DEBUG Section (Simulator Only) - DISABLED
+                // #if DEBUG
+                // Section {
+                //     Toggle(isOn: Binding(
+                //         get: { PremiumManager.shared.isPremium },
+                //         set: { newValue in
+                //             if newValue {
+                //                 Task { @MainActor in
+                //                     PremiumManager.shared.enableTestPremium()
+                //                 }
+                //             } else {
+                //                 Task { @MainActor in
+                //                     PremiumManager.shared.disableTestPremium()
+                //                 }
+                //             }
+                //         }
+                //     )) {
+                //         Label("Enable Test Premium", systemImage: "ladybug")
+                //     }
+                // } header: {
+                //     Text("🐛 DEBUG (Simulator Only)")
+                // } footer: {
+                //     Text("Enable premium features for testing on simulator. This toggle only works in DEBUG builds.")
+                // }
+                // #endif
                 
                 // 9. About & Support Section
                 Section {
