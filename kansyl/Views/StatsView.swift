@@ -626,7 +626,7 @@ struct StatsView: View {
             
             // Track all subscriptions that existed during this month
             for subscription in subscriptionStore.allSubscriptions {
-                let monthlyPrice = subscription.monthlyPrice ?? 0
+                let monthlyPrice = subscription.monthlyPrice
                 
                 // Check if subscription was active during this month
                 if let startDate = subscription.startDate {
@@ -645,9 +645,9 @@ struct StatsView: View {
                         
                         // For current month and recently canceled, count full monthly value
                         let isCurrentMonth = monthOffset == 0
-                        let wasCanceledRecently = subscription.status == SubscriptionStatus.canceled.rawValue && 
-                                                 subscription.endDate != nil &&
-                                                 calendar.isDate(subscription.endDate!, inSameDayAs: today)
+                        _ = subscription.status == SubscriptionStatus.canceled.rawValue && 
+                            subscription.endDate != nil &&
+                            calendar.isDate(subscription.endDate!, inSameDayAs: today)
                         
                         
                         // Apply the appropriate calculation based on status
@@ -734,7 +734,7 @@ struct StatsView: View {
         
         var previousSavings: Double = 0
         for subscription in previousPeriodCanceled {
-            let monthlyPrice = subscription.monthlyPrice ?? 0
+            let monthlyPrice = subscription.monthlyPrice
             previousSavings += monthlyPrice * 6 // Rough estimate for 6 months
         }
         

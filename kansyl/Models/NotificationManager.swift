@@ -85,9 +85,9 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     
     func scheduleNotifications(for subscription: Subscription) {
         guard notificationsEnabled,
-              let subscriptionId = subscription.id?.uuidString,
-              let subscriptionName = subscription.name,
-              let endDate = subscription.endDate else {
+              subscription.id?.uuidString != nil,
+              subscription.name != nil,
+              subscription.endDate != nil else {
             return
         }
         

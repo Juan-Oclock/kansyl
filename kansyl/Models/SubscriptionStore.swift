@@ -395,7 +395,7 @@ class SubscriptionStore: ObservableObject {
         CalendarManager.shared.addOrUpdateEvent(for: subscription)
         
         // Track conversion analytics
-        let daysSinceStart = Calendar.current.dateComponents(
+        _ = Calendar.current.dateComponents(
             [.day],
             from: subscription.startDate ?? Date(),
             to: Date()
