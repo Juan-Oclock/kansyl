@@ -1,10 +1,10 @@
 # Kansyl - App Store Metadata
 
 ## App Name
-Kansyl - Trial Tracker
+Kansyl - Subscription Manager
 
 ## Subtitle
-Never forget to cancel free trials
+Track trials & subscriptions
 
 ## Primary Category
 Finance
@@ -14,63 +14,64 @@ Productivity
 
 ## App Description
 
-**Take Control of Your Free Trials**
+**Take Control of Your Subscriptions**
 
-Kansyl is your intelligent companion for managing free trials and subscriptions. Never waste money on forgotten trials again!
+Kansyl is your intelligent companion for managing all your subscriptions—free trials, premium services, and promotional offers. Never waste money on forgotten renewals again!
 
 **Key Features:**
 
-📅 **Smart Trial Management**
-- Track unlimited free trials with ease
-- Get timely reminders before trials end
-- Visual timeline of upcoming renewals
-- Quick-add trials with smart detection
+📅 **Smart Subscription Management**
+- Track free trials, premium subscriptions, and promo offers
+- Get timely reminders before renewals and trial endings
+- Visual timeline of all upcoming payments
+- Quick-add with smart service detection
 
 💰 **Save Money**
-- Track your total savings from canceled trials
-- See potential waste from forgotten subscriptions
-- Get personalized insights on spending habits
-- Monthly and yearly cost projections
+- Track savings from canceled subscriptions
+- Monitor total monthly and yearly spending
+- Get personalized insights on subscription habits
+- Identify unused or forgotten services
 
 🏆 **Achievements & Gamification**
-- Unlock achievements for smart trial management
+- Unlock achievements for smart subscription management
 - Track your savings milestones
-- Build good subscription habits
-- Share your savings success with friends
+- Build better spending habits
+- Share your success with friends
 
 ⚡ **Powerful Features**
 - Home Screen widgets for at-a-glance info
 - Siri Shortcuts for hands-free management
-- Share Extension to add trials from any app
-- iCloud sync across all your devices
+- Share Extension to add subscriptions from any app
+- Cloud sync across all your devices
 - Dark mode support
 
 📊 **Analytics & Insights**
-- Detailed spending analytics
-- Trial history and patterns
-- Waste prevention score
+- Detailed spending analytics by category
+- Subscription history and patterns
+- Cost breakdown and waste prevention score
 - Export data in CSV or JSON
 
 🔔 **Smart Notifications**
 - Customizable reminder schedule
-- Multiple alert timings
-- Critical alerts for ending trials
+- Multiple alert timings for trials and renewals
+- Critical alerts for ending trials and upcoming charges
 - Silent hours support
 
 **Why Kansyl?**
 
-The average person forgets about 40% of their free trials, leading to hundreds of dollars in unwanted charges yearly. Kansyl helps you:
+The average person has 12+ active subscriptions and forgets about 40% of their free trials, leading to hundreds of dollars in unwanted charges yearly. Kansyl helps you:
 - Save an average of $200+ per year
-- Never miss a trial cancellation deadline
-- Make informed decisions about subscriptions
+- Never miss a cancellation deadline or renewal date
+- Track all subscriptions in one place
+- Make informed decisions about what to keep or cancel
 - Build better financial habits
 
 **Privacy First**
-Your data stays on your device and in your iCloud account. We don't collect or sell your personal information.
+Your data stays on your device. Optional cloud sync keeps your data secure and private. We don't collect or sell your personal information.
 
 **Premium Features (Optional)**
-- Unlimited trial tracking
-- Advanced analytics
+- Unlimited subscription tracking
+- Advanced analytics and insights
 - Priority support
 - Custom notification sounds
 - CSV/JSON export
@@ -83,28 +84,28 @@ trial,subscription,tracker,cancel,reminder,free trial,money,save,budget,finance,
 ## What's New in Version 1.0
 
 ### Initial Release
-- Track unlimited free trials
-- Smart notifications and reminders
+- Track free trials, subscriptions, and promotional offers
+- Smart notifications for renewals and trial endings
 - Home Screen widgets
 - Siri Shortcuts integration
 - Achievement system
 - Savings tracker
 - Share Extension
-- iCloud sync
+- Cloud sync
 - Dark mode support
 - Export functionality
 
 ## Promotional Text
-Stop wasting money on forgotten free trials! Track, manage, and cancel before you're charged.
+Track all your subscriptions in one place. Never forget a trial ending or renewal date again!
 
 ## Support URL
-https://kansyl.app/support
+https://kansyl.juan-oclock.com
 
 ## Marketing URL
-https://kansyl.app
+https://kansyl.juan-oclock.com
 
 ## Privacy Policy URL
-https://kansyl.app/privacy
+https://kansyl.juan-oclock.com/privacy
 
 ## Screenshots
 
@@ -131,7 +132,7 @@ Not required - app works offline
 
 ### Notes for Review
 - App uses local notifications for trial reminders
-- iCloud sync is optional and user-controlled
+- Cloud sync is optional and user-controlled
 - No account creation required
 - All features available without internet connection
 - Premium features are optional IAP

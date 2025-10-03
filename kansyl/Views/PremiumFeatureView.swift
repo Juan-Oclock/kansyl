@@ -179,7 +179,7 @@ struct PremiumFeatureView: View {
                 
                 PremiumFeatureRow(
                     icon: "icloud.and.arrow.up",
-                    title: "iCloud Sync",
+                    title: "Cloud Sync",
                     description: "Access on all your devices",
                     isHighlighted: false
                 )

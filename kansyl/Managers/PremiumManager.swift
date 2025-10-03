@@ -28,8 +28,8 @@ class PremiumManager: ObservableObject {
     static let premiumSubscriptionLimit = Int.max // Premium users have unlimited subscriptions
     
     // Product identifiers
-    private let premiumProductId = "com.kansyl.premium"
-    private let premiumYearlyProductId = "com.kansyl.premium.yearly"
+    private let premiumProductId = "com.juanoclock.kansyl.premium.monthly"
+    private let premiumYearlyProductId = "com.juanoclock.kansyl.premium.yearly"
     
     private var products: [Product] = []
     private var purchaseTask: Task<Void, Error>?

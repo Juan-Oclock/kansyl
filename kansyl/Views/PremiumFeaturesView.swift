@@ -24,13 +24,13 @@ struct PremiumFeaturesView: View {
     enum PremiumPlan: String, CaseIterable {
         case monthly = "monthly"
         case yearly = "yearly"
-        case lifetime = "lifetime"
+        // case lifetime = "lifetime"  // TODO: Add in v1.1
         
         var price: String {
             switch self {
             case .monthly: return "$2.99"
             case .yearly: return "$19.99"
-            case .lifetime: return "$49.99"
+            // case .lifetime: return "$49.99"
             }
         }
         
@@ -38,7 +38,7 @@ struct PremiumFeaturesView: View {
             switch self {
             case .monthly: return "per month"
             case .yearly: return "per year"
-            case .lifetime: return "one time"
+            // case .lifetime: return "one time"
             }
         }
         
@@ -46,7 +46,7 @@ struct PremiumFeaturesView: View {
             switch self {
             case .monthly: return nil
             case .yearly: return "Save 44%"
-            case .lifetime: return "Best Value"
+            // case .lifetime: return "Best Value"
             }
         }
         
@@ -188,7 +188,7 @@ struct PremiumFeaturesView: View {
                 
                 FeatureRow(
                     icon: "icloud.and.arrow.up",
-                    title: "iCloud Backup",
+                    title: "Cloud Sync",
                     description: "Sync across all devices",
                     isFree: false,
                     isPremium: true
