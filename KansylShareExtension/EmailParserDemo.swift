@@ -250,7 +250,9 @@ class EmailParserDemo: ObservableObject {
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         do {
             try handler.perform([request])
-            let observations = request.results as? [VNRecognizedTextObservation] ?? []
+            guard let observations = request.results else {
+                return nil
+            }
             let lines: [String] = observations.compactMap { $0.topCandidates(1).first?.string }
             return lines.joined(separator: "\n")
         } catch {
@@ -405,7 +407,7 @@ class EmailParserDemo: ObservableObject {
                 } else if let error = error {
                     print("⚠️ loadItem HTML failed: \(error). Trying loadDataRepresentation...")
                     // Fallback to data representation
-                    (item as Any?); // keep compiler happy if item is unused
+                    _ = item // Explicitly discard unused item
                     let providerCopy = provider
                     providerCopy.loadDataRepresentation(forTypeIdentifier: htmlIdentifier) { data, dataError in
                         DispatchQueue.main.async {

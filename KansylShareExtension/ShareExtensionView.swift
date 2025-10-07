@@ -287,7 +287,7 @@ struct ShareExtensionView: View {
         print("   Raw endDate: \(parsedData.endDate?.description ?? "nil")")
         
         // If no start date was parsed, use today
-        var actualStartDate = parsedData.startDate ?? Date()
+        let actualStartDate = parsedData.startDate ?? Date()
         var actualEndDate = parsedData.endDate
         
         // If we have a duration but no end date, calculate it

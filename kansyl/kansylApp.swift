@@ -577,7 +577,7 @@ class AppState: ObservableObject {
             // Check basic match
             guard subscription.name == serviceName else { return false }
             
-            print("   Found matching name: \(subscription.name)")
+            print("   Found matching name: \(subscription.name ?? "Unknown")")
             print("     Existing dates: \(subscription.startDate?.description ?? "nil") to \(subscription.endDate?.description ?? "nil")")
             print("     New dates: \(startDate) to \(endDate)")
             print("     Existing price: \(subscription.monthlyPrice), New price: \(price ?? 0)")

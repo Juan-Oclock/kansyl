@@ -203,13 +203,13 @@ class EmailParser {
             "service\\s+period\\s*:?\\s*([^\n,]+?)\\s*(?:-|–|to)\\s*([^\n,]+)"
         ]
         for p in rangePatterns {
-            if let regex = try? NSRegularExpression(pattern: p, options: .caseInsensitive) {
+                if let regex = try? NSRegularExpression(pattern: p, options: .caseInsensitive) {
                 let range = NSRange(location: 0, length: content.utf16.count)
                 if let match = regex.firstMatch(in: content, options: [], range: range), match.numberOfRanges >= 3,
                    let r1 = Range(match.range(at: 1), in: content),
                    let r2 = Range(match.range(at: 2), in: content) {
                     var s1 = String(content[r1])
-                    var s2 = String(content[r2])
+                    let s2 = String(content[r2])
                     
                     // Handle "Sep 29 - Oct 29, 2025" format where first date lacks year
                     if s1.range(of: "\\d{4}", options: .regularExpression) == nil && s2.range(of: "\\d{4}", options: .regularExpression) != nil {
