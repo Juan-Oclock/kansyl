@@ -2,43 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- App Groups for data sharing with Share Extension -->
-	<key>com.apple.security.application-groups</key>
-	<array>
-		<string>group.com.juan-oclock.kansyl</string>
-	</array>
-
-	<!-- CloudKit Containers -->
-	<!-- Commented out for personal development team - requires paid Apple Developer Program membership -->
-	<!--
-	<key>com.apple.developer.icloud-container-identifiers</key>
-	<array>
-		<string>iCloud.kansyl.app</string>
-	</array>
-	-->
-	
-	<!-- CloudKit Services -->
-	<!-- Commented out for personal development team - requires paid Apple Developer Program membership -->
-	<!--
-	<key>com.apple.developer.icloud-services</key>
-	<array>
-		<string>CloudKit</string>
-	</array>
-	-->
-	
-	<!-- Sign In with Apple - ENABLED -->
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>
 	</array>
-	
-	<!-- Associated Domains for Universal Links -->
-	<!-- Requires paid Apple Developer Program membership -->
-	<!--
-	<key>com.apple.developer.associated-domains</key>
+	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>applinks:kansyl.app</string>
+		<string>group.com.juan-oclock.kansyl</string>
 	</array>
-	-->
 </dict>
 </plist>

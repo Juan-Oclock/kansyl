@@ -8,6 +8,7 @@
 import UIKit
 import SwiftUI
 
+@objc(ShareViewController)
 class ShareViewController: UIViewController {
     private var hostingController: UIHostingController<ShareExtensionView>?
     
@@ -32,6 +33,7 @@ class ShareViewController: UIViewController {
         // Create the SwiftUI view with proper callbacks and input items
         let shareView = ShareExtensionView(
             inputItems: inputItems,
+            extensionContext: extensionContext,
             onComplete: {
                 // Extension completed successfully
                 self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)

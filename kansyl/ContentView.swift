@@ -18,6 +18,11 @@ struct ContentView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var userStateManager = UserStateManager.shared
     
+    // Success toast state
+    @State private var showSuccessToast = false
+    @State private var successToastMessage = ""
+    @State private var successToastAmount: String? = nil
+    
     init() {
         // Customize tab bar appearance
         let appearance = UITabBarAppearance()
@@ -69,6 +74,44 @@ struct ContentView: View {
                 // Sync the theme change to app preferences for backward compatibility
                 AppPreferences.shared.syncWithUserPreferences(userPreferences)
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SubscriptionAddedFromEmail"))) { notification in
+                print("🔔 [ContentView] Received SubscriptionAddedFromEmail notification")
+                print("   UserInfo: \(notification.userInfo?.description ?? "nil")")
+                
+                // Show success toast when subscription is added from share extension
+                if let userInfo = notification.userInfo,
+                   let serviceName = userInfo["serviceName"] as? String {
+                    let isDuplicate = userInfo["isDuplicate"] as? Bool ?? false
+                    
+                    if isDuplicate {
+                        print("🔄 [ContentView] Showing duplicate notification for: \(serviceName)")
+                        successToastMessage = "Already tracking \(serviceName)"
+                    } else {
+                        print("🎉 [ContentView] Showing success toast for: \(serviceName)")
+                        successToastMessage = "\(serviceName) subscription added!"
+                    }
+                    
+                    successToastAmount = nil // We could calculate savings if needed
+                    
+                    // Use animation when showing the toast
+                    withAnimation(.spring()) {
+                        showSuccessToast = true
+                    }
+                    print("   Toast state - showing: \(showSuccessToast), message: \(successToastMessage)")
+                    
+                    // Play haptic feedback (lighter for duplicate)
+                    if isDuplicate {
+                        HapticManager.shared.playSelection()
+                    } else {
+                        HapticManager.shared.playSuccess()
+                    }
+                    
+                    // Navigate to subscriptions tab to show the subscription
+                    navigationCoordinator.selectedTab = 0
+                } else {
+                    print("⚠️ [ContentView] Could not extract serviceName from notification")
+                }
+            }
     }
     
     var mainAppView: some View {
@@ -113,6 +156,73 @@ struct ContentView: View {
                     )
             }
         }
+        .overlay(
+            // Success toast for share extension imports - inline implementation
+            VStack {
+                if showSuccessToast {
+                    HStack(spacing: 12) {
+                        // Success icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 36, height: 36)
+                            
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        // Message
+                        Text(successToastMessage)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        // Close button
+                        Button(action: {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                showSuccessToast = false
+                            }
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                                .frame(width: 20, height: 20)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.systemBackground))
+                            .shadow(
+                                color: Color.green.opacity(0.2),
+                                radius: 12,
+                                x: 0,
+                                y: 4
+                            )
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 50)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .move(edge: .top).combined(with: .opacity)
+                    ))
+                    .onAppear {
+                        // Auto dismiss after 4 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                showSuccessToast = false
+                            }
+                        }
+                    }
+                }
+                
+                Spacer()
+            }
+            .animation(.spring(), value: showSuccessToast)
+            .zIndex(1002) // Above everything else
+        )
         .sheet(isPresented: $navigationCoordinator.showingAddSubscription) {
             AddSubscriptionMethodSelector(subscriptionStore: subscriptionStore) { savedSubscription in
                 // After saving, navigate back to Subscriptions tab
@@ -165,7 +275,7 @@ struct ContentView: View {
                     
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(Design.Colors.primaryButtonText)
                         .rotationEffect(.degrees(navigationCoordinator.showingAddSubscription ? 45 : 0))
                         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: navigationCoordinator.showingAddSubscription)
                 }

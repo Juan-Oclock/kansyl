@@ -184,7 +184,7 @@ struct ModernSubscriptionDetailView: View {
                             Text("Keep Subscription")
                                 .font(.system(size: 16, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(Design.Colors.primaryButtonText)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
                         .background(

@@ -211,13 +211,43 @@ struct LoginView: View {
                         }
                         .padding(.horizontal, Design.Spacing.xl)
                         
-                        // Terms and Privacy - Modern styling
-                        Text("By continuing, you agree to our Terms of Service and Privacy Policy")
-                            .font(Design.Typography.caption(.regular))
-                            .foregroundColor(Design.Colors.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Design.Spacing.xl)
-                            .padding(.top, Design.Spacing.sm)
+                        // Terms and Privacy - Modern styling with functional links
+                        VStack(spacing: Design.Spacing.xs) {
+                            Text("By continuing, you agree to our")
+                                .font(Design.Typography.caption(.regular))
+                                .foregroundColor(Design.Colors.textSecondary)
+                            
+                            HStack(spacing: 4) {
+                                Button(action: {
+                                    if let url = URL(string: "https://raw.githubusercontent.com/juan-oclock/kansyl/main/TERMS_OF_SERVICE.md") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    Text("Terms of Service")
+                                        .font(Design.Typography.caption(.semibold))
+                                        .foregroundColor(Design.Colors.primary)
+                                        .underline()
+                                }
+                                
+                                Text("and")
+                                    .font(Design.Typography.caption(.regular))
+                                    .foregroundColor(Design.Colors.textSecondary)
+                                
+                                Button(action: {
+                                    if let url = URL(string: "https://raw.githubusercontent.com/juan-oclock/kansyl/main/PRIVACY_POLICY.md") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    Text("Privacy Policy")
+                                        .font(Design.Typography.caption(.semibold))
+                                        .foregroundColor(Design.Colors.primary)
+                                        .underline()
+                                }
+                            }
+                        }
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Design.Spacing.xl)
+                        .padding(.top, Design.Spacing.sm)
                     }
                     .opacity(buttonAnimation ? 1.0 : 0.0)
                     .animation(Design.Animation.spring.delay(1.2), value: buttonAnimation)
@@ -297,6 +327,10 @@ struct LoginView: View {
     
     private func handleAppleSignIn() async {
         print("🍎 [LoginView] handleAppleSignIn called")
+        
+        // Clear any previous errors
+        authManager.errorMessage = nil
+        
         do {
             // Use the coordinator to handle the Apple Sign In flow
             let result = try await appleSignInCoordinator.signIn()
@@ -313,12 +347,14 @@ struct LoginView: View {
             // User cancelled - don't show error
             print("⚠️ [LoginView] User cancelled Apple Sign In")
             authManager.errorMessage = nil
+        } catch let error as AppleSignInError {
+            // Handle specific Apple Sign In errors with user-friendly messages
+            print("❌ [LoginView] Apple Sign In error: \(error.localizedDescription)")
+            authManager.errorMessage = error.localizedDescription
         } catch {
-            print("❌ [LoginView] Apple Sign In failed: \(error.localizedDescription)")
-            // Error is already set by auth manager or coordinator
-            if authManager.errorMessage == nil {
-                authManager.errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
-            }
+            // Handle any other errors
+            print("❌ [LoginView] Apple Sign In failed with unexpected error: \(error.localizedDescription)")
+            authManager.errorMessage = error.localizedDescription
         }
     }
     
@@ -335,7 +371,6 @@ struct LoginView: View {
 
 struct EmailLoginView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
-    @Environment(\.presentationMode) var presentationMode
     @Environment(\.colorScheme) private var colorScheme
     @State private var email = ""
     @State private var password = ""
@@ -382,11 +417,15 @@ struct EmailLoginView: View {
                                         )
                                     )
                                 
-                                Text("Sign in or create an account")
+                                Text("Enter your email and password")
                                     .font(Design.Typography.body(.medium))
                                     .foregroundColor(Design.Colors.textSecondary)
                                     .multilineTextAlignment(.center)
-                                    .lineLimit(2)
+                                
+                                Text("New users will be signed up automatically")
+                                    .font(Design.Typography.caption(.regular))
+                                    .foregroundColor(Design.Colors.textSecondary.opacity(0.8))
+                                    .multilineTextAlignment(.center)
                             }
                             .opacity(formAnimation ? 1.0 : 0.0)
                             .offset(y: formAnimation ? 0 : 20)
@@ -407,11 +446,13 @@ struct EmailLoginView: View {
                             
                             TextField("Enter your email", text: $email)
                                 .font(Design.Typography.body(.medium))
+                                .foregroundColor(Design.Colors.textPrimary)
+                                .tint(Design.Colors.primary)
                                 .padding(.horizontal, Design.Spacing.lg)
                                 .padding(.vertical, Design.Spacing.lg)
                                 .background(
                                     RoundedRectangle(cornerRadius: Design.Radius.xl)
-                                        .fill(.white)
+                                        .fill(colorScheme == .dark ? Color(hex: "2C2C2E") : .white)
                                         .shadow(
                                             color: Design.Colors.textPrimary.opacity(0.05),
                                             radius: 8,
@@ -439,6 +480,8 @@ struct EmailLoginView: View {
                                     }
                                 }
                                 .font(Design.Typography.body(.medium))
+                                .foregroundColor(Design.Colors.textPrimary)
+                                .tint(Design.Colors.primary)
                                 
                                 Button(action: {
                                     withAnimation(.spring(response: 0.3)) {
@@ -455,7 +498,7 @@ struct EmailLoginView: View {
                             .padding(.vertical, Design.Spacing.lg)
                             .background(
                                 RoundedRectangle(cornerRadius: Design.Radius.xl)
-                                    .fill(.white)
+                                    .fill(colorScheme == .dark ? Color(hex: "2C2C2E") : .white)
                                     .shadow(
                                         color: Design.Colors.textPrimary.opacity(0.05),
                                         radius: 8,
@@ -483,12 +526,12 @@ struct EmailLoginView: View {
                             if authManager.isLoading {
                                 ProgressView()
                                     .scaleEffect(0.9)
-                                    .tint(.white)
+                                    .tint(colorScheme == .dark ? Color(hex: "0A0A0A") : .white)
                             }
                             
                             Text(authManager.isLoading ? "Processing..." : "Continue")
                                 .font(Design.Typography.headline(.semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(colorScheme == .dark ? Color(hex: "0A0A0A") : .white)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
@@ -569,34 +612,51 @@ struct EmailLoginView: View {
     
     /// Intelligent email authentication - tries sign-in first, then sign-up if user doesn't exist
     private func handleEmailAuth() async {
+        print("📧 [EmailLoginView] handleEmailAuth called with email: \(email)")
+        
+        // Clear any previous errors
+        await MainActor.run {
+            authManager.errorMessage = nil
+        }
+        
         do {
             // First, try to sign in
+            print("📧 [EmailLoginView] Attempting sign in...")
             try await authManager.signIn(email: email, password: password)
-            // Success! Dismiss the view
-            presentationMode.wrappedValue.dismiss()
+            print("✅ [EmailLoginView] Sign in successful! Parent LoginView will handle navigation.")
+            // Success! The parent LoginView's onChange(of: authManager.isAuthenticated) will handle dismissal and navigation
         } catch {
+            print("❌ [EmailLoginView] Sign in failed: \(error.localizedDescription)")
             // If sign-in failed, check if it's because user doesn't exist
             let errorMsg = error.localizedDescription.lowercased()
             
-            if errorMsg.contains("invalid") || errorMsg.contains("not found") || errorMsg.contains("no user") {
+            if errorMsg.contains("invalid") || errorMsg.contains("not found") || errorMsg.contains("no user") || errorMsg.contains("credentials") {
+                print("🔄 [EmailLoginView] User doesn't exist, attempting sign-up...")
                 // User doesn't exist, try to create account
                 do {
                     // Attempt sign-up with the provided credentials
                     try await authManager.signUp(email: email, password: password, fullName: "")
+                    print("✅ [EmailLoginView] Sign-up successful! Attempting auto sign-in...")
                     
                     // After sign-up, try to sign in automatically
                     // Note: Some systems require email verification first
                     try await authManager.signIn(email: email, password: password)
-                    presentationMode.wrappedValue.dismiss()
+                    print("✅ [EmailLoginView] Auto sign-in successful! Parent LoginView will handle navigation.")
+                    // Success! The parent LoginView's onChange(of: authManager.isAuthenticated) will handle dismissal and navigation
                 } catch {
+                    print("❌ [EmailLoginView] Sign-up or auto sign-in failed: \(error.localizedDescription)")
                     // Sign-up or auto sign-in failed
                     // The error message is already set by authManager
                     // Show a helpful message if it's about email verification
                     if error.localizedDescription.lowercased().contains("confirm") || 
                        error.localizedDescription.lowercased().contains("verification") {
-                        authManager.errorMessage = "Account created! Please check your email to verify your account, then sign in."
+                        await MainActor.run {
+                            authManager.errorMessage = "Account created! Please check your email to verify your account, then sign in."
+                        }
                     }
                 }
+            } else {
+                print("❌ [EmailLoginView] Other error: \(error.localizedDescription)")
             }
             // Otherwise, the error is already displayed via authManager.errorMessage
         }

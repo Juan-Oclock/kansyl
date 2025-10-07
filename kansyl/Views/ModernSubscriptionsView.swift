@@ -125,6 +125,14 @@ struct ModernSubscriptionsView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                // Check for pending share extension items when app becomes active
+                if let appState = (UIApplication.shared.delegate as? UIWindowSceneDelegate) {
+                    Task {
+                        await AppState().checkPendingSubscriptions()
+                    }
+                }
+            }
             .sheet(isPresented: $showingAddSubscription) {
                 AddSubscriptionMethodSelector(subscriptionStore: subscriptionStore) { _ in
                     // Callback when subscription is saved

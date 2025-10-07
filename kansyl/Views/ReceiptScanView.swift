@@ -251,19 +251,7 @@ struct ReceiptScanView: View {
             
             // Animated scanning indicator
             VStack(spacing: 20) {
-                ZStack {
-                    Circle()
-                        .stroke(Design.Colors.primary.opacity(0.2), lineWidth: 4)
-                        .frame(width: 60, height: 60)
-                    
-                    Circle()
-                        .trim(from: 0, to: 0.3)
-                        .stroke(Design.Colors.primary, lineWidth: 4)
-                        .frame(width: 60, height: 60)
-                        .rotationEffect(.degrees(-90))
-                        .rotationEffect(.degrees(receiptScanner.isProcessing ? 360 : 0))
-                        .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: receiptScanner.isProcessing)
-                }
+                LoadingSpinnerView()
                 
                 VStack(spacing: 8) {
                     Text("Analyzing Receipt")
@@ -320,7 +308,7 @@ struct ReceiptScanView: View {
                     }
                 }
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(colorScheme == .dark ? Design.Colors.Dark.primaryButtonText : Design.Colors.Light.primaryButtonText)
                 .padding(.vertical, 12)
                 .padding(.horizontal, 20)
                 .background(Design.Colors.primary)
@@ -404,7 +392,7 @@ struct ReceiptScanView: View {
                             Text("Add to Subscriptions")
                                 .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? Design.Colors.Dark.primaryButtonText : Design.Colors.Light.primaryButtonText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(Design.Colors.primary)
@@ -550,6 +538,7 @@ struct ReceiptConfirmationSheet: View {
     let receiptData: ReceiptScanner.ParsedReceiptData
     @ObservedObject var subscriptionStore: SubscriptionStore
     @Binding var isPresented: Bool
+    @Environment(\.colorScheme) var colorScheme
     
     @StateObject private var receiptScanner = ReceiptScanner()
     @State private var isCreating = false
@@ -625,7 +614,7 @@ struct ReceiptConfirmationSheet: View {
                             if isCreating {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                    .foregroundColor(.white)
+                                    .tint(colorScheme == .dark ? Design.Colors.Dark.primaryButtonText : Design.Colors.Light.primaryButtonText)
                             } else {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 16, weight: .medium))
@@ -634,7 +623,7 @@ struct ReceiptConfirmationSheet: View {
                             Text(isCreating ? "Adding..." : "Add Subscription")
                                 .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(colorScheme == .dark ? Design.Colors.Dark.primaryButtonText : Design.Colors.Light.primaryButtonText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(Design.Colors.primary)
@@ -763,6 +752,45 @@ struct DirectImagePickerView: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             // Debug: // Debug: print("🚫 Picker cancelled with sourceType: \(picker.sourceType == .camera ? "camera" : "photoLibrary")")
             parent.isPresented = false
+        }
+    }
+}
+
+// MARK: - Loading Spinner View
+struct LoadingSpinnerView: View {
+    @State private var isRotating = false
+    
+    var body: some View {
+        ZStack {
+            // Background circle
+            Circle()
+                .stroke(Design.Colors.primary.opacity(0.2), lineWidth: 4)
+                .frame(width: 60, height: 60)
+            
+            // Animated arc
+            Circle()
+                .trim(from: 0, to: 0.7)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [
+                            Design.Colors.primary,
+                            Design.Colors.primary.opacity(0.8),
+                            Design.Colors.primary.opacity(0.1)
+                        ]),
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .frame(width: 60, height: 60)
+                .rotationEffect(Angle(degrees: isRotating ? 360 : 0))
+                .animation(
+                    Animation.linear(duration: 1.0)
+                        .repeatForever(autoreverses: false),
+                    value: isRotating
+                )
+                .onAppear {
+                    isRotating = true
+                }
         }
     }
 }

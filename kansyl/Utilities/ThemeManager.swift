@@ -137,6 +137,10 @@ extension Design.Colors {
         getColor(light: Light.buttonPrimary, dark: Dark.buttonPrimary)
     }
     
+    static var primaryButtonText: Color {
+        getColor(light: Light.primaryButtonText, dark: Dark.primaryButtonText)
+    }
+    
     static var background: Color {
         getColor(light: Light.background, dark: Dark.background)
     }

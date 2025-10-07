@@ -214,6 +214,15 @@ class SupabaseAuthManager: ObservableObject {
             let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
             let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
             
+            // Update auth state immediately
+            await MainActor.run {
+                self.currentUser = self.convertAuthUser(response.user)
+                self.isAuthenticated = true
+                // Update SubscriptionStore's userID
+                SubscriptionStore.currentUserID = response.user.id.uuidString
+                print("✅ [SupabaseAuthManager] Email sign-up successful, isAuthenticated = true, userID = \(response.user.id.uuidString)")
+            }
+            
             // Migrate anonymous data if user was anonymous
             if wasInAnonymousMode {
                 if anonymousUserID != nil {
@@ -237,8 +246,11 @@ class SupabaseAuthManager: ObservableObject {
                 }
             }
             
+            // Load user profile
+            await loadUserProfile()
+            
             // Profile will be created automatically by database trigger
-            // Note: User will need to confirm email before they can sign in
+            // Note: User may need to confirm email before they can sign in (depending on Supabase settings)
             
         } catch {
             errorMessage = "Sign up failed: \(error.localizedDescription)"
@@ -263,6 +275,15 @@ class SupabaseAuthManager: ObservableObject {
             let wasInAnonymousMode = UserStateManager.shared.isAnonymousMode
             let anonymousUserID = UserStateManager.shared.getAnonymousUserID()
             
+            // Update auth state immediately
+            await MainActor.run {
+                self.currentUser = self.convertAuthUser(response.user)
+                self.isAuthenticated = true
+                // Update SubscriptionStore's userID
+                SubscriptionStore.currentUserID = response.user.id.uuidString
+                print("✅ [SupabaseAuthManager] Email sign-in successful, isAuthenticated = true, userID = \(response.user.id.uuidString)")
+            }
+            
             // Migrate anonymous data if user was anonymous
             if wasInAnonymousMode {
                 if anonymousUserID != nil {
@@ -286,7 +307,8 @@ class SupabaseAuthManager: ObservableObject {
                 }
             }
             
-            // Auth state listener will handle the rest
+            // Load user profile
+            await loadUserProfile()
             
         } catch {
             errorMessage = "Sign in failed: \(error.localizedDescription)"

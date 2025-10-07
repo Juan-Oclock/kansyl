@@ -55,17 +55,45 @@ struct kansylApp: App {
                             }
                         }
                         .onOpenURL { url in
-                            print("🔗 [kansylApp] onOpenURL called with: \(url)")
+                            print("🔗 [kansylApp] ========== onOpenURL TRIGGERED ==========")
+                            print("🔗 [kansylApp] Full URL: \(url.absoluteString)")
                             print("🔍 [kansylApp] URL scheme: \(url.scheme ?? "none")")
                             print("🔍 [kansylApp] URL host: \(url.host ?? "none")")
+                            print("🔍 [kansylApp] URL path: \(url.path)")
                             if url.scheme == "kansyl" {
-                                print("✅ [kansylApp] Scheme matches 'kansyl', handling OAuth callback")
-                                Task {
-                                    await handleOAuthCallback(url: url)
+                                // Check if this is an import request from Share Extension
+                                if url.host == "import" {
+                                    print("📥 [kansylApp] ✅ Detected import request from Share Extension")
+                                    print("📥 [kansylApp] Triggering immediate import...")
+                                    
+                                    // Import immediately with priority
+                                    Task(priority: .high) {
+                                        // Ensure user has a userID first
+                                        if SubscriptionStore.currentUserID == nil || SubscriptionStore.currentUserID?.isEmpty == true {
+                                            print("⚠️ [kansylApp] No user ID set, enabling anonymous mode first")
+                                            await MainActor.run {
+                                                UserStateManager.shared.enableAnonymousMode()
+                                            }
+                                        }
+                                        
+                                        // Now import the pending subscriptions
+                                        await appState.checkPendingSubscriptions()
+                                        
+                                        // Show success feedback
+                                        await MainActor.run {
+                                            HapticManager.shared.playSuccess()
+                                        }
+                                    }
+                                } else {
+                                    print("✅ [kansylApp] Scheme matches 'kansyl', handling OAuth callback")
+                                    Task {
+                                        await handleOAuthCallback(url: url)
+                                    }
                                 }
                             } else {
                                 print("⚠️ [kansylApp] URL scheme doesn't match 'kansyl', ignoring")
                             }
+                            print("🔗 [kansylApp] ========================================")
                         }
                         .sheet(isPresented: $shouldShowAddSubscription) {
                             if appState.isFullyLoaded {
@@ -96,6 +124,39 @@ struct kansylApp: App {
             )) { _ in
                 // Handle memory warning
                 appState.handleMemoryWarning()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                // Import any items shared via the Share Extension when app returns to foreground
+                print("📱 [kansylApp] App entering foreground - checking for pending share extension items")
+                Task { 
+                    // Ensure user has a userID if not set
+                    if SubscriptionStore.currentUserID == nil || SubscriptionStore.currentUserID?.isEmpty == true {
+                        if !appState.authManager.isAuthenticated {
+                            print("⚠️ [kansylApp] No user ID on foreground, auto-enabling anonymous mode")
+                            await MainActor.run {
+                                UserStateManager.shared.enableAnonymousMode()
+                            }
+                        }
+                    }
+                    await appState.checkPendingSubscriptions()
+                }
+            }
+            // Remove the didBecomeActive listener to prevent duplicate imports
+            // We already check on:
+            // 1. URL scheme (kansyl://import)
+            // 2. App entering foreground
+            // 3. App fully loaded
+            // That's enough!
+            .onChange(of: appState.isFullyLoaded) { loaded in
+                if loaded {
+                    // Check ONCE when app finishes loading
+                    print("✅ [kansylApp] App fully loaded - single check for pending share extension items")
+                    Task {
+                        // Add a small delay to prevent race conditions
+                        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                        await appState.checkPendingSubscriptions()
+                    }
+                }
             }
         }
     }
@@ -321,6 +382,9 @@ class AppState: ObservableObject {
             // Setup notifications after services are ready
             await setupNotifications()
             
+            // Check for pending subscriptions from Share Extension
+            await checkPendingSubscriptions()
+            
             // Mark as fully loaded
             await MainActor.run {
                 self.isFullyLoaded = true
@@ -335,6 +399,11 @@ class AppState: ObservableObject {
                 AppLogger.error("Initialization failed: \(error)", category: "AppState")
             }
         }
+    }
+    
+    // Exposed method to import items from the Share Extension on demand (e.g., app foreground)
+    func importPendingFromShareExtension() async {
+        await checkPendingSubscriptions()
     }
     
     private func initializePersistence() async {
@@ -398,7 +467,256 @@ class AppState: ObservableObject {
         AppLogger.success("Notifications configured", category: "AppState")
     }
     
-    // MARK: - Memory Management
+    // Track if we're already processing to prevent duplicates
+    private var isProcessingPendingSubscriptions = false
+    
+    // MARK: - Pending Subscriptions from Share Extension
+    func checkPendingSubscriptions() async {
+        // Prevent multiple simultaneous processing
+        guard !isProcessingPendingSubscriptions else {
+            print("⚠️ [AppState] Already processing pending subscriptions, skipping")
+            return
+        }
+        
+        isProcessingPendingSubscriptions = true
+        defer { isProcessingPendingSubscriptions = false }
+        
+        print("🔵 [AppState] checkPendingSubscriptions() called at \(Date())")
+        
+        // Try the new storage first
+        let pending = PendingSubscriptionStorage.shared.getPendingSubscriptions()
+        print("🔵 [AppState] PendingSubscriptionStorage: \(pending.count) items")
+        
+        // Don't check old storage to avoid duplicates - just use the new one
+        // The Share Extension already saves to both as backup
+        
+        guard !pending.isEmpty else {
+            print("⚠️ [AppState] No pending subscriptions found")
+            return
+        }
+        
+        print("🎆 [AppState] Found \(pending.count) pending subscription(s) to process!")
+        
+        // Ensure we have a userID before attempting to create subscriptions
+        guard let currentUserID = SubscriptionStore.currentUserID, !currentUserID.isEmpty else {
+            print("⚠️ [AppState] No userID set. Deferring import and leaving pending items intact.")
+            print("ℹ️ [AppState] Tip: Enable Anonymous Mode or sign in before importing.")
+            return
+        }
+        print("✅ [AppState] currentUserID available: \(currentUserID)")
+        
+        AppLogger.log("📥 Found \(pending.count) pending subscription(s) from Share Extension", category: "AppState")
+        print("📥 [AppState] Processing \(pending.count) pending subscription(s)...")
+        
+        await MainActor.run {
+            var createdIndices: [Int] = []
+            for (index, dataDict) in pending.enumerated() {
+                if createSubscriptionFromSharedData(dataDict) {
+                    createdIndices.append(index)
+                }
+            }
+            
+            // Remove only successfully created items
+            if !createdIndices.isEmpty {
+                if createdIndices.count == pending.count {
+                    print("🗑️ [AppState] All pending items processed. Clearing all pending subscriptions.")
+                    PendingSubscriptionStorage.shared.clearPendingSubscriptions()
+                    SharedSubscriptionManager.shared.clearPendingSubscriptions()
+                } else {
+                    print("🗑️ [AppState] Processed \(createdIndices.count)/\(pending.count). Partial clear not implemented yet.")
+                    // For now, clear all if any were successful
+                    PendingSubscriptionStorage.shared.clearPendingSubscriptions()
+                    SharedSubscriptionManager.shared.clearPendingSubscriptions()
+                }
+            } else {
+                print("⚠️ [AppState] No items were created. Leaving pending items for later.")
+            }
+        }
+    }
+    
+    @discardableResult
+    private func createSubscriptionFromSharedData(_ dataDict: [String: Any]) -> Bool {
+        print("🔄 [AppState] createSubscriptionFromSharedData called")
+        print("   Data keys: \(dataDict.keys.sorted().joined(separator: ", "))")
+        
+        // Convert dictionary back to subscription data
+        let serviceName = dataDict["serviceName"] as? String ?? "Unknown Service"
+        let trialDuration = dataDict["trialDuration"] as? Int
+        let price = dataDict["price"] as? Double
+        let currency = dataDict["currency"] as? String ?? "USD"
+        let confirmationNumber = dataDict["confirmationNumber"] as? String
+        
+        print("   Service: \(serviceName)")
+        print("   Price: \(price?.description ?? "nil")")
+        print("   Duration: \(trialDuration?.description ?? "nil") days")
+        
+        // Calculate dates first
+        var startDate = Date()
+        if let timestamp = dataDict["startDate"] as? TimeInterval {
+            startDate = Date(timeIntervalSince1970: timestamp)
+        }
+        
+        var endDate = Date()
+        if let timestamp = dataDict["endDate"] as? TimeInterval {
+            endDate = Date(timeIntervalSince1970: timestamp)
+        } else if let duration = trialDuration {
+            endDate = Calendar.current.date(byAdding: .day, value: duration, to: startDate) ?? Date()
+        } else {
+            // Default to 30 days if no end date or duration provided
+            endDate = Calendar.current.date(byAdding: .day, value: 30, to: startDate) ?? Date()
+        }
+        
+        print("   Start date: \(startDate)")
+        print("   End date: \(endDate)")
+        
+        // Check if we already have this EXACT subscription (prevent duplicates)
+        // Match on service name, price, AND date range to be more precise
+        print("🔍 [AppState] Checking for duplicates among \(subscriptionStore.allSubscriptions.count) existing subscriptions")
+        
+        let existingSubscriptions = subscriptionStore.allSubscriptions.filter { subscription in
+            // Check basic match
+            guard subscription.name == serviceName else { return false }
+            
+            print("   Found matching name: \(subscription.name)")
+            print("     Existing dates: \(subscription.startDate?.description ?? "nil") to \(subscription.endDate?.description ?? "nil")")
+            print("     New dates: \(startDate) to \(endDate)")
+            print("     Existing price: \(subscription.monthlyPrice), New price: \(price ?? 0)")
+            
+            // Check price if available (allow small floating point differences)
+            if let subscriptionPrice = price {
+                guard abs(subscription.monthlyPrice - subscriptionPrice) < 0.01 else {
+                    print("     ❌ Price mismatch")
+                    return false
+                }
+            }
+            
+            // Check date overlap - if the dates are very similar (within 1 day), consider it a duplicate
+            guard let subStartDate = subscription.startDate, let subEndDate = subscription.endDate else {
+                print("     ❌ Subscription has missing dates")
+                return false
+            }
+            
+            let startDateDiff = abs(subStartDate.timeIntervalSince(startDate))
+            let endDateDiff = abs(subEndDate.timeIntervalSince(endDate))
+            
+            print("     Start date diff: \(startDateDiff) seconds")
+            print("     End date diff: \(endDateDiff) seconds")
+            
+            // If dates are within 24 hours of each other, likely a duplicate
+            let isDuplicate = startDateDiff < 86400 && endDateDiff < 86400
+            print("     Is duplicate? \(isDuplicate)")
+            
+            return isDuplicate
+        }
+        
+        if !existingSubscriptions.isEmpty {
+            print("⚠️ [AppState] Exact duplicate subscription found for \(serviceName) with same dates, skipping")
+            
+            // Still notify the UI, but indicate it's a duplicate
+            print("📢 [AppState] Posting SubscriptionAddedFromEmail notification for duplicate: \(serviceName)")
+            NotificationCenter.default.post(
+                name: NSNotification.Name("SubscriptionAddedFromEmail"),
+                object: nil,
+                userInfo: [
+                    "serviceName": serviceName,
+                    "isDuplicate": true,
+                    "id": existingSubscriptions.first?.id?.uuidString ?? ""
+                ]
+            )
+            print("✅ [AppState] Duplicate notification posted successfully")
+            
+            return true // Return true because it's technically "successful" - we have the subscription
+        }
+        
+        print("✅ [AppState] No duplicate found, proceeding to create new subscription")
+        
+        // Determine billing cycle string from trial duration
+        let billingCycleString: String
+        if let duration = trialDuration {
+            switch duration {
+            case 7:
+                billingCycleString = "weekly"
+            case 14:
+                billingCycleString = "biweekly"
+            case 30, 31:
+                billingCycleString = "monthly"
+            case 90:
+                billingCycleString = "quarterly"
+            case 180:
+                billingCycleString = "semiannually"
+            case 365, 366:
+                billingCycleString = "yearly"
+            default:
+                billingCycleString = "monthly"
+            }
+        } else {
+            billingCycleString = "monthly"
+        }
+        
+        // Create notes with confirmation number and original currency if available
+        var notes: String?
+        if let confirmation = confirmationNumber {
+            notes = "Confirmation: \(confirmation)"
+            if currency != AppPreferences.shared.currencyCode {
+                notes = (notes ?? "") + "\nOriginal currency: \(currency)"
+            }
+        } else if currency != AppPreferences.shared.currencyCode {
+            notes = "Original currency: \(currency)"
+        }
+        
+        // Add subscription to store
+        let subscription = subscriptionStore.addSubscription(
+            name: serviceName,
+            startDate: startDate,
+            endDate: endDate,
+            monthlyPrice: price ?? 0.0,
+            serviceLogo: getServiceLogo(serviceName),
+            notes: notes,
+            addToCalendar: false,
+            billingCycle: billingCycleString,
+            originalCurrency: currency != AppPreferences.shared.currencyCode ? currency : nil,
+            originalAmount: currency != AppPreferences.shared.currencyCode ? (price ?? 0.0) : nil
+        )
+        
+        if let subscription = subscription {
+            AppLogger.success("✅ Created subscription from email: \(serviceName)", category: "AppState")
+            
+            // Show success feedback
+            HapticManager.shared.playSuccess()
+            
+            // Post notification that subscription was added
+            print("📢 [AppState] Posting SubscriptionAddedFromEmail notification for: \(serviceName)")
+            NotificationCenter.default.post(
+                name: NSNotification.Name("SubscriptionAddedFromEmail"),
+                object: nil,
+                userInfo: [
+                    "serviceName": serviceName,
+                    "isDuplicate": false,
+                    "id": subscription.id?.uuidString ?? ""
+                ]
+            )
+            print("✅ [AppState] Notification posted successfully")
+            return true
+        } else {
+            AppLogger.error("Failed to create subscription from email: \(serviceName)", category: "AppState")
+            return false
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func getServiceLogo(_ serviceName: String) -> String {
+        switch serviceName.lowercased() {
+        case "netflix": return "netflix-logo"
+        case "spotify": return "spotify-logo"
+        case "disney+", "disney plus": return "sparkles"
+        case "amazon prime": return "cart.fill"
+        case "apple tv+", "apple tv plus": return "appletv-logo"
+        case "apple music": return "apple-logo"
+        case "hulu": return "h.square.fill"
+        default: return "app.badge"
+        }
+    }
+    
     func handleMemoryWarning() {
         AppLogger.warning("Memory warning received - clearing caches", category: "AppState")
         

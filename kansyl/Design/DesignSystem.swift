@@ -20,6 +20,7 @@ struct Design {
             static let primaryLight = Color(hex: "A8DE28") // Lime green accent
             static let secondary = Color(hex: "A8DE28") // Lime green for CTAs
             static let buttonPrimary = Color(hex: "6B41C7") // Purple for primary buttons
+            static let primaryButtonText = Color.white // White text for purple buttons
             
             // Background Colors - Clean and minimal
             static let background = Color(hex: "FAFAFA") // Light gray background
@@ -57,6 +58,7 @@ struct Design {
             static let primaryLight = Color(hex: "6B41C7") // Purple accent
             static let secondary = Color(hex: "A8DE28") // Lime green accent
             static let buttonPrimary = Color(hex: "A8DE28") // Lime green buttons
+            static let primaryButtonText = Color(hex: "0A0A0A") // Dark text for lime buttons
             
             // Background Colors - True dark
             static let background = Color(hex: "0A0A0A") // Near black background

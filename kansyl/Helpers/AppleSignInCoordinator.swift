@@ -155,17 +155,34 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         print("❌ [AppleSignInCoordinator] Authorization failed with error: \(error)")
+        print("❌ [AppleSignInCoordinator] Error details: \(error.localizedDescription)")
         
         // Check if user cancelled
         if let authError = error as? ASAuthorizationError {
-            if authError.code == .canceled {
+            print("❌ [AppleSignInCoordinator] ASAuthorizationError code: \(authError.code.rawValue)")
+            
+            switch authError.code {
+            case .canceled:
                 print("⚠️ [AppleSignInCoordinator] User cancelled Sign in with Apple")
                 continuation?.resume(throwing: AppleSignInError.cancelled)
-            } else {
-                print("❌ [AppleSignInCoordinator] Authorization error code: \(authError.code.rawValue)")
+            case .unknown:
+                print("❌ [AppleSignInCoordinator] Unknown authorization error")
+                continuation?.resume(throwing: AppleSignInError.unknownError)
+            case .invalidResponse:
+                print("❌ [AppleSignInCoordinator] Invalid response from Apple")
+                continuation?.resume(throwing: AppleSignInError.invalidResponse)
+            case .notHandled:
+                print("❌ [AppleSignInCoordinator] Authorization not handled")
+                continuation?.resume(throwing: AppleSignInError.notHandled)
+            case .failed:
+                print("❌ [AppleSignInCoordinator] Authorization failed")
+                continuation?.resume(throwing: AppleSignInError.authorizationFailed)
+            @unknown default:
+                print("❌ [AppleSignInCoordinator] Unexpected authorization error: \(authError.code.rawValue)")
                 continuation?.resume(throwing: error)
             }
         } else {
+            print("❌ [AppleSignInCoordinator] Non-ASAuthorizationError: \(type(of: error))")
             continuation?.resume(throwing: error)
         }
         
@@ -179,15 +196,43 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
 extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         // Get the key window for presenting the authorization UI
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
-            print("⚠️ [AppleSignInCoordinator] Could not find key window, using first window")
-            return UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap { $0.windows }
-                .first { $0.isKeyWindow } ?? UIWindow()
+        // Updated for iOS 26+ compatibility
+        print("🪟 [AppleSignInCoordinator] Finding presentation window...")
+        print("📱 [AppleSignInCoordinator] iOS Version: \(UIDevice.current.systemVersion)")
+        
+        let scenes = UIApplication.shared.connectedScenes
+        print("🔍 [AppleSignInCoordinator] Found \(scenes.count) connected scenes")
+        
+        let windowScenes = scenes.compactMap { $0 as? UIWindowScene }
+        print("🔍 [AppleSignInCoordinator] Found \(windowScenes.count) window scenes")
+        
+        // Try to find the active key window first
+        if let keyWindow = windowScenes
+            .flatMap({ $0.windows })
+            .first(where: { $0.isKeyWindow }) {
+            print("✅ [AppleSignInCoordinator] Found key window for presentation")
+            return keyWindow
         }
         
+        // Fall back to the first window that is visible
+        if let visibleWindow = windowScenes
+            .flatMap({ $0.windows })
+            .first(where: { !$0.isHidden }) {
+            print("⚠️ [AppleSignInCoordinator] Using first visible window (no key window found)")
+            return visibleWindow
+        }
+        
+        // Last resort: return any window
+        if let anyWindow = windowScenes.first?.windows.first {
+            print("⚠️ [AppleSignInCoordinator] Using first available window")
+            return anyWindow
+        }
+        
+        // Create emergency window if absolutely necessary
+        print("❌ [AppleSignInCoordinator] No windows found, creating emergency window")
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        window.rootViewController = UIViewController()
+        window.makeKeyAndVisible()
         return window
     }
 }
@@ -199,17 +244,29 @@ enum AppleSignInError: LocalizedError {
     case missingToken
     case missingNonce
     case cancelled
+    case unknownError
+    case invalidResponse
+    case notHandled
+    case authorizationFailed
     
     var errorDescription: String? {
         switch self {
         case .invalidCredential:
-            return "Invalid Apple ID credential received"
+            return "Invalid Apple ID credential received. Please try again."
         case .missingToken:
-            return "Failed to get identity token from Apple"
+            return "Failed to get identity token from Apple. Please try again."
         case .missingNonce:
-            return "Security nonce is missing"
+            return "Security nonce is missing. Please try again."
         case .cancelled:
             return "Sign in with Apple was cancelled"
+        case .unknownError:
+            return "An unknown error occurred. Please try again."
+        case .invalidResponse:
+            return "Invalid response from Apple. Please check your internet connection and try again."
+        case .notHandled:
+            return "Sign in request was not handled. Please try again."
+        case .authorizationFailed:
+            return "Authorization failed. Please make sure you're signed in to iCloud and try again."
         }
     }
 }

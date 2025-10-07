@@ -21,7 +21,9 @@ class EmailParser {
         var emailAddress: String?
         
         var isValid: Bool {
-            return serviceName != nil && (trialDuration != nil || endDate != nil)
+            // Consider valid if we at least detected a service name.
+            // The main app can infer a default 30-day end date when duration is missing.
+            return serviceName != nil
         }
     }
     
@@ -30,13 +32,19 @@ class EmailParser {
         "Netflix": ["netflix", "netflix.com", "start your free trial", "netflix subscription"],
         "Spotify": ["spotify", "spotify.com", "spotify premium", "try premium free"],
         "Disney+": ["disney+", "disneyplus", "disney plus", "disneyplus.com"],
-        "Amazon Prime": ["amazon prime", "prime membership", "prime video", "amazon.com/prime"],
-        "Apple TV+": ["apple tv+", "apple tv plus", "tv.apple.com"],
+        "Amazon Prime": ["amazon prime", "prime membership", "prime video", "amazon.com/prime", "amazon.com"],
+        "Apple TV+": ["apple tv+", "apple tv plus", "tv.apple.com", "apple.com"],
         "Hulu": ["hulu", "hulu.com", "start your free trial"],
         "HBO Max": ["hbo max", "hbomax", "hbomax.com"],
-        "YouTube Premium": ["youtube premium", "youtube.com/premium", "youtube music"],
+        "YouTube Premium": ["youtube premium", "youtube.com/premium", "youtube music", "youtube.com"],
         "Paramount+": ["paramount+", "paramountplus", "paramount plus"],
-        "Peacock": ["peacock", "peacocktv", "peacocktv.com"]
+        "Peacock": ["peacock", "peacocktv", "peacocktv.com"],
+        "Adobe": ["adobe", "adobe.com", "creative cloud"],
+        "Microsoft 365": ["microsoft", "office", "office 365", "microsoft 365", "live.com", "office.com"],
+        "Dropbox": ["dropbox", "dropbox.com"],
+        "Google One": ["google one", "one.google.com", "storage plan", "google.com"],
+        "Apple Music": ["apple music", "music.apple.com"],
+        "iCloud": ["icloud", "icloud.com"]
     ]
     
     // MARK: - Date Patterns
@@ -46,7 +54,16 @@ class EmailParser {
         "yyyy-MM-dd",
         "MMM dd, yyyy",
         "dd MMM yyyy",
-        "MMMM dd, yyyy"
+        "MMMM dd, yyyy",
+        "MM/dd/yy",
+        "dd/MM/yy",
+        "yyyy.MM.dd",
+        "dd.MM.yyyy",
+        "MMM d, yyyy",
+        "d MMM yyyy",
+        "MMMM d, yyyy",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "dd-MMM-yyyy"
     ]
     
     // MARK: - Main Parsing Function
@@ -58,13 +75,23 @@ class EmailParser {
         // Extract service name
         parsedData.serviceName = extractServiceName(from: lowercasedContent)
         
+        // Sanitize bogus service tokens (e.g., Gmail cache paths)
+        if let s = parsedData.serviceName?.lowercased() {
+            if ignoredServiceTokens.contains(s) || s.contains("attachment") || s.contains("cache") || s.contains("google") || s.contains("gmail") {
+                parsedData.serviceName = nil
+            }
+        }
+        
         // Extract trial duration
         parsedData.trialDuration = extractTrialDuration(from: lowercasedContent)
         
-        // Extract dates
+        // Extract dates - use original content for better date pattern matching
         let dates = extractDates(from: emailContent)
         parsedData.startDate = dates.start
         parsedData.endDate = dates.end
+        
+        // Log what we found for debugging
+        print("📅 [EmailParser] Dates extracted - Start: \(parsedData.startDate?.description ?? "nil"), End: \(parsedData.endDate?.description ?? "nil")")
         
         // Extract price
         let priceInfo = extractPrice(from: emailContent)
@@ -83,6 +110,7 @@ class EmailParser {
            let end = parsedData.endDate {
             let days = Calendar.current.dateComponents([.day], from: start, to: end).day
             parsedData.trialDuration = days
+            print("📊 [EmailParser] Calculated duration from dates: \(days ?? 0) days")
         }
         
         return parsedData
@@ -98,10 +126,20 @@ class EmailParser {
             }
         }
         
+        // Try to extract from invoice-like phrases
+        if let company = extractFromInvoicePhrases(from: content) {
+            return company
+        }
+        
         // Try to extract from common patterns
-        if let match = extractUsingRegex(pattern: "(?:subscription|trial|membership) (?:to|for|with) ([A-Za-z0-9+\\s]+)", 
+        if let match = extractUsingRegex(pattern: "(?:subscription|trial|membership|invoice|receipt) (?:to|for|with|from) ([A-Za-z0-9+\\s&.-]+)", 
                                          from: content) {
-            return match.trimmingCharacters(in: .whitespacesAndNewlines)
+            return normalizeCompanyName(match)
+        }
+        
+        // Try to infer from domains/emails/URLs
+        if let domainName = extractServiceNameFromDomains(from: content) {
+            return domainName
         }
         
         return nil
@@ -150,18 +188,70 @@ class EmailParser {
         var startDate: Date?
         var endDate: Date?
         
-        // Look for explicit start/end dates
+        // 1) Try to find ranges like "from <date> to <date>", "valid from <date> to <date>", "period <date> - <date>"
+        let rangePatterns = [
+            // Handle "Sep 29 - Oct 29, 2025" format (Warp invoice style)
+            "([A-Za-z]{3}\\s+\\d{1,2})\\s*(?:-|–)\\s*([A-Za-z]{3}\\s+\\d{1,2},\\s+\\d{4})",
+            // Also try with "Pro Plan" prefix
+            "Pro Plan[\\s]*\\((?:per seats?\\))?[\\s]*([A-Za-z]{3}\\s+\\d{1,2})\\s*(?:-|–)\\s*([A-Za-z]{3}\\s+\\d{1,2},\\s+\\d{4})",
+            "from\\s+([^\n,]+?)\\s+(?:to|until|through|thru|-|–)\\s+([^\n,]+)",
+            "valid\\s+(?:from|between)\\s+([^\n,]+?)\\s+(?:to|until|through|thru|-|–)\\s+([^\n,]+)",
+            "period\\s*:?\\s*([^\n,]+?)\\s*(?:-|–|to)\\s*([^\n,]+)",
+            "([A-Za-z]{3,}\\s+\\d{1,2},\\s+\\d{4})\\s*(?:-|–|to)\\s*([A-Za-z]{3,}\\s+\\d{1,2},\\s+\\d{4})",
+            "(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*(?:-|–|to)\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})",
+            "billing\\s+period\\s*:?\\s*([^\n,]+?)\\s*(?:-|–|to)\\s*([^\n,]+)",
+            "service\\s+period\\s*:?\\s*([^\n,]+?)\\s*(?:-|–|to)\\s*([^\n,]+)"
+        ]
+        for p in rangePatterns {
+            if let regex = try? NSRegularExpression(pattern: p, options: .caseInsensitive) {
+                let range = NSRange(location: 0, length: content.utf16.count)
+                if let match = regex.firstMatch(in: content, options: [], range: range), match.numberOfRanges >= 3,
+                   let r1 = Range(match.range(at: 1), in: content),
+                   let r2 = Range(match.range(at: 2), in: content) {
+                    var s1 = String(content[r1])
+                    var s2 = String(content[r2])
+                    
+                    // Handle "Sep 29 - Oct 29, 2025" format where first date lacks year
+                    if s1.range(of: "\\d{4}", options: .regularExpression) == nil && s2.range(of: "\\d{4}", options: .regularExpression) != nil {
+                        // Extract year from second date
+                        if let yearMatch = s2.range(of: "\\d{4}", options: .regularExpression) {
+                            let year = String(s2[yearMatch])
+                            s1 = s1 + ", " + year
+                        }
+                    }
+                    
+                    print("📆 [EmailParser] Trying to parse date range: '\(s1)' to '\(s2)'")
+                    if let d1 = parseDate(from: s1), let d2 = parseDate(from: s2) {
+                        startDate = d1
+                        endDate = d2
+                        print("✅ [EmailParser] Successfully parsed dates!")
+                        return (startDate, endDate)
+                    }
+                }
+            }
+        }
+        
+        // 2) Look for explicit start/end labels
         let startPatterns = [
             "start(?:s|ing)?[\\s]?(?:date|on)?[:\\s]?([^\\n,]+)",
             "begin(?:s|ning)?[\\s]?(?:date|on)?[:\\s]?([^\\n,]+)",
-            "effective[\\s]?(?:date|from)?[:\\s]?([^\\n,]+)"
+            "effective[\\s]?(?:date|from)?[:\\s]?([^\\n,]+)",
+            "invoice[\\s]?date[:\\s]?([^\\n,]+)",
+            "date[\\s]?(?:of purchase|paid|:)[:\\s]?([^\\n,]+)",
+            "billed[\\s]?on[:\\s]?([^\\n,]+)",
+            "period\\s*start[:\\s]?([^\\n,]+)"
         ]
         
         let endPatterns = [
             "end(?:s|ing)?[\\s]?(?:date|on)?[:\\s]?([^\\n,]+)",
             "expire(?:s)?[\\s]?(?:date|on)?[:\\s]?([^\\n,]+)",
             "renew(?:s|al)?[\\s]?(?:date|on)?[:\\s]?([^\\n,]+)",
-            "cancel[\\s]?(?:by|before)?[:\\s]?([^\\n,]+)"
+            "cancel[\\s]?(?:by|before)?[:\\s]?([^\\n,]+)",
+            "next[\\s]?(?:billing|charge|renewal)[\\s]?date[:\\s]?([^\\n,]+)",
+            "period\\s*end[:\\s]?([^\\n,]+)",
+            "valid\\s*until[:\\s]?([^\\n,]+)",
+            "until[:\\s]?([^\\n,]+)",
+            "to[:\\s]?([^\\n,]+)"
         ]
         
         // Try to find start date
@@ -182,7 +272,7 @@ class EmailParser {
             }
         }
         
-        // If no explicit start date, assume today
+        // If no explicit start date but we have end+price/duration indicators, assume today as start
         if startDate == nil && endDate != nil {
             startDate = Date()
         }
@@ -192,33 +282,44 @@ class EmailParser {
     
     // MARK: - Price Extraction
     private func extractPrice(from content: String) -> (price: Double?, currency: String?) {
-        let pricePatterns = [
-            "\\$([0-9]+\\.?[0-9]*)",
-            "€([0-9]+\\.?[0-9]*)",
-            "£([0-9]+\\.?[0-9]*)",
-            "¥([0-9]+\\.?[0-9]*)",
-            "([0-9]+\\.?[0-9]*)\\s?(?:USD|EUR|GBP|JPY)"
+        // Prioritize totals/charges typical in receipts
+        let labeledPatterns = [
+            "total\\s*[:=]?\\s*[$€£¥]?\\s*([0-9]+[.,]?[0-9]*)",
+            "amount\\s*(?:paid|charged)?\\s*[:=]?\\s*[$€£¥]?\\s*([0-9]+[.,]?[0-9]*)",
+            "charged\\s*[$€£¥]\\s*([0-9]+[.,]?[0-9]*)",
+            "billed\\s*[$€£¥]\\s*([0-9]+[.,]?[0-9]*)"
         ]
-        
-        for pattern in pricePatterns {
-            if let match = extractUsingRegex(pattern: pattern, from: content),
-               let price = Double(match.replacingOccurrences(of: ",", with: "")) {
-                
-                // Determine currency
-                var currency = "USD" // Default
-                if content.contains("€") || content.contains("EUR") {
-                    currency = "EUR"
-                } else if content.contains("£") || content.contains("GBP") {
-                    currency = "GBP"
-                } else if content.contains("¥") || content.contains("JPY") {
-                    currency = "JPY"
-                }
-                
-                return (price, currency)
+        for p in labeledPatterns {
+            if let match = extractUsingRegex(pattern: p, from: content), let price = Double(match.replacingOccurrences(of: ",", with: ".")) {
+                return (price, inferCurrency(from: content))
             }
         }
         
+        // Fallback: any currency symbol + amount
+        let pricePatterns = [
+            "\\$([0-9]+[.,]?[0-9]*)",
+            "€([0-9]+[.,]?[0-9]*)",
+            "£([0-9]+[.,]?[0-9]*)",
+            "¥([0-9]+[.,]?[0-9]*)",
+            "([0-9]+[.,]?[0-9]*)\\s?(?:USD|EUR|GBP|JPY)"
+        ]
+        for pattern in pricePatterns {
+            if let match = extractUsingRegex(pattern: pattern, from: content) {
+                let normalized = match.replacingOccurrences(of: ",", with: ".")
+                if let price = Double(normalized) {
+                    return (price, inferCurrency(from: content))
+                }
+            }
+        }
         return (nil, nil)
+    }
+    
+    private func inferCurrency(from content: String) -> String {
+        if content.contains("€") || content.range(of: "EUR", options: .caseInsensitive) != nil { return "EUR" }
+        if content.contains("£") || content.range(of: "GBP", options: .caseInsensitive) != nil { return "GBP" }
+        if content.contains("¥") || content.range(of: "JPY", options: .caseInsensitive) != nil { return "JPY" }
+        if content.range(of: "USD", options: .caseInsensitive) != nil { return "USD" }
+        return "USD"
     }
     
     // MARK: - Confirmation Number Extraction
@@ -246,6 +347,105 @@ class EmailParser {
     }
     
     // MARK: - Helper Methods
+    private let genericEmailHosts: Set<String> = [
+        "gmail", "googlemail", "yahoo", "outlook", "hotmail", "live", "icloud", "me", "proton", "zoho", "aol"
+    ]
+    
+    private func normalizeCompanyName(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.lowercased().contains("disney plus") { return "Disney+" }
+        return trimmed.capitalized
+    }
+    
+    private func extractFromInvoicePhrases(from content: String) -> String? {
+        let patterns = [
+            "invoice from ([A-Za-z0-9 &+.-]{2,})",
+            "receipt from ([A-Za-z0-9 &+.-]{2,})",
+            "invoice for ([A-Za-z0-9 &+.-]{2,})",
+            "from ([A-Za-z0-9 &+.-]{2,}) invoice"
+        ]
+        for p in patterns {
+            if let company = extractUsingRegex(pattern: p, from: content) { return normalizeCompanyName(company) }
+        }
+        return nil
+    }
+    
+    private let ignoredServiceTokens: Set<String> = [
+        "attachment", "attachments", "cache", "gbattachmentcache", "attachmentcache",
+        "file", "files", "document", "documents", "pdf", "content", "localhost",
+        "google", "gmail", "googleusercontent", "gstatic", "drive"
+    ]
+    
+    private func extractServiceNameFromDomains(from content: String) -> String? {
+        var domains = [String]()
+        // Emails
+        if let regex = try? NSRegularExpression(pattern: "[A-Z0-9._%+-]+@([A-Za-z0-9.-]+)\\.[A-Za-z]{2,}", options: .caseInsensitive) {
+            let matches = regex.matches(in: content, range: NSRange(location: 0, length: content.utf16.count))
+            for m in matches {
+                if m.numberOfRanges > 1, let r = Range(m.range(at: 1), in: content) {
+                    domains.append(String(content[r]))
+                }
+            }
+        }
+        // URLs
+        if let regex2 = try? NSRegularExpression(pattern: "(?:https?:\\/\\/)?(?:www\\.)?([A-Za-z0-9.-]+)\\.[A-Za-z]{2,}", options: .caseInsensitive) {
+            let matches = regex2.matches(in: content, range: NSRange(location: 0, length: content.utf16.count))
+            for m in matches {
+                if m.numberOfRanges > 1, let r = Range(m.range(at: 1), in: content) {
+                    domains.append(String(content[r]))
+                }
+            }
+        }
+        
+        for raw in domains {
+            let base = baseDomain(from: raw)
+            if base.isEmpty { continue }
+            if genericEmailHosts.contains(base) { continue }
+            if ignoredServiceTokens.contains(base) { continue }
+            if let mapped = domainToServiceName(base) { return mapped }
+            // Avoid returning obviously noisy tokens
+            if base.count < 3 { continue }
+            return base.capitalized
+        }
+        return nil
+    }
+    
+    private func baseDomain(from domain: String) -> String {
+        let parts = domain.lowercased().split(separator: ".").map(String.init)
+        guard parts.count >= 2 else { return parts.first ?? "" }
+        let last = parts.last ?? ""
+        let secondLast = parts.dropLast().last ?? ""
+        if secondLast == "co" && last == "uk" && parts.count >= 3 {
+            return parts.dropLast(2).last ?? ""
+        }
+        return secondLast
+    }
+    
+    private func domainToServiceName(_ base: String) -> String? {
+        // Map common vendor bases to service names
+        let map: [String: String] = [
+            "netflix": "Netflix",
+            "spotify": "Spotify",
+            "disneyplus": "Disney+",
+            "disney": "Disney+",
+            "amazon": "Amazon Prime",
+            "adobe": "Adobe",
+            "microsoft": "Microsoft 365",
+            "office": "Microsoft 365",
+            "dropbox": "Dropbox",
+            "youtube": "YouTube Premium",
+            "icloud": "iCloud",
+            "apple": "Apple",
+            "hulu": "Hulu",
+            "hbomax": "HBO Max",
+            "paramountplus": "Paramount+",
+            "peacocktv": "Peacock",
+            "peacock": "Peacock"
+        ]
+        if let v = map[base] { return v }
+        return nil
+    }
+    
     private func extractUsingRegex(pattern: String, from text: String) -> String? {
         do {
             let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
