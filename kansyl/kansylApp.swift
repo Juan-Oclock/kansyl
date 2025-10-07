@@ -547,8 +547,16 @@ class AppState: ObservableObject {
         let confirmationNumber = dataDict["confirmationNumber"] as? String
         
         print("   Service: \(serviceName)")
-        print("   Price: \(price?.description ?? "nil")")
-        print("   Duration: \(trialDuration?.description ?? "nil") days")
+        if let price = price {
+            print("   Price: \(price)")
+        } else {
+            print("   Price: nil")
+        }
+        if let duration = trialDuration {
+            print("   Duration: \(duration) days")
+        } else {
+            print("   Duration: nil days")
+        }
         
         // Calculate dates first
         var startDate = Date()
