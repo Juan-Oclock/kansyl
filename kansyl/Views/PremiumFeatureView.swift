@@ -24,6 +24,8 @@ struct PremiumFeatureView: View {
     @State private var errorMessage = ""
     @State private var showingSignInRequired = false
     @State private var showingSignInSheet = false
+    @State private var wasUnauthenticated = false
+    @State private var showSignInToast = false
     
     var body: some View {
         NavigationView {
@@ -65,6 +67,19 @@ struct PremiumFeatureView: View {
                     }
                 }
             }
+            .onAppear {
+                Task {
+                    print("📱 [PremiumFeatureView] View appeared, checking auth state")
+                    print("🔐 [PremiumFeatureView] Current isAuthenticated: \(authManager.isAuthenticated)")
+                    print("👤 [PremiumFeatureView] Current user: \(authManager.currentUser?.id.uuidString ?? "nil")")
+                    
+                    // Refresh auth state when view appears
+                    await authManager.checkExistingSession()
+                    
+                    print("✅ [PremiumFeatureView] Auth state refreshed on view appear")
+                    print("🔐 [PremiumFeatureView] Updated isAuthenticated: \(authManager.isAuthenticated)")
+                }
+            }
             .alert("Sign In Required", isPresented: $showingSignInRequired) {
                 Button("Cancel", role: .cancel) { }
                 Button("Sign In") {
@@ -82,6 +97,36 @@ struct PremiumFeatureView: View {
                 LoginView()
                     .environmentObject(authManager)
                     .environmentObject(userStateManager)
+            }
+            .overlay(
+                VStack {
+                    SuccessToastView(
+                        message: "Signed in! You can complete your purchase now.",
+                        savedAmount: nil,
+                        isShowing: $showSignInToast
+                    )
+                    .padding(.top, 50)
+
+                    Spacer()
+                }
+                .zIndex(1002)
+            )
+            .onAppear {
+                // Track if user was unauthenticated when view appeared
+                wasUnauthenticated = !authManager.isAuthenticated
+                print("🎫 [PremiumFeatureView] View appeared - wasUnauthenticated: \(wasUnauthenticated)")
+            }
+            .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+                print("🔄 [PremiumFeatureView] Authentication changed - isAuthenticated: \(isAuthenticated), wasUnauthenticated: \(wasUnauthenticated)")
+                // If user was unauthenticated and now is authenticated, keep the premium sheet open
+                // Close the login sheet and show a confirmation toast so the user can continue purchase
+                if wasUnauthenticated && isAuthenticated {
+                    print("✅ [PremiumFeatureView] User signed in - keeping premium view open and showing confirmation toast")
+                    showingSignInSheet = false
+                    showSignInToast = true
+                    wasUnauthenticated = false
+                    HapticManager.shared.playSuccess()
+                }
             }
         }
     }
@@ -247,47 +292,35 @@ struct PremiumFeatureView: View {
     private var purchaseButton: some View {
         Button(action: {
             print("🛒 [PremiumFeatureView] Purchase button tapped")
-            print("🔐 [PremiumFeatureView] isAuthenticated: \(authManager.isAuthenticated)")
+            print("🔐 [PremiumFeatureView] Initial isAuthenticated: \(authManager.isAuthenticated)")
             print("👤 [PremiumFeatureView] isAnonymousMode: \(userStateManager.isAnonymousMode)")
+            print("👤 [PremiumFeatureView] currentUser: \(authManager.currentUser?.id.uuidString ?? "nil")")
             
-            // Check if user is authenticated FIRST
-            if !authManager.isAuthenticated || userStateManager.isAnonymousMode {
-                print("⚠️ [PremiumFeatureView] User not authenticated, showing sign-in prompt")
-                showingSignInRequired = true
-                return
-            }
-            
+            // Re-validate session before checking authentication
             Task {
-                isPurchasing = true
-                HapticManager.shared.playButtonTap()
+                print("🔄 [PremiumFeatureView] Re-validating session before purchase...")
+                await authManager.checkExistingSession()
                 
-                await premiumManager.purchase(yearly: selectedPlan == "yearly")
-                
-                isPurchasing = false
-                
-                // Handle purchase result
-                switch premiumManager.purchaseState {
-                case .purchased:
-                    HapticManager.shared.playSuccess()
-                    if premiumManager.isPremium {
-                        dismiss()
-                    }
-                case .failed(let error):
-                    HapticManager.shared.playError()
+                await MainActor.run {
+                    print("✅ [PremiumFeatureView] Session validation complete")
+                    print("🔐 [PremiumFeatureView] Updated isAuthenticated: \(authManager.isAuthenticated)")
+                    print("👤 [PremiumFeatureView] Updated currentUser: \(authManager.currentUser?.id.uuidString ?? "nil")")
                     
-                    // Check if it's a simulator error
-                    if let premiumError = error as? PremiumError, premiumError == .simulatorNotSupported {
-                        errorMessage = "In-app purchases are not supported on the iOS Simulator. Please test on a real device or use the DEBUG button below to enable test premium."
-                    } else {
-                        errorMessage = error.localizedDescription
+                    // Check if user is authenticated after session validation
+                    if !authManager.isAuthenticated {
+                        print("⚠️ [PremiumFeatureView] User not authenticated after session check, showing sign-in prompt")
+                        showingSignInRequired = true
+                        return
                     }
                     
-                    showingError = true
-                case .idle:
-                    // User cancelled, no error needed
-                    break
-                case .loading:
-                    break
+                    // Proceed with purchase
+                    print("✅ [PremiumFeatureView] User authenticated, initiating purchase")
+                    isPurchasing = true
+                    HapticManager.shared.playButtonTap()
+                    
+                    Task {
+                        await performPurchase()
+                    }
                 }
             }
         }) {
@@ -298,7 +331,7 @@ struct PremiumFeatureView: View {
                         .scaleEffect(0.8)
                 } else {
                     // Show different text based on authentication status
-                    let buttonText = (authManager.isAuthenticated && !userStateManager.isAnonymousMode) 
+                    let buttonText = authManager.isAuthenticated 
                         ? "Continue to Upgrade" 
                         : "Upgrade to Premium"
                     Text(buttonText)
@@ -319,6 +352,39 @@ struct PremiumFeatureView: View {
             .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
         .disabled(isPurchasing)
+    }
+    
+    private func performPurchase() async {
+        await premiumManager.purchase(yearly: selectedPlan == "yearly")
+        
+        await MainActor.run {
+            isPurchasing = false
+            
+            // Handle purchase result
+            switch premiumManager.purchaseState {
+            case .purchased:
+                HapticManager.shared.playSuccess()
+                if premiumManager.isPremium {
+                    dismiss()
+                }
+            case .failed(let error):
+                HapticManager.shared.playError()
+                
+                // Check if it's a simulator error
+                if let premiumError = error as? PremiumError, premiumError == .simulatorNotSupported {
+                    errorMessage = "In-app purchases are not supported on the iOS Simulator. Please test on a real device or use the DEBUG button below to enable test premium."
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+                
+                showingError = true
+            case .idle:
+                // User cancelled, no error needed
+                break
+            case .loading:
+                break
+            }
+        }
     }
     
     // MARK: - Terms Section

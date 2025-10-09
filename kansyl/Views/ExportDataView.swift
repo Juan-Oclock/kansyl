@@ -11,9 +11,16 @@ import CoreData
 struct ExportDataView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var authManager: SupabaseAuthManager
+    @ObservedObject private var userStateManager = UserStateManager.shared
+    @ObservedObject private var subscriptionStore = SubscriptionStore.shared
     let context: NSManagedObjectContext
-    @State private var exportData = ""
+    @State private var exportFileURL: URL?
     @State private var showingShareSheet = false
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var showingSuccessAlert = false
+    @State private var exportedSubscriptionCount = 0
     
     var body: some View {
         NavigationView {
@@ -53,16 +60,71 @@ struct ExportDataView: View {
                 }
             )
             .sheet(isPresented: $showingShareSheet) {
-                ShareSheet(activityItems: [exportData])
+                if let fileURL = exportFileURL {
+                    ShareSheet(activityItems: [fileURL], onDismiss: {
+                        // Show success message and auto-close after share sheet dismisses
+                        showingSuccessAlert = true
+                    })
+                }
+            }
+            .alert("Export Successful", isPresented: $showingSuccessAlert) {
+                Button("OK", role: .cancel) {
+                    // Add haptic feedback
+                    let successFeedback = UINotificationFeedbackGenerator()
+                    successFeedback.notificationOccurred(.success)
+                    
+                    // Auto-dismiss the export view
+                    dismiss()
+                }
+            } message: {
+                Text("Successfully exported \(exportedSubscriptionCount) subscription\(exportedSubscriptionCount == 1 ? "" : "s") to JSON file.")
+            }
+            .alert("Export Error", isPresented: $showingErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
+            .onDisappear {
+                cleanupTempFile()
             }
         }
     }
     
+    private func cleanupTempFile() {
+        if let fileURL = exportFileURL {
+            try? FileManager.default.removeItem(at: fileURL)
+            print("🗑️ [ExportDataView] Cleaned up temporary export file")
+        }
+    }
+    
     private func generateExportData() {
-        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+        // Use SubscriptionStore which already handles user filtering correctly
+        let subscriptions = subscriptionStore.allSubscriptions
+        
+        // Determine user type for metadata
+        let userType: String
+        if authManager.isAuthenticated {
+            userType = "authenticated"
+            print("📤 [ExportDataView] Exporting data for authenticated user")
+        } else if userStateManager.isAnonymousMode {
+            userType = "anonymous"
+            print("📤 [ExportDataView] Exporting data for anonymous user")
+        } else {
+            userType = "unknown"
+            print("📤 [ExportDataView] Exporting data (user type unknown)")
+        }
+        
+        print("📤 [ExportDataView] Found \(subscriptions.count) subscriptions to export")
+        
+        // Check if no subscriptions found
+        if subscriptions.isEmpty {
+            print("⚠️ [ExportDataView] No subscriptions found for user")
+            errorMessage = "No subscriptions found to export. Add some subscriptions first."
+            showingErrorAlert = true
+            return
+        }
         
         do {
-            let subscriptions = try context.fetch(request)
             let exportSubscriptions = subscriptions.map { subscription in
                 [
                     "id": subscription.id?.uuidString ?? "",
@@ -70,33 +132,69 @@ struct ExportDataView: View {
                     "startDate": subscription.startDate?.ISO8601Format() ?? "",
                     "endDate": subscription.endDate?.ISO8601Format() ?? "",
                     "monthlyPrice": subscription.monthlyPrice,
+                    "billingAmount": subscription.billingAmount,
+                    "billingCycle": subscription.billingCycle ?? "monthly",
                     "serviceLogo": subscription.serviceLogo ?? "",
                     "status": subscription.status ?? "",
-                    "notes": subscription.notes ?? ""
-                ]
+                    "notes": subscription.notes ?? "",
+                    "subscriptionType": subscription.subscriptionType ?? "trial",
+                    "isTrial": subscription.isTrial,
+                    "originalCurrency": subscription.originalCurrency ?? "",
+                    "originalAmount": subscription.originalAmount,
+                    "exchangeRate": subscription.exchangeRate
+                ] as [String: Any]
             }
             
             let exportDict = [
                 "exportDate": Date().ISO8601Format(),
                 "appVersion": "1.0.0",
+                "userType": userType,
+                "subscriptionsCount": subscriptions.count,
                 "subscriptions": exportSubscriptions
             ] as [String: Any]
             
             let jsonData = try JSONSerialization.data(withJSONObject: exportDict, options: .prettyPrinted)
-            exportData = String(data: jsonData, encoding: .utf8) ?? ""
+            
+            // Save to temporary file
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+            let timestamp = dateFormatter.string(from: Date())
+            
+            let fileName = "kansyl_export_\(timestamp).json"
+            let tempDir = FileManager.default.temporaryDirectory
+            let fileURL = tempDir.appendingPathComponent(fileName)
+            
+            try jsonData.write(to: fileURL)
+            
+            exportFileURL = fileURL
+            exportedSubscriptionCount = subscriptions.count
+            
+            print("✅ [ExportDataView] Successfully generated export data for \(userType) user")
+            print("📊 [ExportDataView] Export saved to: \(fileURL.path)")
+            print("📊 [ExportDataView] Export size: \(jsonData.count) bytes")
             
         } catch {
-            // Debug: print("Error exporting data: \(error)")
-            exportData = "Error generating export data"
+            print("❌ [ExportDataView] Error exporting data: \(error.localizedDescription)")
+            errorMessage = "Failed to export data: \(error.localizedDescription)"
+            showingErrorAlert = true
         }
     }
 }
 
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
+    var onDismiss: (() -> Void)?
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        
+        // Set completion handler to trigger onDismiss
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            if completed {
+                onDismiss?()
+            }
+        }
+        
         return controller
     }
     

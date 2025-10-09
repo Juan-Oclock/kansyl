@@ -118,6 +118,15 @@ class IntentHandlerHelper {
     
     static func addSubscription(serviceName: String) -> Bool {
         let context = PersistenceController.shared.container.viewContext
+
+        // Enforce subscription limit for Siri Shortcuts
+        let countRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
+        countRequest.resultType = .countResultType
+        let currentCount = (try? context.count(for: countRequest)) ?? 0
+        if !PremiumManager.shared.canAddMoreSubscriptions(currentCount: currentCount) {
+            return false
+        }
+
         let subscription = Subscription(context: context)
         subscription.id = UUID()
         subscription.name = serviceName
@@ -126,7 +135,7 @@ class IntentHandlerHelper {
         subscription.monthlyPrice = 0
         subscription.serviceLogo = "questionmark.circle"
         subscription.status = SubscriptionStatus.active.rawValue
-        
+
         do {
             try context.save()
             NotificationManager.shared.scheduleNotifications(for: subscription)

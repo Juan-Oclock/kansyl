@@ -46,6 +46,8 @@ struct ModernSubscriptionsView: View {
     @State private var notificationBadgeCount = 0
     @State private var badgeRefreshTimer: Timer?
     @FocusState private var isSearchFocused: Bool
+    @State private var showSignInBanner = true
+    @State private var showingSignInSheet = false
     
     // Cached filtered subscriptions (recomputed only when needed)
     @State private var cachedPastDue: [Subscription] = []
@@ -71,6 +73,132 @@ struct ModernSubscriptionsView: View {
         return "User"
     }
     
+    // MARK: - User Status Badge
+    @ViewBuilder
+    private var userStatusBadge: some View {
+        if premiumManager.isPremium {
+            // Premium Badge
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 10, weight: .bold))
+                Text("Premium")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                LinearGradient(
+                    colors: [Design.Colors.primary, Design.Colors.secondary],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .cornerRadius(12)
+        } else if authManager.isAuthenticated {
+            // Signed-in Free User - Show subscription count
+            let currentCount = subscriptionStore.allSubscriptions.count
+            let limit = PremiumManager.freeSubscriptionLimit
+            
+            HStack(spacing: 4) {
+                Image(systemName: "square.stack.3d.up")
+                    .font(.system(size: 10, weight: .medium))
+                Text("\(currentCount)/\(limit)")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundColor(currentCount >= limit ? Design.Colors.danger : Design.Colors.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                (currentCount >= limit ? Design.Colors.danger : Design.Colors.textSecondary)
+                    .opacity(0.12)
+            )
+            .cornerRadius(12)
+        } else {
+            // Anonymous User - Show subscription count with limit
+            let currentCount = subscriptionStore.allSubscriptions.count
+            let limit = UserStateManager.shared.anonymousSubscriptionLimit
+            
+            HStack(spacing: 4) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 10, weight: .medium))
+                Text("\(currentCount)/\(limit)")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundColor(currentCount >= limit ? Design.Colors.danger : Design.Colors.warning)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                (currentCount >= limit ? Design.Colors.danger : Design.Colors.warning)
+                    .opacity(0.12)
+            )
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Anonymous Sign-In Banner
+    private var anonymousSignInBanner: some View {
+        HStack(spacing: 12) {
+            // Icon
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(Design.Colors.warning)
+            
+            // Message
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Continue Without Account")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(Design.Colors.textPrimary)
+                
+                Text("Sign in to sync & backup your data")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(Design.Colors.textSecondary)
+            }
+            
+            Spacer()
+            
+            // Sign In Button
+            Button(action: {
+                showingSignInSheet = true
+                HapticManager.shared.playSelection()
+            }) {
+                Text("Sign In")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "0A0A0A"))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        LinearGradient(
+                            colors: [Design.Colors.primary, Design.Colors.secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(20)
+            }
+            
+            // Dismiss Button
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showSignInBanner = false
+                }
+                HapticManager.shared.playSelection()
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Design.Colors.textSecondary)
+                    .frame(width: 24, height: 24)
+            }
+        }
+        .padding(16)
+        .background(Design.Colors.warning.opacity(0.08))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Design.Colors.warning.opacity(0.2), lineWidth: 1)
+        )
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -91,7 +219,13 @@ struct ModernSubscriptionsView: View {
                                 // Scroll to top anchor
                                 Color.clear.frame(height: 1).id("top")
                                 
-                                // Free Trial Card removed
+                                // Anonymous User Sign-In Banner
+                                if !authManager.isAuthenticated && showSignInBanner {
+                                    anonymousSignInBanner
+                                        .padding(.horizontal, 20)
+                                        .padding(.top, 8)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
+                                }
                                 
                                 // Savings Spotlight Card
                                 savingsSpotlightCard
@@ -152,6 +286,11 @@ struct ModernSubscriptionsView: View {
                 NotificationsView()
                     .environmentObject(notificationManager)
                     .environmentObject(subscriptionStore)
+            }
+            .sheet(isPresented: $showingSignInSheet) {
+                LoginView(hideAnonymousOption: true)
+                    .environmentObject(authManager)
+                    .environmentObject(UserStateManager.shared)
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {
@@ -296,18 +435,20 @@ struct ModernSubscriptionsView: View {
     
     // MARK: - Static Header (No Dynamic Calculations)
     private var stickyHeader: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Hi, \(displayName)")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(Design.Colors.textSecondary)
+        VStack(alignment: .leading, spacing: 6) {
+            // Top Row: Greeting + Icons
+            HStack(alignment: .center) {
+                // User greeting with status badge
+                HStack(spacing: 8) {
+                    Text("Hi, \(displayName)")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundColor(Design.Colors.textSecondary)
+                    
+                    // Status indicator
+                    userStatusBadge
+                }
                 
-                Text("Your Subscriptions")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(Design.Colors.textPrimary)
-            }
-            
-            Spacer()
+                Spacer()
             
             // Notification Bell Button
             Button(action: {
@@ -396,10 +537,16 @@ struct ModernSubscriptionsView: View {
             .scaleEffect(animateElements ? 1.0 : 0.8)
             .opacity(animateElements ? 1.0 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.8).delay(0.1), value: animateElements)
+            }
+            
+            // Bottom Row: Title (Full Width - No Truncation)
+            Text("Your Subscriptions")
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(Design.Colors.textPrimary)
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
-        .padding(.bottom, 6) // Minimal bottom padding to reduce space
+        .padding(.bottom, 6)
     }
     
     

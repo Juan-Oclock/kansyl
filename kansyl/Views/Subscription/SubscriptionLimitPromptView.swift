@@ -12,6 +12,7 @@ struct SubscriptionLimitPromptView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @EnvironmentObject private var userStateManager: UserStateManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingSignUp = false
     @State private var showingLogin = false
     @State private var headerAnimation = false
@@ -142,7 +143,7 @@ struct SubscriptionLimitPromptView: View {
                             }) {
                                 Text("Create Account")
                                     .font(Design.Typography.headline(.semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(colorScheme == .dark ? Color(hex: "0A0A0A") : .white)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
                                     .background(

@@ -539,12 +539,18 @@ struct ReceiptConfirmationSheet: View {
     @ObservedObject var subscriptionStore: SubscriptionStore
     @Binding var isPresented: Bool
     @Environment(\.colorScheme) var colorScheme
-    
+
     @StateObject private var receiptScanner = ReceiptScanner()
     @State private var isCreating = false
-    
+
+    // Limit gating
+    @ObservedObject private var userStateManager = UserStateManager.shared
+    @ObservedObject private var premiumManager = PremiumManager.shared
+    @State private var showingPremiumRequired = false
+    @State private var showingSubscriptionLimitPrompt = false
+
     var onSave: ((Subscription?) -> Void)?
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -641,25 +647,53 @@ struct ReceiptConfirmationSheet: View {
                 .padding(.bottom, 20)
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showingPremiumRequired) {
+                PremiumFeatureView(isForSubscriptionLimit: true, currentCount: subscriptionStore.allSubscriptions.count)
+                    .environmentObject(SupabaseAuthManager.shared)
+            }
+            .sheet(isPresented: $showingSubscriptionLimitPrompt) {
+                SubscriptionLimitPromptView()
+                    .environmentObject(SupabaseAuthManager.shared)
+                    .environmentObject(userStateManager)
+            }
         }
     }
-    
+
     private func createSubscription() async {
         // Debug: // Debug: print("🔄 ReceiptConfirmationSheet: Creating subscription...")
         isCreating = true
-        
+
+        // Enforce subscription limits before creating
+        let currentCount = subscriptionStore.allSubscriptions.count
+        if UserStateManager.shared.isAnonymousMode && !SupabaseAuthManager.shared.isAuthenticated {
+            if currentCount >= UserStateManager.shared.anonymousSubscriptionLimit {
+                HapticManager.shared.playError()
+                await MainActor.run {
+                    self.isCreating = false
+                    self.showingSubscriptionLimitPrompt = true
+                }
+                return
+            }
+        }
+        if !PremiumManager.shared.canAddMoreSubscriptions(currentCount: currentCount) {
+            await MainActor.run {
+                self.isCreating = false
+                self.showingPremiumRequired = true
+            }
+            return
+        }
+
         let subscription = receiptScanner.createSubscriptionFromReceipt(receiptData, subscriptionStore: subscriptionStore)
-        
+
         DispatchQueue.main.async {
             self.isCreating = false
-            
-            // Debug: // Debug: print("✅ ReceiptConfirmationSheet: Subscription created successfully")
+
             // Refresh the subscription store to ensure the new subscription appears
             self.subscriptionStore.fetchSubscriptions()
-            
+
             // Call the onSave callback if provided
             self.onSave?(subscription)
-            
+
             // Dismiss the sheet
             self.isPresented = false
         }

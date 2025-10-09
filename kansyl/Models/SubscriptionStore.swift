@@ -112,9 +112,19 @@ class SubscriptionStore: ObservableObject {
             AppLogger.success("Fetched \(subscriptions.count) subscriptions for user \(userID)", category: "SubscriptionStore")
             
             DispatchQueue.main.async { [weak self] in
-                self?.allSubscriptions = subscriptions
-                self?.updateSubscriptionCategories()
-                AppLogger.log("Updated categories - Active: \(self?.activeSubscriptions.count ?? 0)", category: "SubscriptionStore")
+                guard let self = self else { return }
+                self.allSubscriptions = subscriptions
+                self.updateSubscriptionCategories()
+                AppLogger.log("Updated categories - Active: \(self.activeSubscriptions.count)", category: "SubscriptionStore")
+
+                // Share current count and premium status with Share Extension via App Group
+                if let defaults = UserDefaults(suiteName: "group.com.juan-oclock.kansyl") {
+                    defaults.set(self.allSubscriptions.count, forKey: "currentSubscriptionCount")
+                    defaults.set(PremiumManager.shared.isPremium, forKey: "isPremium")
+                    defaults.set(PremiumManager.freeSubscriptionLimit, forKey: "freeLimit")
+                    defaults.set(Date().timeIntervalSince1970, forKey: "subscriptionCountUpdatedAt")
+                    defaults.synchronize()
+                }
             }
         } catch {
             AppLogger.error("Failed to fetch subscriptions: \(error.localizedDescription)", category: "SubscriptionStore")
@@ -173,13 +183,27 @@ class SubscriptionStore: ObservableObject {
         print("🔵 [SubscriptionStore] SubscriptionStore.shared === self? \(SubscriptionStore.shared === self)")
         
         AppLogger.log("Adding subscription: \(name) for userID: \(SubscriptionStore.currentUserID ?? "nil")", category: "SubscriptionStore")
-        
+
         guard let userID = SubscriptionStore.currentUserID else {
             AppLogger.warning("No userID found, cannot add subscription", category: "SubscriptionStore")
             print("⚠️ [SubscriptionStore] Returning nil due to missing userID")
             return nil
         }
-        
+
+        // Safety net: enforce subscription limit at data layer for current user
+        do {
+            let countRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
+            countRequest.predicate = NSPredicate(format: "userID == %@", userID)
+            countRequest.resultType = .countResultType
+            let currentCount = try viewContext.count(for: countRequest)
+            if !PremiumManager.shared.canAddMoreSubscriptions(currentCount: currentCount) {
+                AppLogger.warning("Free limit reached (\(currentCount)) for user \(userID)", category: "SubscriptionStore")
+                return nil
+            }
+        } catch {
+            AppLogger.error("Failed to count subscriptions: \(error.localizedDescription)", category: "SubscriptionStore")
+        }
+
         let newSubscription = Subscription(context: viewContext)
         newSubscription.id = UUID()
         newSubscription.userID = userID  // Set the user ID for data isolation

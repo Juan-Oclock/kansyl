@@ -25,6 +25,9 @@ struct LoginView: View {
     @State private var buttonAnimation = false
     @State private var showingAnonymousModeAlert = false
     
+    // New parameter to control whether to show Continue Without Account
+    var hideAnonymousOption: Bool = false
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -200,16 +203,18 @@ struct LoginView: View {
                     
                     // Alternative option section
                     VStack(spacing: Design.Spacing.lg) {
-                        // Continue Without Account button
-                        Button(action: {
-                            showingAnonymousModeAlert = true
-                        }) {
-                            Text("Continue Without Account")
-                                .font(Design.Typography.subheadline(.medium))
-                                .foregroundColor(Design.Colors.textSecondary)
-                                .underline()
+                        // Continue Without Account button - Only show if not already in anonymous mode
+                        if !hideAnonymousOption && !userStateManager.isAnonymousMode {
+                            Button(action: {
+                                showingAnonymousModeAlert = true
+                            }) {
+                                Text("Continue Without Account")
+                                    .font(Design.Typography.subheadline(.medium))
+                                    .foregroundColor(Design.Colors.textSecondary)
+                                    .underline()
+                            }
+                            .padding(.horizontal, Design.Spacing.xl)
                         }
-                        .padding(.horizontal, Design.Spacing.xl)
                         
                         // Terms and Privacy - Modern styling with functional links
                         VStack(spacing: Design.Spacing.xs) {
@@ -261,26 +266,11 @@ struct LoginView: View {
         }
         .onChange(of: authManager.isAuthenticated) { isAuthenticated in
             print("🔍 [LoginView] onChange triggered - isAuthenticated: \(isAuthenticated), isAnonymousMode: \(userStateManager.isAnonymousMode)")
-            if isAuthenticated && !userStateManager.isAnonymousMode {
-                print("✅ [LoginView] User authenticated successfully, dismissing login view and navigating to subscriptions")
-                // Dismiss on next run loop to ensure state updates are complete
-                DispatchQueue.main.async {
-                    // Navigate to subscriptions tab
-                    navigationCoordinator.navigateToSubscriptions()
-                    // Then dismiss the login sheet
-                    dismiss()
-                }
-            }
-        }
-        .onChange(of: userStateManager.isAnonymousMode) { isAnonymous in
-            print("🔍 [LoginView] Anonymous mode changed to: \(isAnonymous), isAuthenticated: \(authManager.isAuthenticated)")
-            // If user just exited anonymous mode and is authenticated, dismiss
-            if !isAnonymous && authManager.isAuthenticated {
-                print("✅ [LoginView] Exited anonymous mode while authenticated, dismissing login view and navigating to subscriptions")
-                DispatchQueue.main.async {
-                    // Navigate to subscriptions tab
-                    navigationCoordinator.navigateToSubscriptions()
-                    // Then dismiss the login sheet
+            // Dismiss immediately when authenticated (whether from anonymous mode or not)
+            if isAuthenticated {
+                print("✅ [LoginView] User authenticated successfully, dismissing login view")
+                // Small delay to ensure auth state is fully propagated
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     dismiss()
                 }
             }
@@ -343,6 +333,7 @@ struct LoginView: View {
                 fullName: result.fullName
             )
             print("✅ [LoginView] Apple Sign In completed successfully")
+            // The onChange handler will dismiss the view
         } catch AppleSignInError.cancelled {
             // User cancelled - don't show error
             print("⚠️ [LoginView] User cancelled Apple Sign In")
@@ -361,6 +352,7 @@ struct LoginView: View {
     private func handleGoogleSignIn() async {
         do {
             try await authManager.signInWithGoogle()
+            // The onChange handler will dismiss the view
         } catch {
             // Error is handled by the auth manager
         }
@@ -372,6 +364,7 @@ struct LoginView: View {
 struct EmailLoginView: View {
     @EnvironmentObject private var authManager: SupabaseAuthManager
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var password = ""
     @State private var showingPassword = false
@@ -604,6 +597,13 @@ struct EmailLoginView: View {
                         buttonAnimation = true
                     }
                 }
+            }
+        }
+        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            // Dismiss when user successfully authenticates
+            if isAuthenticated {
+                print("✅ [EmailLoginView] User authenticated, dismissing email login sheet")
+                dismiss()
             }
         }
     }

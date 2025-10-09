@@ -15,17 +15,23 @@ struct SettingsView: View {
     @ObservedObject private var userStateManager = UserStateManager.shared
     @StateObject private var configManager = AIConfigManager.shared
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingClearDataAlert = false
+    @State private var showingClearDataSuccess = false
+    @State private var showingClearDataError = false
+    @State private var clearDataErrorMessage = ""
     @State private var showingExportSheet = false
     @State private var showingNotificationSettings = false
     @State private var showingPremiumFeatures = false
     @State private var showingResetAlert = false
-    @State private var showingUserProfile = false
+    @State private var showingResetSuccess = false
     @State private var showingSignOutAlert = false
     @State private var showingSignOutError = false
     @State private var signOutErrorMessage = ""
+    @AppStorage("calendarIntegrationPreference") private var calendarPref = "ask"
     @State private var showingSignInSheet = false
     @State private var showingNotificationsView = false
+    @State private var showingUserProfile = false
     
     var body: some View {
         NavigationView {
@@ -195,7 +201,33 @@ struct SettingsView: View {
                     Text("View your notifications and customize reminder preferences")
                 }
                 
-                // 4. Quick Actions Section
+                // 4. Calendar Integration Section
+                Section {
+                    HStack {
+                        Label("Calendar Integration", systemImage: "calendar.badge.plus")
+                        Spacer()
+                        Picker("", selection: $calendarPref) {
+                            Text("Never").tag("never")
+                            Text("Ask Each Time").tag("ask")
+                            Text("Always").tag("always")
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 200)
+                    }
+                } header: {
+                    Text("Calendar")
+                } footer: {
+                    switch calendarPref {
+                    case "never":
+                        Text("Subscriptions won't be added to your calendar")
+                    case "always":
+                        Text("Automatically add all new subscriptions to your calendar")
+                    default:
+                        Text("You'll be asked each time whether to add a subscription to your calendar")
+                    }
+                }
+                
+                // 5. Quick Actions Section
                 Section {
                     NavigationLink(destination: CardStyleSettingsDetailView()) {
                         HStack {
@@ -211,7 +243,7 @@ struct SettingsView: View {
                     Text("Choose how you prefer to interact with subscription cards")
                 }
                 
-                // 5. Siri Section
+                // 6. Siri Section
                 Section {
                     NavigationLink(destination: SiriShortcutsView()) {
                         HStack {
@@ -237,7 +269,7 @@ struct SettingsView: View {
                     Text("Use Siri to quickly add trials or check their status")
                 }
                 
-                // 6. Premium Features Section
+                // 7. Premium Features Section
                 Section {
                     Button(action: { showingPremiumFeatures = true }) {
                         HStack {
@@ -258,7 +290,7 @@ struct SettingsView: View {
                     Text("Premium Features")
                 }
                 
-                // 7. Data Management Section
+                // 8. Data Management Section
                 Section {
                     Button(action: { showingExportSheet = true }) {
                         Label("Export Data", systemImage: "square.and.arrow.up")
@@ -274,14 +306,8 @@ struct SettingsView: View {
                     Text("Export your trial data as JSON or permanently delete all data from this device.")
                 }
                 
-                // 8. Advanced Section
+                // 9. Advanced Section
                 Section {
-                    Toggle(isOn: $userPreferences.analyticsEnabled) {
-                        Label("Share Analytics", systemImage: "chart.bar.xaxis")
-                    }
-                    Toggle(isOn: $userPreferences.crashReportingEnabled) {
-                        Label("Crash Reporting", systemImage: "exclamationmark.triangle")
-                    }
                     Button(action: { showingResetAlert = true }) {
                         Label("Reset All Settings", systemImage: "arrow.counterclockwise")
                             .foregroundColor(.orange)
@@ -289,7 +315,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Advanced")
                 } footer: {
-                    Text("These settings help improve the app experience")
+                    Text("Reset all preferences to their default values")
                 }
                 
                 // DEBUG Section (Simulator Only) - DISABLED
@@ -318,7 +344,7 @@ struct SettingsView: View {
                 // }
                 // #endif
                 
-                // 9. About & Support Section
+                // 10. About & Support Section
                 Section {
                     HStack {
                         Text("Version")
@@ -394,6 +420,7 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingExportSheet) {
                 ExportDataView(context: viewContext)
+                    .environmentObject(authManager)
             }
             .sheet(isPresented: $showingNotificationSettings) {
                 NotificationSettingsView()
@@ -406,10 +433,15 @@ struct SettingsView: View {
             .alert("Reset All Settings?", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) { }
                 Button("Reset", role: .destructive) {
-                    userPreferences.resetToDefaults()
+                    resetAllSettings()
                 }
             } message: {
                 Text("This will reset all preferences to their defaults.")
+            }
+            .alert("Settings Reset", isPresented: $showingResetSuccess) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("All settings have been reset to their default values.")
             }
             .sheet(isPresented: $showingPremiumFeatures) {
                 PremiumFeaturesView()
@@ -433,8 +465,18 @@ struct SettingsView: View {
             } message: {
                 Text(signOutErrorMessage)
             }
+            .alert("Data Cleared", isPresented: $showingClearDataSuccess) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("All your data has been successfully deleted from this device.")
+            }
+            .alert("Error", isPresented: $showingClearDataError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(clearDataErrorMessage)
+            }
             .sheet(isPresented: $showingSignInSheet) {
-                LoginView()
+                LoginView(hideAnonymousOption: true)
                     .environmentObject(authManager)
                     .environmentObject(userStateManager)
             }
@@ -504,7 +546,7 @@ struct SettingsView: View {
                         Image(systemName: "arrow.right")
                     }
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(colorScheme == .dark ? Color(hex: "0A0A0A") : .white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .background(
@@ -618,14 +660,54 @@ struct SettingsView: View {
         }
     }
     
+    private func resetAllSettings() {
+        print("🔄 [SettingsView] Resetting all settings to defaults...")
+        
+        // Reset preferences to default values
+        userPreferences.resetToDefaults()
+        
+        print("✅ [SettingsView] Settings reset complete")
+        
+        // Add haptic feedback
+        let successFeedback = UINotificationFeedbackGenerator()
+        successFeedback.notificationOccurred(.success)
+        
+        // Show success alert
+        showingResetSuccess = true
+    }
+    
     private func clearAllData() {
-        // Only clear data for the current user
-        guard let currentUserID = authManager.currentUser?.id.uuidString else {
+        // Get current user ID (works for both signed-in and anonymous users)
+        let currentUserID: String?
+        let userType: String
+        
+        if authManager.isAuthenticated, let authenticatedUserID = authManager.currentUser?.id.uuidString {
+            // Signed-in user
+            currentUserID = authenticatedUserID
+            userType = "authenticated"
+            print("🗑️ [SettingsView] Clearing data for authenticated user: \(authenticatedUserID)")
+        } else if userStateManager.isAnonymousMode, let anonymousUserID = userStateManager.getAnonymousUserID() {
+            // Anonymous user
+            currentUserID = anonymousUserID
+            userType = "anonymous"
+            print("🗑️ [SettingsView] Clearing data for anonymous user: \(anonymousUserID)")
+        } else {
+            // No user ID found (shouldn't happen, but safe fallback)
+            print("⚠️ [SettingsView] No user ID found, cannot clear data")
+            clearDataErrorMessage = "Unable to clear data. No user session found."
+            showingClearDataError = true
+            return
+        }
+        
+        guard let userID = currentUserID else {
+            print("⚠️ [SettingsView] User ID is nil, cannot clear data")
+            clearDataErrorMessage = "Unable to clear data. User ID is missing."
+            showingClearDataError = true
             return
         }
         
         let subscriptionRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
-        subscriptionRequest.predicate = NSPredicate(format: "userID == %@", currentUserID)
+        subscriptionRequest.predicate = NSPredicate(format: "userID == %@", userID)
         let deleteSubscriptionsRequest = NSBatchDeleteRequest(fetchRequest: subscriptionRequest)
         
         // ServiceTemplate might not have userID, check if it needs user filtering
@@ -637,10 +719,28 @@ struct SettingsView: View {
             try viewContext.execute(deleteTemplatesRequest)
             try viewContext.save()
             
+            print("✅ [SettingsView] Successfully cleared all data for \(userType) user: \(userID)")
+            
             // Refresh the subscription store after clearing data
             SubscriptionStore.shared.fetchSubscriptions()
+            
+            // Add haptic feedback for successful deletion
+            let successFeedback = UINotificationFeedbackGenerator()
+            successFeedback.notificationOccurred(.success)
+            
+            // Show success alert
+            showingClearDataSuccess = true
+            
         } catch {
-            // Debug: print("Error clearing data: \(error)")
+            print("❌ [SettingsView] Error clearing data: \(error.localizedDescription)")
+            
+            // Add error haptic feedback
+            let errorFeedback = UINotificationFeedbackGenerator()
+            errorFeedback.notificationOccurred(.error)
+            
+            // Show error alert
+            clearDataErrorMessage = "Failed to clear data: \(error.localizedDescription)"
+            showingClearDataError = true
         }
     }
 }

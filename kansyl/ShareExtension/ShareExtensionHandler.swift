@@ -206,9 +206,10 @@ struct ShareExtensionView: View {
     @State private var editedServiceName = ""
     @State private var editedDuration = 30
     @State private var editedStartDate = Date()
-    
+    @State private var showingLimitAlert = false
+
     let extensionContext: NSExtensionContext?
-    
+
     var body: some View {
         NavigationView {
             if handler.isProcessing {
@@ -301,16 +302,31 @@ struct ShareExtensionView: View {
                 }
             )
         }
+        .alert("Free Limit Reached", isPresented: $showingLimitAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Free users can add up to 5 subscriptions. Open Kansyl to sign in or upgrade to Premium to add more.")
+        }
     }
-    
+
     private func saveSubscription() {
         // Update parsed data with edited values
         handler.parsedData?.serviceName = editedServiceName
         handler.parsedData?.trialDuration = editedDuration
         handler.parsedData?.startDate = editedStartDate
         handler.parsedData?.endDate = Calendar.current.date(byAdding: .day, value: editedDuration, to: editedStartDate)
-        
+
         let context = PersistenceController.shared.container.viewContext
+
+        // Enforce free-tier limit in extension to prevent bypass
+        let countRequest: NSFetchRequest<NSFetchRequestResult> = Subscription.fetchRequest()
+        countRequest.resultType = .countResultType
+        let currentCount = (try? context.count(for: countRequest)) ?? 0
+        if currentCount >= 5 { // Free limit
+            showingLimitAlert = true
+            return
+        }
+
         if handler.saveSubscription(to: context) {
             showingSaveConfirmation = true
         }

@@ -12,15 +12,16 @@ import CoreData
 struct kansylApp: App {
     // Use @StateObject for lazy initialization - these won't initialize until first accessed
     @StateObject private var appState = AppState()
-    
+
     // UI state properties
     @State private var shouldShowAddSubscription = false
     @State private var serviceToAdd: String?
     @State private var showSuccessToast = false
+    @State private var showErrorToast = false
     @State private var toastMessage = ""
     @State private var lastProcessedActivityID: String? = nil
     @State private var isProcessingShortcut = false
-    
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -65,7 +66,7 @@ struct kansylApp: App {
                                 if url.host == "import" {
                                     print("📥 [kansylApp] ✅ Detected import request from Share Extension")
                                     print("📥 [kansylApp] Triggering immediate import...")
-                                    
+
                                     // Import immediately with priority
                                     Task(priority: .high) {
                                         // Ensure user has a userID first
@@ -75,10 +76,10 @@ struct kansylApp: App {
                                                 UserStateManager.shared.enableAnonymousMode()
                                             }
                                         }
-                                        
+
                                         // Now import the pending subscriptions
                                         await appState.checkPendingSubscriptions()
-                                        
+
                                         // Show success feedback
                                         await MainActor.run {
                                             HapticManager.shared.playSuccess()
@@ -107,7 +108,14 @@ struct kansylApp: App {
                         .overlay(
                             Group {
                                 if showSuccessToast {
-                                    ToastView(message: toastMessage)
+                                    ToastView(message: toastMessage, isError: false)
+                                } else if showErrorToast {
+                                    ToastView(message: toastMessage, isError: true)
+                                        .onAppear {
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                                showErrorToast = false
+                                            }
+                                        }
                                 }
                             }
                         )
@@ -125,10 +133,20 @@ struct kansylApp: App {
                 // Handle memory warning
                 appState.handleMemoryWarning()
             }
+            .onReceive(NotificationCenter.default.publisher(for: Notification.Name("ShareImportErrorLimitReached"))) { note in
+                if let msg = note.userInfo?["message"] as? String {
+                    toastMessage = msg
+                } else {
+                    toastMessage = "Import blocked: Free limit reached (5). Sign in or upgrade to Premium."
+                }
+                showErrorToast = true
+                HapticManager.shared.playError()
+            }
+
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 // Import any items shared via the Share Extension when app returns to foreground
                 print("📱 [kansylApp] App entering foreground - checking for pending share extension items")
-                Task { 
+                Task {
                     // Ensure user has a userID if not set
                     if SubscriptionStore.currentUserID == nil || SubscriptionStore.currentUserID?.isEmpty == true {
                         if !appState.authManager.isAuthenticated {
@@ -160,7 +178,7 @@ struct kansylApp: App {
             }
         }
     }
-    
+
     // MARK: - OAuth Handler
     private func handleOAuthCallback(url: URL) async {
         print("🔄 [kansylApp] handleOAuthCallback called with URL: \(url)")
@@ -181,15 +199,23 @@ struct kansylApp: App {
             }
         }
     }
-    
+
     // MARK: - User Activity Handlers
     private func handleAddTrialActivity(_ userActivity: NSUserActivity) {
         let activityID = userActivity.persistentIdentifier ?? UUID().uuidString
         guard lastProcessedActivityID != activityID else { return }
         lastProcessedActivityID = activityID
-        
+
+        // Check subscription limit against current count (applies to all non-premium users)
+        let currentCount_add = appState.subscriptionStore.allSubscriptions.count
+        if !PremiumManager.shared.canAddMoreSubscriptions(currentCount: currentCount_add) {
+            toastMessage = "Subscription limit reached (\(PremiumManager.freeSubscriptionLimit) max). Sign in or upgrade to Premium."
+            showErrorToast = true
+            return
+        }
+
         var serviceName: String?
-        
+
         if let userInfo = userActivity.userInfo,
            let name = userInfo["serviceName"] as? String {
             serviceName = name
@@ -200,7 +226,7 @@ struct kansylApp: App {
                 "add (.+) trial",
                 "Add (.+)"
             ]
-            
+
             for pattern in patterns {
                 if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
                    let match = regex.firstMatch(in: title, options: [], range: NSRange(title.startIndex..., in: title)),
@@ -210,42 +236,57 @@ struct kansylApp: App {
                 }
             }
         }
-        
+
         let finalServiceName = serviceName ?? "Netflix"
         serviceToAdd = finalServiceName
         shouldShowAddSubscription = true
     }
-    
+
     private func handleQuickAddTrialActivity(_ userActivity: NSUserActivity) {
         let activityID = userActivity.persistentIdentifier ?? UUID().uuidString
         guard lastProcessedActivityID != activityID else { return }
         guard !isProcessingShortcut else { return }
-        
+
         guard let userInfo = userActivity.userInfo,
               let serviceName = userInfo["serviceName"] as? String else {
             return
         }
-        
+
         isProcessingShortcut = true
         lastProcessedActivityID = activityID
-        
+
         // Only process if app is fully loaded
         guard appState.isFullyLoaded else {
             isProcessingShortcut = false
             return
         }
-        
+
+        // Check subscription limit against current count (applies to all non-premium users)
+        let currentCount_quick = appState.subscriptionStore.allSubscriptions.count
+        if !PremiumManager.shared.canAddMoreSubscriptions(currentCount: currentCount_quick) {
+            DispatchQueue.main.async { [self] in
+                toastMessage = "Cannot add subscription: Limit reached (\(PremiumManager.freeSubscriptionLimit) max). Sign in or upgrade to Premium."
+                showErrorToast = true
+                isProcessingShortcut = false
+
+                // Provide haptic feedback for error
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
+            }
+            return
+        }
+
         let fiveSecondsAgo = Date().addingTimeInterval(-5)
         let recentSubscriptions = appState.subscriptionStore.allSubscriptions.filter { subscription in
             subscription.name == serviceName &&
             (subscription.startDate ?? Date.distantPast) >= fiveSecondsAgo
         }
-        
+
         if !recentSubscriptions.isEmpty {
             isProcessingShortcut = false
             return
         }
-        
+
         let endDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
         if appState.subscriptionStore.addSubscription(
             name: serviceName,
@@ -259,18 +300,18 @@ struct kansylApp: App {
             DispatchQueue.main.async { [self] in
                 let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                 impactFeedback.impactOccurred()
-                
+
                 toastMessage = "\(serviceName) trial added successfully!"
                 showSuccessToast = true
-                
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                     showSuccessToast = false
                 }
-                
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     isProcessingShortcut = false
                 }
-                
+
                 NotificationCenter.default.post(
                     name: NSNotification.Name("SubscriptionAddedViaShortcut"),
                     object: nil,
@@ -278,33 +319,75 @@ struct kansylApp: App {
                 )
             }
         } else {
-            isProcessingShortcut = false
+            // Add failed (likely due to free limit enforced at data layer)
+            DispatchQueue.main.async { [self] in
+                toastMessage = "Cannot add subscription: Limit reached (\(PremiumManager.freeSubscriptionLimit) max). Sign in or upgrade to Premium."
+                showErrorToast = true
+                isProcessingShortcut = false
+
+                let errorFeedback = UINotificationFeedbackGenerator()
+                errorFeedback.notificationOccurred(.error)
+            }
         }
     }
-    
+
     private func handleCheckTrialsActivity(_ userActivity: NSUserActivity) {
         guard appState.isFullyLoaded else { return }
-        
-        let request = Subscription.fetchRequest()
-        request.predicate = NSPredicate(format: "status == %@", SubscriptionStatus.active.rawValue)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.endDate, ascending: true)]
-        
-        do {
-            let subscriptions = try appState.viewContext.fetch(request)
-            let endingSoon = subscriptions.filter { subscription in
-                guard let endDate = subscription.endDate else { return false }
-                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
-                return daysRemaining <= 7
-            }
-            
-            if !endingSoon.isEmpty {
-                print("You have \(endingSoon.count) subscription(s) ending soon")
-            }
-        } catch {
-            print("Error checking subscriptions: \(error)")
+
+        // Get all active subscriptions for current user
+        let activeSubscriptions = appState.subscriptionStore.allSubscriptions.filter {
+            $0.status == SubscriptionStatus.active.rawValue
         }
+
+        // Filter for trials ending soon (within 7 days)
+        let endingSoon = activeSubscriptions.filter { subscription in
+            guard let endDate = subscription.endDate else { return false }
+            let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
+            return daysRemaining >= 0 && daysRemaining <= 7
+        }
+
+        // Create meaningful message based on subscription status
+        let message: String
+        let isWarning: Bool
+
+        if activeSubscriptions.isEmpty {
+            message = "You have no active subscriptions"
+            isWarning = false
+        } else if !endingSoon.isEmpty {
+            let names = endingSoon.prefix(3).compactMap { $0.name }.joined(separator: ", ")
+            if endingSoon.count == 1 {
+                message = "\(names) ends soon!"
+            } else if endingSoon.count <= 3 {
+                message = "\(endingSoon.count) subscriptions ending soon: \(names)"
+            } else {
+                message = "\(endingSoon.count) subscriptions ending soon"
+            }
+            isWarning = true
+        } else {
+            message = "All \(activeSubscriptions.count) subscription\(activeSubscriptions.count == 1 ? " is" : "s are") active"
+            isWarning = false
+        }
+
+        // Display toast message to user
+        DispatchQueue.main.async { [self] in
+            toastMessage = message
+            if isWarning {
+                showErrorToast = true
+                HapticManager.shared.playWarning()
+            } else {
+                showSuccessToast = true
+                HapticManager.shared.playSuccess()
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                showSuccessToast = false
+                showErrorToast = false
+            }
+        }
+
+        print("📊 [Siri Shortcut] Check trials: \(message)")
     }
-    
+
     private func getDefaultPriceForService(_ serviceName: String) -> Double {
         switch serviceName.lowercased() {
         case "netflix": return 15.99
@@ -316,7 +399,7 @@ struct kansylApp: App {
         default: return 9.99
         }
     }
-    
+
     private func getServiceLogo(_ serviceName: String) -> String {
         switch serviceName.lowercased() {
         case "netflix": return "netflix-logo"
@@ -337,7 +420,7 @@ class AppState: ObservableObject {
     @Published var isInitializing = true
     @Published var isFullyLoaded = false
     @Published var initializationError: String?
-    
+
     // Lazy-loaded services
     lazy var authManager = SupabaseAuthManager.shared
     lazy var persistenceController = PersistenceController.shared
@@ -345,18 +428,18 @@ class AppState: ObservableObject {
     lazy var appPreferences = AppPreferences.shared
     lazy var themeManager = ThemeManager.shared
     lazy var subscriptionStore = SubscriptionStore.shared
-    
+
     var viewContext: NSManagedObjectContext {
         persistenceController.container.viewContext
     }
-    
+
     func initialize() async {
         AppLogger.debug("Starting async initialization...", emoji: "🚀", category: "AppState")
-        
+
         // Reset error state
         initializationError = nil
         isInitializing = true
-        
+
         do {
             // Initialize services in background with error handling
             try await withThrowingTaskGroup(of: Void.self) { group in
@@ -364,34 +447,34 @@ class AppState: ObservableObject {
                 group.addTask { [weak self] in
                     await self?.initializePersistence()
                 }
-                
+
                 // Initialize Auth (can be deferred)
                 group.addTask { [weak self] in
                     await self?.initializeAuth()
                 }
-                
+
                 // Initialize other services (non-critical)
                 group.addTask { [weak self] in
                     await self?.initializeServices()
                 }
-                
+
                 // Wait for all initialization to complete
                 try await group.waitForAll()
             }
-            
+
             // Setup notifications after services are ready
             await setupNotifications()
-            
+
             // Check for pending subscriptions from Share Extension
             await checkPendingSubscriptions()
-            
+
             // Mark as fully loaded
             await MainActor.run {
                 self.isFullyLoaded = true
                 self.isInitializing = false
                 AppLogger.success("Initialization complete", category: "AppState")
             }
-            
+
         } catch {
             await MainActor.run {
                 self.initializationError = error.localizedDescription
@@ -400,17 +483,17 @@ class AppState: ObservableObject {
             }
         }
     }
-    
+
     // Exposed method to import items from the Share Extension on demand (e.g., app foreground)
     func importPendingFromShareExtension() async {
         await checkPendingSubscriptions()
     }
-    
+
     private func initializePersistence() async {
         AppLogger.debug("Initializing Core Data...", emoji: "📦", category: "AppState")
         // Core Data initialization is already lazy in PersistenceController
         _ = persistenceController.container
-        
+
         #if DEBUG
         // Verify Core Data integrity (DEBUG ONLY - moved to background)
         Task.detached(priority: .background) {
@@ -421,15 +504,15 @@ class AppState: ObservableObject {
                     AppLogger.log("  - \(issue)", category: "AppState")
                 }
             }
-            
+
             // Debug: Print all existing subscriptions (DEBUG ONLY - moved to background)
             CoreDataReset.shared.debugPrintAllSubscriptions()
         }
         #endif
-        
+
         AppLogger.success("Core Data initialized", category: "AppState")
     }
-    
+
     private func initializeAuth() async {
         AppLogger.debug("Initializing Auth...", emoji: "🔐", category: "AppState")
         // Auth manager initialization is already safe
@@ -438,38 +521,38 @@ class AppState: ObservableObject {
         await authManager.checkExistingSession()
         AppLogger.success("Auth initialized", category: "AppState")
     }
-    
+
     private func initializeServices() async {
         AppLogger.debug("Initializing services...", emoji: "⚙️", category: "AppState")
-        
+
         // Initialize services that don't block
         _ = appPreferences
         _ = themeManager
-        
+
         // Initialize subscription store with current user
         let userID = authManager.currentUser?.id.uuidString
         AppLogger.log("Setting subscription store userID to: \(userID ?? "nil")", category: "AppState")
         subscriptionStore.updateCurrentUser(userID: userID)
-        
+
         // Defer heavy operations
         Task.detached {
             // These can happen in background after app loads
             await self.subscriptionStore.costEngine.refreshMetrics()
         }
-        
+
         AppLogger.success("Services initialized", category: "AppState")
     }
-    
+
     private func setupNotifications() async {
         AppLogger.debug("Setting up notifications...", emoji: "🔔", category: "AppState")
         notificationManager.setupNotificationCategories()
         notificationManager.requestNotificationPermission()
         AppLogger.success("Notifications configured", category: "AppState")
     }
-    
+
     // Track if we're already processing to prevent duplicates
     private var isProcessingPendingSubscriptions = false
-    
+
     // MARK: - Pending Subscriptions from Share Extension
     func checkPendingSubscriptions() async {
         // Prevent multiple simultaneous processing
@@ -477,26 +560,26 @@ class AppState: ObservableObject {
             print("⚠️ [AppState] Already processing pending subscriptions, skipping")
             return
         }
-        
+
         isProcessingPendingSubscriptions = true
         defer { isProcessingPendingSubscriptions = false }
-        
+
         print("🔵 [AppState] checkPendingSubscriptions() called at \(Date())")
-        
+
         // Try the new storage first
         let pending = PendingSubscriptionStorage.shared.getPendingSubscriptions()
         print("🔵 [AppState] PendingSubscriptionStorage: \(pending.count) items")
-        
+
         // Don't check old storage to avoid duplicates - just use the new one
         // The Share Extension already saves to both as backup
-        
+
         guard !pending.isEmpty else {
             print("⚠️ [AppState] No pending subscriptions found")
             return
         }
-        
+
         print("🎆 [AppState] Found \(pending.count) pending subscription(s) to process!")
-        
+
         // Ensure we have a userID before attempting to create subscriptions
         guard let currentUserID = SubscriptionStore.currentUserID, !currentUserID.isEmpty else {
             print("⚠️ [AppState] No userID set. Deferring import and leaving pending items intact.")
@@ -504,10 +587,10 @@ class AppState: ObservableObject {
             return
         }
         print("✅ [AppState] currentUserID available: \(currentUserID)")
-        
+
         AppLogger.log("📥 Found \(pending.count) pending subscription(s) from Share Extension", category: "AppState")
         print("📥 [AppState] Processing \(pending.count) pending subscription(s)...")
-        
+
         await MainActor.run {
             var createdIndices: [Int] = []
             for (index, dataDict) in pending.enumerated() {
@@ -515,7 +598,7 @@ class AppState: ObservableObject {
                     createdIndices.append(index)
                 }
             }
-            
+
             // Remove only successfully created items
             if !createdIndices.isEmpty {
                 if createdIndices.count == pending.count {
@@ -533,19 +616,19 @@ class AppState: ObservableObject {
             }
         }
     }
-    
+
     @discardableResult
     private func createSubscriptionFromSharedData(_ dataDict: [String: Any]) -> Bool {
         print("🔄 [AppState] createSubscriptionFromSharedData called")
         print("   Data keys: \(dataDict.keys.sorted().joined(separator: ", "))")
-        
+
         // Convert dictionary back to subscription data
         let serviceName = dataDict["serviceName"] as? String ?? "Unknown Service"
         let trialDuration = dataDict["trialDuration"] as? Int
         let price = dataDict["price"] as? Double
         let currency = dataDict["currency"] as? String ?? "USD"
         let confirmationNumber = dataDict["confirmationNumber"] as? String
-        
+
         print("   Service: \(serviceName)")
         if let price = price {
             print("   Price: \(price)")
@@ -557,13 +640,13 @@ class AppState: ObservableObject {
         } else {
             print("   Duration: nil days")
         }
-        
+
         // Calculate dates first
         var startDate = Date()
         if let timestamp = dataDict["startDate"] as? TimeInterval {
             startDate = Date(timeIntervalSince1970: timestamp)
         }
-        
+
         var endDate = Date()
         if let timestamp = dataDict["endDate"] as? TimeInterval {
             endDate = Date(timeIntervalSince1970: timestamp)
@@ -573,23 +656,23 @@ class AppState: ObservableObject {
             // Default to 30 days if no end date or duration provided
             endDate = Calendar.current.date(byAdding: .day, value: 30, to: startDate) ?? Date()
         }
-        
+
         print("   Start date: \(startDate)")
         print("   End date: \(endDate)")
-        
+
         // Check if we already have this EXACT subscription (prevent duplicates)
         // Match on service name, price, AND date range to be more precise
         print("🔍 [AppState] Checking for duplicates among \(subscriptionStore.allSubscriptions.count) existing subscriptions")
-        
+
         let existingSubscriptions = subscriptionStore.allSubscriptions.filter { subscription in
             // Check basic match
             guard subscription.name == serviceName else { return false }
-            
+
             print("   Found matching name: \(subscription.name ?? "Unknown")")
             print("     Existing dates: \(subscription.startDate?.description ?? "nil") to \(subscription.endDate?.description ?? "nil")")
             print("     New dates: \(startDate) to \(endDate)")
             print("     Existing price: \(subscription.monthlyPrice), New price: \(price ?? 0)")
-            
+
             // Check price if available (allow small floating point differences)
             if let subscriptionPrice = price {
                 guard abs(subscription.monthlyPrice - subscriptionPrice) < 0.01 else {
@@ -597,29 +680,29 @@ class AppState: ObservableObject {
                     return false
                 }
             }
-            
+
             // Check date overlap - if the dates are very similar (within 1 day), consider it a duplicate
             guard let subStartDate = subscription.startDate, let subEndDate = subscription.endDate else {
                 print("     ❌ Subscription has missing dates")
                 return false
             }
-            
+
             let startDateDiff = abs(subStartDate.timeIntervalSince(startDate))
             let endDateDiff = abs(subEndDate.timeIntervalSince(endDate))
-            
+
             print("     Start date diff: \(startDateDiff) seconds")
             print("     End date diff: \(endDateDiff) seconds")
-            
+
             // If dates are within 24 hours of each other, likely a duplicate
             let isDuplicate = startDateDiff < 86400 && endDateDiff < 86400
             print("     Is duplicate? \(isDuplicate)")
-            
+
             return isDuplicate
         }
-        
+
         if !existingSubscriptions.isEmpty {
             print("⚠️ [AppState] Exact duplicate subscription found for \(serviceName) with same dates, skipping")
-            
+
             // Still notify the UI, but indicate it's a duplicate
             print("📢 [AppState] Posting SubscriptionAddedFromEmail notification for duplicate: \(serviceName)")
             NotificationCenter.default.post(
@@ -632,12 +715,12 @@ class AppState: ObservableObject {
                 ]
             )
             print("✅ [AppState] Duplicate notification posted successfully")
-            
+
             return true // Return true because it's technically "successful" - we have the subscription
         }
-        
+
         print("✅ [AppState] No duplicate found, proceeding to create new subscription")
-        
+
         // Determine billing cycle string from trial duration
         let billingCycleString: String
         if let duration = trialDuration {
@@ -660,7 +743,7 @@ class AppState: ObservableObject {
         } else {
             billingCycleString = "monthly"
         }
-        
+
         // Create notes with confirmation number and original currency if available
         var notes: String?
         if let confirmation = confirmationNumber {
@@ -671,7 +754,7 @@ class AppState: ObservableObject {
         } else if currency != AppPreferences.shared.currencyCode {
             notes = "Original currency: \(currency)"
         }
-        
+
         // Add subscription to store
         let subscription = subscriptionStore.addSubscription(
             name: serviceName,
@@ -685,13 +768,13 @@ class AppState: ObservableObject {
             originalCurrency: currency != AppPreferences.shared.currencyCode ? currency : nil,
             originalAmount: currency != AppPreferences.shared.currencyCode ? (price ?? 0.0) : nil
         )
-        
+
         if let subscription = subscription {
             AppLogger.success("✅ Created subscription from email: \(serviceName)", category: "AppState")
-            
+
             // Show success feedback
             HapticManager.shared.playSuccess()
-            
+
             // Post notification that subscription was added
             print("📢 [AppState] Posting SubscriptionAddedFromEmail notification for: \(serviceName)")
             NotificationCenter.default.post(
@@ -707,10 +790,18 @@ class AppState: ObservableObject {
             return true
         } else {
             AppLogger.error("Failed to create subscription from email: \(serviceName)", category: "AppState")
+            // Notify UI that import was blocked (likely due to free limit)
+            NotificationCenter.default.post(
+                name: Notification.Name("ShareImportErrorLimitReached"),
+                object: nil,
+                userInfo: [
+                    "message": "Import blocked: Free limit reached (5). Sign in or upgrade to Premium."
+                ]
+            )
             return false
         }
     }
-    
+
     // MARK: - Helper Methods
     private func getServiceLogo(_ serviceName: String) -> String {
         switch serviceName.lowercased() {
@@ -724,19 +815,19 @@ class AppState: ObservableObject {
         default: return "app.badge"
         }
     }
-    
+
     func handleMemoryWarning() {
         AppLogger.warning("Memory warning received - clearing caches", category: "AppState")
-        
+
         // Clear any in-memory caches
         subscriptionStore.clearCaches()
-        
+
         // Clear image caches if any (future implementation)
         // ImageCache.shared.clearMemoryCache()
-        
+
         // Force Core Data to clear cached objects
         viewContext.refreshAllObjects()
-        
+
         AppLogger.success("Caches cleared", category: "AppState")
     }
 }
@@ -744,7 +835,7 @@ class AppState: ObservableObject {
 // MARK: - Loading View
 struct LoadingView: View {
     @State private var rotate = false
-    
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -756,14 +847,14 @@ struct LoadingView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
-            
+
             VStack(spacing: 24) {
                 BrandSpinner(size: 88)
-                
+
                 Text("Kansyl")
                     .font(Design.Typography.title(.bold))
                     .foregroundStyle(Design.Colors.Gradients.shinyText)
-                
+
                 Text("Preparing your experience")
                     .font(Design.Typography.subheadline())
                     .foregroundColor(Design.Colors.textSecondary)
@@ -777,12 +868,12 @@ struct LoadingView: View {
 struct BrandSpinner: View {
     var size: CGFloat = 88
     @State private var spin = false
-    
+
     var body: some View {
         ZStack {
             Circle()
                 .stroke(Design.Colors.border.opacity(0.4), lineWidth: 8)
-            
+
             Circle()
                 .trim(from: 0.15, to: 1.0)
                 .stroke(
@@ -791,7 +882,7 @@ struct BrandSpinner: View {
                 )
                 .rotationEffect(.degrees(spin ? 360 : 0))
                 .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: spin)
-            
+
             Circle()
                 .fill(Design.Colors.primary.opacity(0.08))
                 .frame(width: size - 36, height: size - 36)
@@ -806,23 +897,23 @@ struct BrandSpinner: View {
 struct InitializationErrorView: View {
     let error: String
     let retryAction: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 60))
                 .foregroundColor(.orange)
-            
+
             Text("Initialization Error")
                 .font(.title)
                 .fontWeight(.bold)
-            
+
             Text(error)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Button(action: retryAction) {
                 Label("Retry", systemImage: "arrow.clockwise")
                     .padding(.horizontal, 30)
@@ -840,30 +931,32 @@ struct InitializationErrorView: View {
 // MARK: - Toast View
 struct ToastView: View {
     let message: String
-    
+    var isError: Bool = false
+
     var body: some View {
         VStack {
             HStack(spacing: 12) {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .foregroundColor(.white)
                     .font(.system(size: 20))
-                
+
                 Text(message)
                     .foregroundColor(.white)
                     .font(.system(size: 16, weight: .medium))
-                
+                    .lineLimit(2)
+
                 Spacer()
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.green)
+                    .fill(isError ? Color.red : Color.green)
                     .shadow(radius: 10)
             )
             .padding(.horizontal, 20)
             .padding(.top, 50)
-            
+
             Spacer()
         }
         .transition(.move(edge: .top).combined(with: .opacity))

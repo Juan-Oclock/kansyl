@@ -345,23 +345,16 @@ struct EditSubscriptionView: View {
                     Menu {
                         ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
                             Button(action: { subscriptionType = type }) {
-                                Label {
-                                    Text(type.displayName)
-                                } icon: {
-                                    Image(systemName: type.icon)
-                                        .foregroundColor(type.badgeColor)
-                                }
+                                Text(type.displayName)
                             }
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: subscriptionType.icon)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(subscriptionType.badgeColor)
-                            
                             Text(subscriptionType.displayName)
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(Design.Colors.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 12, weight: .medium))

@@ -27,6 +27,7 @@ class AppleSignInCoordinator: NSObject, ObservableObject {
     /// Start Sign in with Apple authentication flow
     func signIn() async throws -> AppleSignInResult {
         print("🍎 [AppleSignInCoordinator] Starting Sign in with Apple flow")
+        print("📱 [AppleSignInCoordinator] Device Info: \(UIDevice.current.model) - \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
         
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
@@ -156,6 +157,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         print("❌ [AppleSignInCoordinator] Authorization failed with error: \(error)")
         print("❌ [AppleSignInCoordinator] Error details: \(error.localizedDescription)")
+        print("📱 [AppleSignInCoordinator] Error occurred on: \(UIDevice.current.model)")
         
         // Check if user cancelled
         if let authError = error as? ASAuthorizationError {
@@ -176,6 +178,9 @@ extension AppleSignInCoordinator: ASAuthorizationControllerDelegate {
                 continuation?.resume(throwing: AppleSignInError.notHandled)
             case .failed:
                 print("❌ [AppleSignInCoordinator] Authorization failed")
+                continuation?.resume(throwing: AppleSignInError.authorizationFailed)
+            case .notInteractive:
+                print("❌ [AppleSignInCoordinator] Not interactive authorization error")
                 continuation?.resume(throwing: AppleSignInError.authorizationFailed)
             @unknown default:
                 print("❌ [AppleSignInCoordinator] Unexpected authorization error: \(authError.code.rawValue)")
@@ -198,6 +203,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextPr
         // Get the key window for presenting the authorization UI
         // Updated for iOS 26+ compatibility
         print("🪟 [AppleSignInCoordinator] Finding presentation window...")
+        print("📱 [AppleSignInCoordinator] Device: \(UIDevice.current.model)")
         print("📱 [AppleSignInCoordinator] iOS Version: \(UIDevice.current.systemVersion)")
         
         let scenes = UIApplication.shared.connectedScenes
@@ -206,6 +212,7 @@ extension AppleSignInCoordinator: ASAuthorizationControllerPresentationContextPr
         let windowScenes = scenes.compactMap { $0 as? UIWindowScene }
         print("🔍 [AppleSignInCoordinator] Found \(windowScenes.count) window scenes")
         
+        // Standard search for iPhone
         // Try to find the active key window first
         if let keyWindow = windowScenes
             .flatMap({ $0.windows })

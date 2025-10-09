@@ -304,7 +304,7 @@ struct ShareContent {
             .openInIBooks
         ]
         
-        // For iPad
+        // Required for proper presentation context
         if let popover = activityVC.popoverPresentationController {
             popover.sourceView = viewController.view
             popover.sourceRect = CGRect(x: viewController.view.bounds.midX, y: viewController.view.bounds.midY, width: 0, height: 0)

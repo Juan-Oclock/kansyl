@@ -557,12 +557,8 @@ struct AddSubscriptionView: View {
                     
                     Picker("", selection: $subscriptionType) {
                         ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
-                            HStack {
-                                Image(systemName: type.icon)
-                                    .foregroundColor(type.badgeColor)
-                                Text(type.displayName)
-                            }
-                            .tag(type)
+                            Text(type.displayName)
+                                .tag(type)
                         }
                     }
                     .pickerStyle(.menu)
@@ -1035,12 +1031,8 @@ struct SubscriptionDetailsForm: View {
                 
                 Picker("", selection: $subscriptionType) {
                     ForEach([SubscriptionType.trial, SubscriptionType.paid, SubscriptionType.promotional], id: \.self) { type in
-                        HStack {
-                            Image(systemName: type.icon)
-                                .foregroundColor(type.badgeColor)
-                            Text(type.displayName)
-                        }
-                        .tag(type)
+                        Text(type.displayName)
+                            .tag(type)
                     }
                 }
                 .pickerStyle(.menu)
