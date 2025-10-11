@@ -50,27 +50,35 @@ class CurrencyConversionService {
     
     /// Convert amount from one currency to another
     func convert(amount: Double, from fromCurrency: String, to toCurrency: String) async -> Double? {
+        // Normalize codes to uppercase to match rate keys
+        let fromCode = fromCurrency.uppercased()
+        let toCode = toCurrency.uppercased()
+        print("🔍 CurrencyConversionService.convert called: \(amount) \(fromCode) → \(toCode)")
+
         // If same currency, no conversion needed
-        if fromCurrency == toCurrency {
+        if fromCode == toCode {
+            print("ℹ️ Same currency, no conversion needed")
             return amount
         }
-        
+
         // Get exchange rates
         let rates = await getExchangeRates()
-        
+        print("🔍 Got exchange rates, count: \(rates.count)")
+
         // Get rate for source currency (to USD)
-        let fromRate = rates[fromCurrency] ?? fallbackRates[fromCurrency] ?? 1.0
-        
+        let fromRate = rates[fromCode] ?? fallbackRates[fromCode] ?? 1.0
+
         // Get rate for target currency (from USD)
-        let toRate = rates[toCurrency] ?? fallbackRates[toCurrency] ?? 1.0
-        
+        let toRate = rates[toCode] ?? fallbackRates[toCode] ?? 1.0
+
+        print("🔍 Exchange rates: 1 USD = \(fromRate) \(fromCode), 1 USD = \(toRate) \(toCode)")
+
         // Convert: amount / fromRate * toRate
         // This converts to USD first, then to target currency
         let convertedAmount = (amount / fromRate) * toRate
-        
-        // Debug: // Debug: print("💱 Currency conversion: \(amount) \(fromCurrency) = \(String(format: "%.2f", convertedAmount)) \(toCurrency)")
-        // Debug: // Debug: print("   Exchange rates: 1 USD = \(fromRate) \(fromCurrency), 1 USD = \(toRate) \(toCurrency)")
-        
+
+        print("💱 Currency conversion: \(amount) \(fromCode) = \(String(format: "%.2f", convertedAmount)) \(toCode)")
+
         return convertedAmount
     }
     

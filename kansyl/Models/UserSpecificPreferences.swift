@@ -107,6 +107,15 @@ class UserSpecificPreferences: ObservableObject {
                 currencySymbol = currencyInfo.symbol
                 print("🔧 [UserPrefs] Updated symbol to: \(currencySymbol)")
             }
+
+            // Reprice all subscriptions into the newly selected currency
+            let oldCode = oldValue.uppercased()
+            let newCode = currencyCode.uppercased()
+            if oldCode != newCode {
+                Task.detached {
+                    await SubscriptionStore.shared.repriceAllSubscriptions(from: oldCode, to: newCode)
+                }
+            }
         }
     }
     
@@ -210,15 +219,14 @@ class UserSpecificPreferences: ObservableObject {
     
     // MARK: - Currency Setup for New Users
     func setupCurrencyForNewUser() {
-        // Default to USD for easier international use
-        // Users can change this in Settings > Trial Settings > Currency
-        currencyCode = "USD"
-        currencySymbol = "$"
-        
-        // Uncomment below to auto-detect based on location:
-        // let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation()
-        // currencyCode = detectedCurrency?.code ?? "USD"
-        // currencySymbol = detectedCurrency?.symbol ?? "$"
+        // Prefer auto-detect based on device region; fallback to USD
+        if let detectedCurrency = CurrencyManager.shared.detectCurrencyFromLocation() {
+            currencyCode = detectedCurrency.code
+            currencySymbol = detectedCurrency.symbol
+        } else {
+            currencyCode = "USD"
+            currencySymbol = "$"
+        }
     }
     
     // MARK: - Load User Preferences
@@ -238,9 +246,17 @@ class UserSpecificPreferences: ObservableObject {
         defaultTrialLength = loadPreference(for: "defaultTrialLength", defaultValue: 30)
         defaultTrialLengthUnit = TrialLengthUnit(rawValue: loadPreference(for: "defaultTrialLengthUnit", defaultValue: TrialLengthUnit.days.rawValue)) ?? .days
         
-        // Currency - default to USD for all users
-        currencyCode = loadPreference(for: "currencyCode", defaultValue: "USD")
-        currencySymbol = loadPreference(for: "currencySymbol", defaultValue: "$")
+        // Currency - default to auto-detected for new users; fallback to USD
+        let detected = CurrencyManager.shared.detectCurrencyFromLocation()
+        currencyCode = loadPreference(for: "currencyCode", defaultValue: detected?.code ?? "USD")
+        currencySymbol = loadPreference(for: "currencySymbol", defaultValue: detected?.symbol ?? "$")
+
+        // One-time assist for existing installs still on default USD: if the device region
+        // indicates a different currency, switch once to the detected currency.
+        if currencyCode == "USD", let d = detected, d.code != "USD" {
+            currencyCode = d.code
+            currencySymbol = d.symbol
+        }
         
         // Display preferences
         showTrialLogos = loadPreference(for: "showTrialLogos", defaultValue: true)

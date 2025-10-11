@@ -241,12 +241,21 @@ class AIAnalysisService {
             var receiptData = try parseReceiptDataFromJSON(parsedJSON)
             
             // Convert currency if needed
-            let userCurrency = AppPreferences.shared.currencyCode
+            // Use user-specific preferences (not global AppPreferences) and normalize to uppercase
+            let userCurrencyRaw = UserSpecificPreferences.shared.currencyCode
+            let userCurrency = userCurrencyRaw.uppercased()
+            // Normalize original currency to uppercase to avoid mismatches like "usd" vs "USD"
+            if let oc = receiptData.originalCurrency { receiptData.originalCurrency = oc.uppercased() }
+
+            print("🔍 DEBUG: User currency: \(userCurrency)")
+            print("🔍 DEBUG: Receipt originalCurrency: \(receiptData.originalCurrency ?? "nil")")
+            print("🔍 DEBUG: Receipt originalAmount: \(receiptData.amount ?? 0)")
+
             if let originalCurrency = receiptData.originalCurrency,
                let originalAmount = receiptData.amount,
                originalCurrency != userCurrency {
-                // Debug: // Debug: print("💱 Currency conversion needed: \(originalCurrency) → \(userCurrency)")
-                
+                print("💱 Currency conversion needed: \(originalCurrency) → \(userCurrency)")
+
                 if let convertedAmount = await CurrencyConversionService.shared.convert(
                     amount: originalAmount,
                     from: originalCurrency,
@@ -254,10 +263,15 @@ class AIAnalysisService {
                 ) {
                     receiptData.amount = convertedAmount
                     receiptData.currency = userCurrency
-                    // Debug: // Debug: print("✅ Converted: \(originalAmount) \(originalCurrency) = \(String(format: "%.2f", convertedAmount)) \(userCurrency)")
+                    print("✅ Converted: \(originalAmount) \(originalCurrency) = \(String(format: "%.2f", convertedAmount)) \(userCurrency)")
                 } else {
-                    // Debug: // Debug: print("⚠️ Conversion failed, using original amount")
+                    print("⚠️ Conversion failed, using original amount and currency")
+                    receiptData.currency = originalCurrency
                 }
+            } else {
+                // No conversion needed, use original currency
+                print("ℹ️ No conversion needed or missing data")
+                receiptData.currency = receiptData.originalCurrency
             }
             
             return receiptData
@@ -305,10 +319,22 @@ class AIAnalysisService {
             data.amount = Double(amountInt)
         }
         
-        // Parse currency
-        data.originalCurrency = (receiptData["currency"] as? String) ?? "USD"
-        data.currency = data.originalCurrency
+        // Parse currency - keep original, don't set currency yet (conversion logic will set it)
+        let parsedCurrency = (receiptData["currency"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Normalize to a 3-letter uppercase code when possible
+        var normalizedCurrency: String? = parsedCurrency?.uppercased()
+        if let c = normalizedCurrency, c.count != 3 {
+            // Try to extract a 3-letter code from strings like "USD 45" or "Amount: usd"
+            if let range = c.range(of: "[A-Z]{3}", options: .regularExpression) {
+                normalizedCurrency = String(c[range])
+            }
+        }
+        // Map common symbols to codes if AI returned a symbol
+        if normalizedCurrency == "$" { normalizedCurrency = "USD" }
+        if normalizedCurrency == "₱" { normalizedCurrency = "PHP" }
+        data.originalCurrency = normalizedCurrency ?? "USD"
         data.originalAmount = data.amount
+        print("🔍 DEBUG parseReceiptDataFromJSON: originalCurrency=\(data.originalCurrency ?? "nil"), originalAmount=\(data.originalAmount ?? 0)")
         data.receiptNumber = (receiptData["receiptNumber"] as? String) ??
                             (receiptData["receipt_number"] as? String)
         

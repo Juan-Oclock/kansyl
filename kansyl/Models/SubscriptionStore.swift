@@ -14,7 +14,7 @@ enum SubscriptionStatus: String, CaseIterable {
     case canceled = "canceled"
     case kept = "kept"
     case expired = "expired"
-    
+
     var displayName: String {
         switch self {
         case .active: return "Active"
@@ -23,7 +23,7 @@ enum SubscriptionStatus: String, CaseIterable {
         case .expired: return "Expired"
         }
     }
-    
+
     var color: Color {
         switch self {
         case .active: return .blue
@@ -36,7 +36,7 @@ enum SubscriptionStatus: String, CaseIterable {
 
 class SubscriptionStore: ObservableObject {
     static let shared = SubscriptionStore()
-    
+
     private var _viewContext: NSManagedObjectContext?
     var viewContext: NSManagedObjectContext {
         if _viewContext == nil {
@@ -44,7 +44,7 @@ class SubscriptionStore: ObservableObject {
         }
         return _viewContext!
     }
-    
+
     private var _costEngine: CostCalculationEngine?
     var costEngine: CostCalculationEngine {
         if _costEngine == nil {
@@ -52,13 +52,13 @@ class SubscriptionStore: ObservableObject {
         }
         return _costEngine!
     }
-    
+
     @Published var activeSubscriptions: [Subscription] = []
     @Published var endingSoonSubscriptions: [Subscription] = []
     @Published var pastDueSubscriptions: [Subscription] = []
     @Published var allSubscriptions: [Subscription] = []
     @Published var recentlyEndedSubscriptions: [Subscription] = []
-    
+
     // Current user ID for data isolation - STATIC so it's shared across all instances
     static var currentUserID: String? {
         didSet {
@@ -69,7 +69,7 @@ class SubscriptionStore: ObservableObject {
             }
         }
     }
-    
+
     init(context: NSManagedObjectContext? = nil, userID: String? = nil) {
         AppLogger.debug("Initializing with lazy loading...", emoji: "📚", category: "SubscriptionStore")
         self._viewContext = context
@@ -80,13 +80,13 @@ class SubscriptionStore: ObservableObject {
         setupRemoteChangeNotifications()
         // Don't fetch subscriptions on init - wait until context is accessed
     }
-    
+
     // MARK: - Fetch Operations
-    
+
     func fetchSubscriptions() {
         AppLogger.log("🔄 fetchSubscriptions called", category: "SubscriptionStore")
         AppLogger.log("Current userID: \(SubscriptionStore.currentUserID ?? "nil")", category: "SubscriptionStore")
-        
+
         guard let userID = SubscriptionStore.currentUserID else {
             AppLogger.log("No userID, clearing subscriptions", category: "SubscriptionStore")
             // No user logged in, clear all subscriptions
@@ -96,9 +96,9 @@ class SubscriptionStore: ObservableObject {
             }
             return
         }
-        
+
         AppLogger.log("Fetching subscriptions for user: \(userID)", category: "SubscriptionStore")
-        
+
         // Now fetch for specific user with optimization
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
         request.predicate = NSPredicate(format: "userID == %@", userID)
@@ -106,11 +106,11 @@ class SubscriptionStore: ObservableObject {
         // OPTIMIZATION: Use batch fetching for better performance
         request.fetchBatchSize = 20  // Load in batches of 20
         // Remove returnsObjectsAsFaults = false - let Core Data manage faulting
-        
+
         do {
             let subscriptions = try viewContext.fetch(request)
             AppLogger.success("Fetched \(subscriptions.count) subscriptions for user \(userID)", category: "SubscriptionStore")
-            
+
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.allSubscriptions = subscriptions
@@ -130,14 +130,14 @@ class SubscriptionStore: ObservableObject {
             AppLogger.error("Failed to fetch subscriptions: \(error.localizedDescription)", category: "SubscriptionStore")
         }
     }
-    
+
     private func updateSubscriptionCategories() {
         let now = Date()
         let sevenDaysFromNow = Calendar.current.date(byAdding: .day, value: 7, to: now)!
         let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: now)!
-        
+
         AppLogger.log("Updating categories with \(allSubscriptions.count) total subscriptions", category: "SubscriptionStore")
-        
+
         // Active subscriptions include:
         // 1. Subscriptions with status "active" that haven't ended yet
         // 2. Subscriptions with status "active" that HAVE ended but user hasn't acted on them
@@ -146,20 +146,20 @@ class SubscriptionStore: ObservableObject {
             // Show all active subscriptions regardless of end date
             // User must explicitly cancel or keep them
         }
-        
+
         AppLogger.log("Filtered to \(activeSubscriptions.count) active subscriptions", category: "SubscriptionStore")
-        
+
         // Ending soon: within 7 days from now (future dates only)
         endingSoonSubscriptions = activeSubscriptions.filter { subscription in
             let endDate = subscription.endDate ?? Date()
             return endDate > now && endDate <= sevenDaysFromNow
         }
-        
+
         // Past due: end date has passed but still marked as active
         pastDueSubscriptions = activeSubscriptions.filter { subscription in
             (subscription.endDate ?? Date()) <= now
         }
-        
+
         // Recently ended: subscriptions that were canceled/kept in the last 30 days
         recentlyEndedSubscriptions = allSubscriptions.filter { subscription in
             subscription.status != SubscriptionStatus.active.rawValue &&
@@ -167,21 +167,21 @@ class SubscriptionStore: ObservableObject {
             (subscription.endDate ?? Date()) <= now
         }
     }
-    
+
     // MARK: - CRUD Operations
-    
+
     @discardableResult
-    func addSubscription(name: String, startDate: Date, endDate: Date, 
+    func addSubscription(name: String, startDate: Date, endDate: Date,
                   monthlyPrice: Double, serviceLogo: String, notes: String? = nil,
-                  addToCalendar: Bool = false, billingCycle: String? = nil, 
+                  addToCalendar: Bool = false, billingCycle: String? = nil,
                   billingAmount: Double? = nil, originalCurrency: String? = nil,
                   originalAmount: Double? = nil, exchangeRate: Double? = nil,
                   subscriptionType: SubscriptionType? = nil) -> Subscription? {
-        
+
         print("🔵 [SubscriptionStore] addSubscription called")
         print("🔵 [SubscriptionStore] SubscriptionStore.currentUserID = \(SubscriptionStore.currentUserID ?? "nil")")
         print("🔵 [SubscriptionStore] SubscriptionStore.shared === self? \(SubscriptionStore.shared === self)")
-        
+
         AppLogger.log("Adding subscription: \(name) for userID: \(SubscriptionStore.currentUserID ?? "nil")", category: "SubscriptionStore")
 
         guard let userID = SubscriptionStore.currentUserID else {
@@ -214,7 +214,7 @@ class SubscriptionStore: ObservableObject {
         newSubscription.serviceLogo = serviceLogo
         newSubscription.status = SubscriptionStatus.active.rawValue
         newSubscription.notes = notes
-        
+
         // Set subscription type (default to trial if not provided)
         let type = subscriptionType ?? .trial
         newSubscription.subscriptionType = type.rawValue
@@ -223,11 +223,11 @@ class SubscriptionStore: ObservableObject {
             newSubscription.trialEndDate = endDate
         }
         AppLogger.log("Set subscription type to: \(type.rawValue)", category: "SubscriptionStore")
-        
+
         // Set billing cycle and amount
         newSubscription.billingCycle = billingCycle ?? "monthly"
         newSubscription.billingAmount = billingAmount ?? monthlyPrice
-        
+
         // Set exchange rate tracking if currency was converted
         if let origCurrency = originalCurrency {
             newSubscription.originalCurrency = origCurrency
@@ -235,43 +235,43 @@ class SubscriptionStore: ObservableObject {
             newSubscription.exchangeRate = exchangeRate ?? 1.0
             newSubscription.lastRateUpdate = Date()
         }
-        
+
         AppLogger.log("Saving new subscription to context", category: "SubscriptionStore")
         print("[SubscriptionStore] Subscription ID before save: \(newSubscription.id?.uuidString ?? "nil")")
         print("[SubscriptionStore] Subscription userID before save: \(newSubscription.userID ?? "nil")")
-        
+
         // Save the context first
         saveContext()
-        
+
         // Force the context to process pending changes
         viewContext.processPendingChanges()
-        
+
         // Wait a moment for the save to complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             print("[SubscriptionStore] Fetching subscriptions after save...")
             self?.fetchSubscriptions()
             print("[SubscriptionStore] Current subscription count: \(self?.allSubscriptions.count ?? 0)")
         }
-        
+
         // Schedule notifications for the new subscription
         NotificationManager.shared.scheduleNotifications(for: newSubscription)
-        
+
         // Only create calendar event if user opted in
         if addToCalendar {
             CalendarManager.shared.addOrUpdateEvent(for: newSubscription)
         }
-        
+
         // Update cost calculations
         costEngine.refreshMetrics()
-        
+
         return newSubscription
     }
-    
+
     func updateSubscriptionStatus(_ subscription: Subscription, status: SubscriptionStatus) {
         subscription.status = status.rawValue
         saveContext()
         fetchSubscriptions()
-        
+
         // Remove notifications and calendar event when subscription is no longer active
         if status != .active {
             NotificationManager.shared.removeNotifications(for: subscription)
@@ -279,29 +279,29 @@ class SubscriptionStore: ObservableObject {
         } else {
             CalendarManager.shared.addOrUpdateEvent(for: subscription)
         }
-        
+
         // Record outcome for cost calculations
         costEngine.recordSubscriptionOutcome(subscription: subscription, newStatus: status)
     }
-    
+
     func deleteSubscription(_ subscription: Subscription) {
         // Remove notifications before deleting
         NotificationManager.shared.removeNotifications(for: subscription)
         CalendarManager.shared.removeEvent(for: subscription)
-        
+
         viewContext.delete(subscription)
         saveContext()
         fetchSubscriptions()
-        
+
         // Notify CloudKit manager of new data
         NotificationCenter.default.post(
             name: NSNotification.Name("SubscriptionDataChanged"),
             object: nil
         )
     }
-    
+
     // MARK: - CloudKit Support
-    
+
     private func setupRemoteChangeNotifications() {
         // Listen for CloudKit remote changes
         NotificationCenter.default.addObserver(
@@ -312,26 +312,26 @@ class SubscriptionStore: ObservableObject {
             self?.handleRemoteChange()
         }
     }
-    
+
     private func handleRemoteChange() {
         // Refresh data when CloudKit sync occurs
         fetchSubscriptions()
     }
-    
+
     // MARK: - User Management
-    
+
     func updateCurrentUser(userID: String?) {
         SubscriptionStore.currentUserID = userID
     }
-    
+
     // MARK: - Helper Methods
-    
+
     func daysRemaining(for subscription: Subscription) -> Int {
         guard let endDate = subscription.endDate else { return 0 }
         let days = Calendar.current.dateComponents([.day], from: Date(), to: endDate).day ?? 0
         return max(0, days)
     }
-    
+
     func urgencyColor(for subscription: Subscription) -> Color {
         let days = daysRemaining(for: subscription)
         if days <= 2 {
@@ -342,58 +342,58 @@ class SubscriptionStore: ObservableObject {
             return .green
         }
     }
-    
+
     func formattedEndDate(for subscription: Subscription) -> String {
         guard let endDate = subscription.endDate else { return "No end date" }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         return formatter.string(from: endDate)
     }
-    
+
     // MARK: - Statistics
-    
+
     var totalMonthlyCost: Double {
         activeSubscriptions.reduce(0) { $0 + ($1.monthlyPrice) }
     }
-    
+
     var totalSavings: Double {
         allSubscriptions.filter { $0.status == SubscriptionStatus.canceled.rawValue }
             .reduce(0) { $0 + ($1.monthlyPrice) }
     }
-    
+
     // MARK: - Core Data
-    
+
     func saveContext() {
         guard viewContext.hasChanges else {
             AppLogger.log("No changes to save", category: "SubscriptionStore")
             return
         }
-        
+
         AppLogger.log("Saving context - \(viewContext.insertedObjects.count) inserted, \(viewContext.updatedObjects.count) updated, \(viewContext.deletedObjects.count) deleted", category: "SubscriptionStore")
-        
+
         do {
             try viewContext.save()
             AppLogger.success("Context saved successfully", category: "SubscriptionStore")
         } catch let error as NSError {
             AppLogger.error("Failed to save context: \(error) - Code: \(error.code)", category: "SubscriptionStore")
-            
+
             // Try to recover by resetting the context
             viewContext.rollback()
             AppLogger.warning("Context rolled back due to save failure", category: "SubscriptionStore")
         }
     }
-    
+
     private func saveContextPrivate() {
         saveContext()
     }
-    
+
     // MARK: - Subscription Type Management
-    
+
     func convertTrialToPaid(_ subscription: Subscription, newEndDate: Date? = nil, billingCycle: String = "monthly") {
         subscription.subscriptionType = SubscriptionType.paid.rawValue
         subscription.isTrial = false
         subscription.convertedToPaid = Date()
-        
+
         // Update end date for the paid subscription
         if let newDate = newEndDate {
             subscription.endDate = newDate
@@ -401,58 +401,113 @@ class SubscriptionStore: ObservableObject {
             // Default to adding one month if no date provided
             subscription.endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())
         }
-        
+
         // Update billing cycle
         subscription.billingCycle = billingCycle
-        
+
         // Ensure status is active
         subscription.status = SubscriptionStatus.active.rawValue
-        
+
         saveContext()
         fetchSubscriptions()
-        
+
         // Update notifications for paid subscription
         NotificationManager.shared.removeNotifications(for: subscription)
         NotificationManager.shared.scheduleNotifications(for: subscription)
-        
+
         // Update calendar event
         CalendarManager.shared.addOrUpdateEvent(for: subscription)
-        
+
+
         // Track conversion analytics
         _ = Calendar.current.dateComponents(
             [.day],
             from: subscription.startDate ?? Date(),
             to: Date()
         ).day ?? 0
-        
+
         AnalyticsManager.shared.track(.subscriptionKept, properties: AnalyticsProperties(
             source: "trial_conversion",
             subscriptionName: subscription.name ?? ""
         ))
-        
+
         // Update cost calculations
         costEngine.refreshMetrics()
     }
-    
+    // MARK: - Currency Repricing
+    /// Recalculate all subscriptions' monthlyPrice and billingAmount into the target currency.
+    /// - Parameters:
+    ///   - from: The previous user currency code. Used for subscriptions without originalCurrency.
+    ///   - to: The new user currency code to convert into.
+    @MainActor
+    func repriceAllSubscriptions(from fromCurrency: String, to toCurrency: String) async {
+        let fromCode = fromCurrency.uppercased()
+        let toCode = toCurrency.uppercased()
+        guard fromCode != toCode else { return }
+        AppLogger.log("Repricing subscriptions: \(fromCode) → \(toCode)", category: "SubscriptionStore")
+
+        // Ensure we have the latest list
+        if allSubscriptions.isEmpty {
+            fetchSubscriptions()
+        }
+
+        // Perform conversions sequentially to avoid rate limits; lists are small
+        for sub in allSubscriptions {
+            let baseAmount: Double
+            let baseCurrency: String
+            if let oc = sub.originalCurrency, !oc.isEmpty, sub.originalAmount > 0 {
+                baseCurrency = oc.uppercased()
+                baseAmount = sub.originalAmount
+            } else {
+                baseCurrency = fromCode
+                baseAmount = sub.monthlyPrice
+            }
+
+            if baseAmount <= 0 { continue }
+
+            if baseCurrency == toCode {
+                sub.monthlyPrice = baseAmount
+                sub.billingAmount = baseAmount
+                sub.exchangeRate = 1.0
+                sub.lastRateUpdate = Date()
+                continue
+            }
+
+            if let converted = await CurrencyConversionService.shared.convert(amount: baseAmount, from: baseCurrency, to: toCode) {
+                sub.monthlyPrice = converted
+                sub.billingAmount = converted
+                let rate = baseAmount == 0 ? 1.0 : (converted / baseAmount)
+                sub.exchangeRate = rate
+                sub.lastRateUpdate = Date()
+            }
+        }
+
+        saveContext()
+        // Refresh published arrays
+        fetchSubscriptions()
+        AppLogger.success("Repricing complete", category: "SubscriptionStore")
+    }
+
+
     // Get subscriptions by type
     func getSubscriptions(ofType type: SubscriptionType) -> [Subscription] {
         return allSubscriptions.filter { $0.subscriptionType == type.rawValue }
     }
-    
+
     var trialSubscriptions: [Subscription] {
         return getSubscriptions(ofType: .trial)
     }
-    
+
     var paidSubscriptions: [Subscription] {
         return getSubscriptions(ofType: .paid)
     }
-    
+
     var promotionalSubscriptions: [Subscription] {
         return getSubscriptions(ofType: .promotional)
     }
-    
+
     // MARK: - Memory Management
-    
+
     /// Clear in-memory caches to free up memory
     func clearCaches() {
         AppLogger.log("Clearing caches due to memory pressure", category: "SubscriptionStore")

@@ -748,10 +748,10 @@ class AppState: ObservableObject {
         var notes: String?
         if let confirmation = confirmationNumber {
             notes = "Confirmation: \(confirmation)"
-            if currency != AppPreferences.shared.currencyCode {
+            if currency != UserSpecificPreferences.shared.currencyCode {
                 notes = (notes ?? "") + "\nOriginal currency: \(currency)"
             }
-        } else if currency != AppPreferences.shared.currencyCode {
+        } else if currency != UserSpecificPreferences.shared.currencyCode {
             notes = "Original currency: \(currency)"
         }
 
@@ -765,8 +765,8 @@ class AppState: ObservableObject {
             notes: notes,
             addToCalendar: false,
             billingCycle: billingCycleString,
-            originalCurrency: currency != AppPreferences.shared.currencyCode ? currency : nil,
-            originalAmount: currency != AppPreferences.shared.currencyCode ? (price ?? 0.0) : nil
+            originalCurrency: currency != UserSpecificPreferences.shared.currencyCode ? currency : nil,
+            originalAmount: currency != UserSpecificPreferences.shared.currencyCode ? (price ?? 0.0) : nil
         )
 
         if let subscription = subscription {
